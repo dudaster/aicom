@@ -1,0 +1,120 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+$lock_state = WPOPS_Lock_Manager::get_state();
+
+$badge_label = match ( $lock_state['effective_lock'] ) {
+    'hard_locked' => 'Hard Lock Active',
+    'soft_locked' => 'Soft Lock Active',
+    default       => 'Unlocked',
+};
+$badge_class = match ( $lock_state['effective_lock'] ) {
+    'hard_locked' => 'wpops-badge-danger',
+    'soft_locked' => 'wpops-badge-warning',
+    default       => 'wpops-badge-success',
+};
+?>
+<div class="wrap wpops-wrap">
+    <h1>Safety Controls</h1>
+
+    <?php if ( isset( $_GET['updated'] ) ) : ?>
+    <div class="notice notice-success is-dismissible"><p>Lock settings updated.</p></div>
+    <?php endif; ?>
+
+    <!-- Current Status -->
+    <div class="wpops-card">
+        <h2>Current Lock Status</h2>
+        <p class="wpops-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
+        <p class="description">
+            <?php echo match ( $lock_state['effective_lock'] ) {
+                'hard_locked' => 'Only <code>server.status</code> is allowed. All other tools are blocked.',
+                'soft_locked' => 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.',
+                default       => 'All tools permitted (subject to scope and allowlist checks).',
+            }; ?>
+        </p>
+    </div>
+
+    <!-- Lock Controls -->
+    <div class="wpops-card">
+        <h2>Lock Controls</h2>
+        <p class="description">Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests.</p>
+
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+            <input type="hidden" name="action" value="wpops_mcp_save" />
+            <input type="hidden" name="wpops_action" value="set_lock" />
+            <?php wp_nonce_field( WPOPS_Admin::NONCE_ACTION ); ?>
+
+            <table class="form-table" role="presentation">
+                <tr>
+                    <th>Soft Lock</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="soft_lock" value="1"
+                                <?php checked( $lock_state['soft_lock'] ); ?>
+                                <?php disabled( $lock_state['hard_lock'] ); ?>
+                                id="wpops-soft-lock"
+                            />
+                            Enable Soft Lock
+                        </label>
+                        <p class="description">Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only.<br>Blocks: write, destructive, admin_sensitive.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th>Hard Lock</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="hard_lock" value="1"
+                                <?php checked( $lock_state['hard_lock'] ); ?>
+                                id="wpops-hard-lock"
+                            />
+                            Enable Hard Lock
+                        </label>
+                        <p class="description">Permits <em>public</em> tools only (<code>server.status</code>).<br><strong>Hard Lock overrides Soft Lock.</strong></p>
+                    </td>
+                </tr>
+            </table>
+
+            <?php if ( $lock_state['hard_lock'] ) : ?>
+            <div class="notice notice-warning inline"><p><strong>Hard Lock is active.</strong> Soft Lock is disabled and ignored.</p></div>
+            <?php endif; ?>
+
+            <?php submit_button( 'Apply Lock Settings', 'primary', 'submit', false ); ?>
+        </form>
+    </div>
+
+    <!-- Lock Behavior Reference -->
+    <div class="wpops-card">
+        <h2>Lock Permission Matrix</h2>
+        <table class="wp-list-table widefat fixed">
+            <thead>
+                <tr>
+                    <th>Tool Class</th>
+                    <th>Examples</th>
+                    <th>Unlocked</th>
+                    <th>Soft Lock</th>
+                    <th>Hard Lock</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                $matrix = [
+                    [ 'public',          'server.status',              '✓', '✓', '✓' ],
+                    [ 'discovery',       'tools/list, wp.post_types.list', '✓', '✓', '✗' ],
+                    [ 'read',            'wp.posts.list, wp.posts.get', '✓', '✓', '✗' ],
+                    [ 'write',           'wp.posts.create, wp.posts.update', '✓', '✗', '✗' ],
+                    [ 'destructive',     'wp.posts.delete, wp.terms.delete', '✓', '✗', '✗' ],
+                    [ 'admin_sensitive', 'wp.options.set, wp.users.create', '✓', '✗', '✗' ],
+                ];
+                foreach ( $matrix as [ $class, $examples, $unlocked, $soft, $hard ] ) : ?>
+                <tr>
+                    <td><code><?php echo esc_html( $class ); ?></code></td>
+                    <td><?php echo esc_html( $examples ); ?></td>
+                    <td class="wpops-cell-<?php echo $unlocked === '✓' ? 'yes' : 'no'; ?>"><?php echo $unlocked; ?></td>
+                    <td class="wpops-cell-<?php echo $soft === '✓' ? 'yes' : 'no'; ?>"><?php echo $soft; ?></td>
+                    <td class="wpops-cell-<?php echo $hard === '✓' ? 'yes' : 'no'; ?>"><?php echo $hard; ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

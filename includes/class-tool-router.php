@@ -1,0 +1,331 @@
+<?php
+/**
+ * Tool Router: 12-step validation pipeline per SPEC section 11.
+ *
+ * Input formats supported:
+ *  - MCP standard (JSON-RPC 2.0): {"jsonrpc":"2.0","method":"tools/call","params":{"name":"tool","arguments":{}},"id":1}
+ *  - MCP list:                    {"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}
+ *  - Shorthand method:            {"method":"tool.name","params":{}}
+ *  - Shorthand tool:              {"tool":"tool.name","arguments":{}}
+ *
+ * Step order (MUST NOT be changed — deterministic, auditable):
+ *  1.  Parse request + normalize tool_name/arguments + generate request_id
+ *  2.  Check lock state (hard → soft) against tool class
+ *  3.  Authenticate API key (hash verify, status active, IP allowlist)
+ *  4.  Check tool exists in registry
+ *  5.  Check module dependency active (WooCommerce / Elementor / Polylang)
+ *  6.  Verify scopes on API key
+ *  7.  (Delegated to handler) Allowlist/restriction checks
+ *  8.  Check confirm flag for destructive/admin_sensitive tools
+ *  9.  Determine dry_run mode
+ * 10.  Execute tool handler
+ * 11.  Update key last_used_at
+ * 12.  Audit log + return MCP response
+ */
+class WPOPS_Tool_Router {
+
+    // ── Main Dispatch ─────────────────────────────────────────────────────
+
+    public static function dispatch( string $raw_body ): array {
+        $start      = microtime( true );
+        $request_id = wp_generate_uuid4();
+        $remote_ip  = self::remote_ip();
+        $rpc_id     = null; // set after parse if jsonrpc request
+
+        // ── Step 1: Parse ─────────────────────────────────────────────────
+        $payload = json_decode( $raw_body, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            return self::early_error( 'parse_error', 'Invalid JSON payload', 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
+        }
+
+        // Extract JSON-RPC id (present when client uses MCP standard format)
+        $rpc_id     = $payload['id'] ?? null;
+        $rpc_method = trim( (string) ( $payload['method'] ?? '' ) );
+
+        if ( $rpc_method === 'tools/call' && isset( $payload['params']['name'] ) ) {
+            // MCP standard: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"...","arguments":{}},"id":1}
+            $tool_name = trim( (string) $payload['params']['name'] );
+            $arguments = (array) ( $payload['params']['arguments'] ?? [] );
+        } elseif ( $rpc_method === 'tools/list' ) {
+            // MCP standard list request
+            $tool_name = 'tools/list';
+            $arguments = [];
+        } else {
+            // Shorthand: {"method":"tool.name","params":{}} or {"tool":"tool.name","arguments":{}}
+            $tool_name = trim( (string) ( $payload['tool'] ?? $rpc_method ) );
+            $arguments = (array) ( $payload['arguments'] ?? $payload['params'] ?? [] );
+        }
+
+        if ( $tool_name === '' ) {
+            return self::early_error( 'parse_error', 'Missing tool name', 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
+        }
+
+        // Resolve metadata early (needed for lock check)
+        $tool_meta   = WPOPS_Tool_Registry::get( $tool_name );
+        $tool_class  = $tool_meta['class']  ?? 'unknown';
+        $tool_module = $tool_meta['module'] ?? 'unknown';
+
+        // ── Step 2: Lock check ────────────────────────────────────────────
+        $effective_lock = WPOPS_Lock_Manager::get_effective_lock();
+
+        // If tool exists AND its class is blocked — reject before auth.
+        // Unknown tools fall through to step 4 (tool not found) after auth.
+        if ( $tool_meta !== null && ! WPOPS_Policy_Engine::is_tool_allowed_by_lock( $tool_class, $effective_lock ) ) {
+            $lock_status = $effective_lock === 'hard_locked' ? 'blocked_hard_lock' : 'blocked_soft_lock';
+            $lock_code   = $effective_lock === 'hard_locked' ? 'HARD_LOCK_ACTIVE'  : 'SOFT_LOCK_ACTIVE';
+
+            WPOPS_Audit_Logger::log( [
+                'request_id'  => $request_id,
+                'remote_ip'   => $remote_ip,
+                'tool_name'   => $tool_name,
+                'module'      => $tool_module,
+                'status'      => $lock_status,
+                'http_status' => 403,
+                'duration_ms' => self::elapsed( $start ),
+                'error_code'  => $lock_code,
+                'params_json' => self::safe_json( $arguments ),
+            ] );
+
+            return self::mcp_error( $lock_code, ucwords( str_replace( '_', ' ', $lock_status ) ), $request_id, $rpc_id );
+        }
+
+        // ── Step 3: Auth ──────────────────────────────────────────────────
+        $plain_key = WPOPS_Auth::extract_key_from_request();
+
+        if ( ! $plain_key ) {
+            return self::early_error( 'auth_failed', 'API key missing', 401, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
+        }
+
+        $key_record = WPOPS_Auth::validate_key( $plain_key );
+
+        if ( ! $key_record ) {
+            return self::early_error( 'auth_failed', 'Invalid or revoked API key', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
+        }
+
+        if ( ! WPOPS_Auth::check_ip_allowlist( $key_record, $remote_ip ) ) {
+            return self::early_error( 'auth_failed', 'IP not in allowlist', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, (int) $key_record['id'], $key_record['label'], $rpc_id );
+        }
+
+        $key_id    = (int) $key_record['id'];
+        $key_label = $key_record['label'];
+
+        // Set WordPress current user context so hooks like Elementor's
+        // update_option_blogname can call current_user_can() successfully.
+        // Use the key's creator if available, otherwise fall back to admin (1).
+        $gateway_user_id = ! empty( $key_record['created_by_user_id'] )
+            ? (int) $key_record['created_by_user_id']
+            : 1;
+        wp_set_current_user( $gateway_user_id );
+
+        // ── Step 4: Tool exists ───────────────────────────────────────────
+        if ( $tool_meta === null ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'TOOL_NOT_FOUND', "Tool not found: $tool_name", 'error', 404, $arguments, $start, $rpc_id );
+        }
+
+        // ── Step 5: Dependency check ──────────────────────────────────────
+        $dependency = $tool_meta['dependency'];
+
+        if ( $dependency !== null ) {
+            $dep_active = match ( $dependency ) {
+                'woocommerce' => WPOPS_Module_Detector::is_woocommerce_active(),
+                'elementor'   => WPOPS_Module_Detector::is_elementor_active(),
+                'polylang'    => WPOPS_Module_Detector::is_polylang_active(),
+                default       => false,
+            };
+
+            if ( ! $dep_active ) {
+                return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DEPENDENCY_MISSING', "Required plugin not active: $dependency", 'dependency_missing', 422, $arguments, $start, $rpc_id );
+            }
+        }
+
+        // ── Step 6: Scope check ───────────────────────────────────────────
+        if ( ! WPOPS_Auth::check_scopes( $key_record, $tool_meta['required_scopes'] ) ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DENIED_SCOPE', 'Insufficient scope for this tool', 'denied_scope', 403, $arguments, $start, $rpc_id );
+        }
+
+        // ── Step 7: (Delegated) Allowlist checks are done inside handlers ─
+
+        // ── Step 8: Confirm flag ──────────────────────────────────────────
+        if ( ! WPOPS_Policy_Engine::check_confirm_flag( $tool_meta, $arguments ) ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'CONFIRM_REQUIRED', 'This operation requires arguments.confirm = true', 'validation_failed', 400, $arguments, $start, $rpc_id );
+        }
+
+        // ── Step 9: Dry-run mode ──────────────────────────────────────────
+        $is_dry_run = ! empty( $arguments['dry_run'] ) || WPOPS_Policy_Engine::is_dry_run_only( $key_record );
+
+        // ── Step 10: Execute ──────────────────────────────────────────────
+        $handler = $tool_meta['handler'];
+
+        if ( ! is_callable( $handler ) ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'HANDLER_MISSING', 'Tool handler not callable', 'error', 500, $arguments, $start, $rpc_id );
+        }
+
+        try {
+            $result = call_user_func( $handler, $arguments, $key_record, $is_dry_run );
+        } catch ( Throwable $e ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'EXECUTION_ERROR', $e->getMessage(), 'error', 500, $arguments, $start, $rpc_id );
+        }
+
+        // ── Step 11: Touch key ────────────────────────────────────────────
+        WPOPS_Auth::touch_key( $key_id, $remote_ip );
+
+        // ── Step 12: Audit log + return ───────────────────────────────────
+        $duration = self::elapsed( $start );
+
+        $is_error = isset( $result['error'] );
+        $meta     = $result['_meta'] ?? [];
+
+        WPOPS_Audit_Logger::log( [
+            'request_id'          => $request_id,
+            'remote_ip'           => $remote_ip,
+            'api_key_id'          => $key_id,
+            'api_key_label'       => $key_label,
+            'tool_name'           => $tool_name,
+            'module'              => $tool_module,
+            'status'              => $is_error ? ( $result['error']['status_code'] ?? 'error' ) : 'success',
+            'http_status'         => $is_error ? ( $result['http_status'] ?? 500 ) : 200,
+            'duration_ms'         => $duration,
+            'target_type'         => $meta['target_type'] ?? null,
+            'target_id'           => isset( $meta['target_id'] ) ? (string) $meta['target_id'] : null,
+            'is_dry_run'          => $is_dry_run ? 1 : 0,
+            'error_code'          => $is_error ? ( $result['error']['code'] ?? 'ERROR' ) : null,
+            'error_message'       => $is_error ? ( $result['error']['message'] ?? '' ) : null,
+            'params_json'         => self::safe_json( $arguments ),
+            'result_summary_json' => ! $is_error ? self::safe_json( $meta['summary'] ?? [] ) : null,
+        ] );
+
+        // Strip internal keys before returning
+        unset( $result['_meta'], $result['http_status'] );
+        $result['request_id'] = $request_id;
+
+        return self::jsonrpc_wrap( $result, $rpc_id );
+    }
+
+    // ── Error Builders ────────────────────────────────────────────────────
+
+    /**
+     * Error before auth (no key_id known). Logs with minimal data.
+     */
+    private static function early_error(
+        string $status_code,
+        string $message,
+        int    $http_status,
+        string $request_id,
+        string $remote_ip,
+        string $tool_name,
+        string $tool_module,
+        float  $start,
+        int    $key_id = 0,
+        string $key_label = '',
+        mixed  $rpc_id = null
+    ): array {
+        WPOPS_Audit_Logger::log( [
+            'request_id'    => $request_id,
+            'remote_ip'     => $remote_ip,
+            'api_key_id'    => $key_id ?: null,
+            'api_key_label' => $key_label ?: null,
+            'tool_name'     => $tool_name ?: 'unknown',
+            'module'        => $tool_module,
+            'status'        => $status_code,
+            'http_status'   => $http_status,
+            'duration_ms'   => self::elapsed( $start ),
+            'error_code'    => strtoupper( $status_code ),
+            'error_message' => $message,
+        ] );
+
+        return self::mcp_error( strtoupper( $status_code ), $message, $request_id, $rpc_id );
+    }
+
+    /**
+     * Error after auth (key_id known).
+     */
+    private static function keyed_error(
+        string $request_id,
+        string $remote_ip,
+        int    $key_id,
+        string $key_label,
+        string $tool_name,
+        string $tool_module,
+        string $error_code,
+        string $message,
+        string $status_code,
+        int    $http_status,
+        array  $arguments,
+        float  $start,
+        mixed  $rpc_id = null
+    ): array {
+        WPOPS_Audit_Logger::log( [
+            'request_id'    => $request_id,
+            'remote_ip'     => $remote_ip,
+            'api_key_id'    => $key_id,
+            'api_key_label' => $key_label,
+            'tool_name'     => $tool_name,
+            'module'        => $tool_module,
+            'status'        => $status_code,
+            'http_status'   => $http_status,
+            'duration_ms'   => self::elapsed( $start ),
+            'error_code'    => $error_code,
+            'error_message' => $message,
+            'params_json'   => self::safe_json( $arguments ),
+        ] );
+
+        return self::mcp_error( $error_code, $message, $request_id, $rpc_id );
+    }
+
+    private static function mcp_error( string $code, string $message, string $request_id, mixed $rpc_id = null ): array {
+        $response = [
+            'error'      => [ 'code' => $code, 'message' => $message ],
+            'request_id' => $request_id,
+        ];
+        return self::jsonrpc_wrap( $response, $rpc_id );
+    }
+
+    /**
+     * Wrap response in JSON-RPC 2.0 envelope when client sent a jsonrpc request (id present).
+     * For error responses, error stays at top level per JSON-RPC spec.
+     * For success responses, payload moves into result key.
+     */
+    private static function jsonrpc_wrap( array $response, mixed $rpc_id ): array {
+        if ( $rpc_id === null ) {
+            return $response; // legacy / shorthand format — no wrapping
+        }
+
+        $base = [ 'jsonrpc' => '2.0', 'id' => $rpc_id ];
+
+        if ( isset( $response['error'] ) ) {
+            return $base + [
+                'error'      => $response['error'],
+                'request_id' => $response['request_id'] ?? null,
+            ];
+        }
+
+        return $base + [ 'result' => $response ];
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    private static function elapsed( float $start ): int {
+        return (int) round( ( microtime( true ) - $start ) * 1000 );
+    }
+
+    private static function safe_json( array $data ): string {
+        // Strip potentially sensitive fields before logging
+        $sanitized = $data;
+        foreach ( [ 'password', 'pass', 'secret', 'key', 'token', 'api_key' ] as $sensitive ) {
+            if ( isset( $sanitized[ $sensitive ] ) ) {
+                $sanitized[ $sensitive ] = '***';
+            }
+        }
+        return wp_json_encode( $sanitized ) ?: '{}';
+    }
+
+    public static function remote_ip(): string {
+        // Respect X-Forwarded-For only if trusted (simplified — production should validate proxy)
+        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        if ( $forwarded ) {
+            return trim( explode( ',', $forwarded )[0] );
+        }
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    }
+}

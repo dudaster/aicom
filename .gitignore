@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Test artifacts
+_gate1.txt
+tests/
+
+# IDE
+.idea/
+.vscode/
+
+# Build artifacts
+*.zip
