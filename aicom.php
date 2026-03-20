@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name:       ACL - AI Control Layer
- * Plugin URI:        https://github.com/dudaster/acl-ai-control-layer
+ * Plugin Name:       AICOM - AI Commander for WordPress
+ * Plugin URI:        https://github.com/dudaster/aicom
  * Description:       Connect AI agents to your WordPress site. Exposes WordPress operations via a secure MCP endpoint with API key authentication, scope control, lock management, and full audit logging.
  * Version:           2.0.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       acl-ai-control-layer
+ * Text Domain:       aicom
  * Domain Path:       /languages
  * Requires PHP:      8.1
  * Requires at least: 6.0
@@ -18,19 +18,19 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'ACL_VERSION', '2.0.0' );
-define( 'ACL_DIR',     plugin_dir_path( __FILE__ ) );
-define( 'ACL_URL',     plugin_dir_url( __FILE__ ) );
+define( 'AICOM_VERSION', '2.0.0' );
+define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
+define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
 // ── Autoloader ─────────────────────────────────────────────────────────────
 spl_autoload_register( function ( string $class ): void {
-    // Only handle ACL_ prefixed classes
-    if ( strpos( $class, 'ACL_' ) !== 0 ) {
+    // Only handle AICOM_ prefixed classes
+    if ( strpos( $class, 'AICOM_' ) !== 0 ) {
         return;
     }
 
-    // Strip 'ACL_' → remaining suffix, e.g. "Module_WP_Core", "Admin", "DB", "Module_Detector"
-    $suffix = substr( $class, strlen( 'ACL_' ) );
+    // Strip 'AICOM_' → remaining suffix, e.g. "Module_WP_Core", "Admin", "DB", "Module_Detector"
+    $suffix = substr( $class, strlen( 'AICOM_' ) );
     $slug   = strtolower( str_replace( '_', '-', $suffix ) ); // "module-wp-core", "admin", "db", "module-detector"
 
     // Candidate paths — checked in order:
@@ -39,16 +39,16 @@ spl_autoload_register( function ( string $class ): void {
     //   3. admin/class-{slug}.php             (e.g. class-admin.php)
     //   4. modules/class-{suffix_no_module}.php  (e.g. class-wp-core.php from Module_WP_Core)
     $candidates = [
-        ACL_DIR . "includes/class-$slug.php",
-        ACL_DIR . "modules/class-$slug.php",
-        ACL_DIR . "admin/class-$slug.php",
+        AICOM_DIR . "includes/class-$slug.php",
+        AICOM_DIR . "modules/class-$slug.php",
+        AICOM_DIR . "admin/class-$slug.php",
     ];
 
     // For Module_* classes, also try modules/class-{without-module-prefix}.php
     if ( strpos( $suffix, 'Module_' ) === 0 ) {
         $inner = substr( $suffix, strlen( 'Module_' ) ); // "WP_Core", "Base", "Elementor"...
         $inner_slug = strtolower( str_replace( '_', '-', $inner ) );
-        $candidates[] = ACL_DIR . "modules/class-$inner_slug.php";
+        $candidates[] = AICOM_DIR . "modules/class-$inner_slug.php";
     }
 
     foreach ( $candidates as $path ) {
@@ -61,33 +61,33 @@ spl_autoload_register( function ( string $class ): void {
 
 // ── Activation Hook ────────────────────────────────────────────────────────
 register_activation_hook( __FILE__, function (): void {
-    ACL_DB::install();
+    AICOM_DB::install();
     // Flush rewrite rules so REST route is immediately accessible
     flush_rewrite_rules();
 } );
 
 // ── Boot on init ───────────────────────────────────────────────────────────
-add_action( 'plugins_loaded', 'acl_boot', 5 );
+add_action( 'plugins_loaded', 'aicom_boot', 5 );
 
-function acl_boot(): void {
+function aicom_boot(): void {
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
-        new ACL_Module_WP_Core(),
-        new ACL_Module_Menus(),
-        new ACL_Module_Media(),
-        new ACL_Module_Users(),
-        new ACL_Module_Backup(),
+        new AICOM_Module_WP_Core(),
+        new AICOM_Module_Menus(),
+        new AICOM_Module_Media(),
+        new AICOM_Module_Users(),
+        new AICOM_Module_Backup(),
     ];
 
     // Conditional modules (only instantiate if dependency is active)
-    if ( ACL_Module_Detector::is_woocommerce_active() ) {
-        $modules[] = new ACL_Module_WooCommerce();
+    if ( AICOM_Module_Detector::is_woocommerce_active() ) {
+        $modules[] = new AICOM_Module_WooCommerce();
     }
-    if ( ACL_Module_Detector::is_elementor_active() ) {
-        $modules[] = new ACL_Module_Elementor();
+    if ( AICOM_Module_Detector::is_elementor_active() ) {
+        $modules[] = new AICOM_Module_Elementor();
     }
-    if ( ACL_Module_Detector::is_polylang_active() ) {
-        $modules[] = new ACL_Module_Polylang();
+    if ( AICOM_Module_Detector::is_polylang_active() ) {
+        $modules[] = new AICOM_Module_Polylang();
     }
 
     foreach ( $modules as $module ) {
@@ -96,31 +96,31 @@ function acl_boot(): void {
 
     // ── Admin ──────────────────────────────────────────────────────────────
     if ( is_admin() ) {
-        new ACL_Admin();
+        new AICOM_Admin();
     }
 
     // ── REST Endpoint ──────────────────────────────────────────────────────
     add_action( 'rest_api_init', function (): void {
-        register_rest_route( 'acl/v1', '/mcp', [
+        register_rest_route( 'aicom/v1', '/mcp', [
             'methods'             => [ 'POST', 'GET' ],
-            'callback'            => 'acl_rest_handler',
+            'callback'            => 'aicom_rest_handler',
             // permission_callback is intentionally open — authentication and authorization
-            // are fully handled inside ACL_Tool_Router::dispatch() via API key validation,
+            // are fully handled inside AICOM_Tool_Router::dispatch() via API key validation,
             // scope checks, and lock-state enforcement before any operation is executed.
             'permission_callback' => '__return_true',
         ] );
     } );
 
-    // ── Fallback Endpoint (/index.php?acl=1) ─────────────────────────
+    // ── Fallback Endpoint (/index.php?aicom=1) ─────────────────────────
     add_action( 'init', function (): void {
-        if ( ! empty( $_GET['acl'] ) && ( $_GET['acl'] === '1' ) ) {
+        if ( ! empty( $_GET['aicom'] ) && ( $_GET['aicom'] === '1' ) ) {
             if ( $_SERVER['REQUEST_METHOD'] === 'GET' ) {
                 // Health check
-                wp_send_json( [ 'ok' => true, 'server' => 'ACL - AI Control Layer', 'version' => ACL_VERSION ] );
+                wp_send_json( [ 'ok' => true, 'server' => 'AICOM - AI Commander for WordPress', 'version' => AICOM_VERSION ] );
             }
 
             $body   = file_get_contents( 'php://input' );
-            $result = ACL_Tool_Router::dispatch( $body ?: '{}' );
+            $result = AICOM_Tool_Router::dispatch( $body ?: '{}' );
 
             wp_send_json( $result );
         }
@@ -129,20 +129,20 @@ function acl_boot(): void {
 
 // ── REST Handler ───────────────────────────────────────────────────────────
 
-function acl_rest_handler( WP_REST_Request $request ): WP_REST_Response {
+function aicom_rest_handler( WP_REST_Request $request ): WP_REST_Response {
     // GET = health/status endpoint
     if ( $request->get_method() === 'GET' ) {
         return new WP_REST_Response( [
             'ok'      => true,
-            'server'  => 'ACL - AI Control Layer',
-            'version' => ACL_VERSION,
-            'lock'    => ACL_Lock_Manager::get_state(),
+            'server'  => 'AICOM - AI Commander for WordPress',
+            'version' => AICOM_VERSION,
+            'lock'    => AICOM_Lock_Manager::get_state(),
         ] );
     }
 
     // POST = MCP dispatch
     $body   = $request->get_body();
-    $result = ACL_Tool_Router::dispatch( $body ?: '{}' );
+    $result = AICOM_Tool_Router::dispatch( $body ?: '{}' );
 
     $http_status = isset( $result['error'] ) ? ( $result['error']['http_status'] ?? 400 ) : 200;
     unset( $result['error']['http_status'] );

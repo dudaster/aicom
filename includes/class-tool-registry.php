@@ -16,7 +16,7 @@
  *   description      string   Human-readable for tools/list
  *   input_schema     array    JSON-Schema-like parameter definitions
  */
-class ACL_Tool_Registry {
+class AICOM_Tool_Registry {
 
     /** @var array<string, array> */
     private static array $tools = [];

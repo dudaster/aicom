@@ -3,7 +3,7 @@
  * Polylang Ops module.
  * Dependency: Polylang must be active (pll_languages_list function exists).
  */
-class ACL_Module_Polylang extends ACL_Module_Base {
+class AICOM_Module_Polylang extends AICOM_Module_Base {
 
     public function get_module_name(): string {
         return 'polylang';
@@ -171,7 +171,7 @@ class ACL_Module_Polylang extends ACL_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters post_id and language are required', 'validation_failed' );
         }
 
-        if ( ! ACL_Policy_Engine::check_language_allowlist( $key_record, $lang ) ) {
+        if ( ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $lang ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $lang", 'denied_allowlist', 403 );
         }
 
@@ -267,7 +267,7 @@ class ACL_Module_Polylang extends ACL_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters term_id and language are required', 'validation_failed' );
         }
 
-        if ( ! ACL_Policy_Engine::check_language_allowlist( $key_record, $lang ) ) {
+        if ( ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $lang ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $lang", 'denied_allowlist', 403 );
         }
 

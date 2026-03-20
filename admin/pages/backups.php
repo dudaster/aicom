@@ -16,7 +16,7 @@ if ( $filter_type ) {
 
 $where_sql = implode( ' AND ', $where );
 $offset    = ( $page_num - 1 ) * $per_page;
-$table     = $wpdb->prefix . 'acl_backups';
+$table     = $wpdb->prefix . 'aicom_backups';
 
 $count_sql = "SELECT COUNT(*) FROM $table WHERE $where_sql";
 $total     = empty( $params ) ? (int) $wpdb->get_var( $count_sql ) : (int) $wpdb->get_var( $wpdb->prepare( $count_sql, ...$params ) );
@@ -28,24 +28,24 @@ $backups     = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ),
 $num_pages = (int) ceil( $total / $per_page );
 $type_options = [ '' => 'All Types', 'post' => 'Post', 'term' => 'Term', 'elementor_page' => 'Elementor Page' ];
 ?>
-<div class="wrap acl-wrap">
-    <h1>Backups <span class="acl-count">(<?php echo number_format( $total ); ?> total)</span></h1>
+<div class="wrap aicom-wrap">
+    <h1>Backups <span class="aicom-count">(<?php echo number_format( $total ); ?> total)</span></h1>
 
     <?php if ( isset( $_GET['deleted'] ) ) : ?>
     <div class="notice notice-warning is-dismissible"><p>Backup deleted.</p></div>
     <?php endif; ?>
 
     <!-- Filters -->
-    <form method="get" action="" class="acl-filters">
-        <input type="hidden" name="page" value="acl-backups" />
-        <div class="acl-filter-row">
+    <form method="get" action="" class="aicom-filters">
+        <input type="hidden" name="page" value="aicom-backups" />
+        <div class="aicom-filter-row">
             <select name="target_type">
                 <?php foreach ( $type_options as $val => $label ) : ?>
                 <option value="<?php echo esc_attr( $val ); ?>" <?php selected( $filter_type, $val ); ?>><?php echo esc_html( $label ); ?></option>
                 <?php endforeach; ?>
             </select>
             <button type="submit" class="button">Filter</button>
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=acl-backups' ) ); ?>" class="button">Reset</a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-backups' ) ); ?>" class="button">Reset</a>
         </div>
     </form>
 
@@ -84,11 +84,11 @@ $type_options = [ '' => 'All Types', 'post' => 'Post', 'term' => 'Term', 'elemen
                 </td>
                 <td>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                        <input type="hidden" name="action" value="acl_save" />
-                        <input type="hidden" name="acl_action" value="delete_backup" />
+                        <input type="hidden" name="action" value="aicom_save" />
+                        <input type="hidden" name="aicom_action" value="delete_backup" />
                         <input type="hidden" name="backup_id" value="<?php echo (int) $backup['id']; ?>" />
-                        <?php wp_nonce_field( ACL_Admin::NONCE_ACTION ); ?>
-                        <button type="submit" class="button button-small acl-btn-danger" onclick="return confirm('Delete this backup? This cannot be undone.')">Delete</button>
+                        <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                        <button type="submit" class="button button-small aicom-btn-danger" onclick="return confirm('Delete this backup? This cannot be undone.')">Delete</button>
                     </form>
                 </td>
             </tr>
@@ -100,7 +100,7 @@ $type_options = [ '' => 'All Types', 'post' => 'Post', 'term' => 'Term', 'elemen
     <div class="tablenav bottom">
         <div class="tablenav-pages">
             <?php for ( $p = 1; $p <= $num_pages; $p++ ) :
-                $url = admin_url( 'admin.php?page=acl-backups&target_type=' . urlencode( $filter_type ) . '&paged=' . $p );
+                $url = admin_url( 'admin.php?page=aicom-backups&target_type=' . urlencode( $filter_type ) . '&paged=' . $p );
                 $cls = $p === $page_num ? 'button button-primary' : 'button';
             ?>
             <a href="<?php echo esc_url( $url ); ?>" class="<?php echo esc_attr( $cls ); ?>"><?php echo (int) $p; ?></a>

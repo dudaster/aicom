@@ -34,27 +34,27 @@ $filters = array_filter( [
     'date_to'    => $filter_to,
 ] );
 
-$result    = ACL_Audit_Logger::query( $filters, $per_page, $page_num );
+$result    = AICOM_Audit_Logger::query( $filters, $per_page, $page_num );
 $logs      = $result['items'];
 $total     = $result['total'];
 $num_pages = (int) ceil( $total / $per_page );
 
 // For key dropdown
-$api_keys = $wpdb->get_results( "SELECT id, label, key_prefix FROM {$wpdb->prefix}acl_api_keys ORDER BY label", ARRAY_A );
+$api_keys = $wpdb->get_results( "SELECT id, label, key_prefix FROM {$wpdb->prefix}aicom_api_keys ORDER BY label", ARRAY_A );
 
 $status_options = [ '', 'success', 'error', 'blocked_soft_lock', 'blocked_hard_lock', 'denied_scope', 'denied_allowlist', 'validation_failed', 'auth_failed', 'dependency_missing' ];
 $period_options = [ 'today' => 'Today', '7days' => 'Last 7 Days', '30days' => 'Last 30 Days', 'year' => 'This Year', 'custom' => 'Custom Range', 'all' => 'All Time' ];
 
-$base_url = admin_url( 'admin.php?page=acl-audit-logs' );
+$base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
 ?>
-<div class="wrap acl-wrap">
-    <h1>Audit Logs <span class="acl-count">(<?php echo number_format( $total ); ?> total)</span></h1>
+<div class="wrap aicom-wrap">
+    <h1>Audit Logs <span class="aicom-count">(<?php echo number_format( $total ); ?> total)</span></h1>
 
     <!-- Filters -->
-    <form method="get" action="" class="acl-filters">
-        <input type="hidden" name="page" value="acl-audit-logs" />
+    <form method="get" action="" class="aicom-filters">
+        <input type="hidden" name="page" value="aicom-audit-logs" />
 
-        <div class="acl-filter-row">
+        <div class="aicom-filter-row">
             <input type="text" name="tool_name" value="<?php echo esc_attr( $filter_tool ); ?>" placeholder="Tool name..." class="regular-text" />
 
             <select name="status">
@@ -76,13 +76,13 @@ $base_url = admin_url( 'admin.php?page=acl-audit-logs' );
 
             <input type="text" name="remote_ip" value="<?php echo esc_attr( $filter_ip ); ?>" placeholder="IP address..." class="regular-text" />
 
-            <select name="period" id="acl-period-select">
+            <select name="period" id="aicom-period-select">
                 <?php foreach ( $period_options as $pk => $pl ) : ?>
                 <option value="<?php echo esc_attr( $pk ); ?>" <?php selected( $filter_period, $pk ); ?>><?php echo esc_html( $pl ); ?></option>
                 <?php endforeach; ?>
             </select>
 
-            <span id="acl-custom-range" <?php echo $filter_period !== 'custom' ? 'style="display:none"' : ''; ?>>
+            <span id="aicom-custom-range" <?php echo $filter_period !== 'custom' ? 'style="display:none"' : ''; ?>>
                 <input type="datetime-local" name="date_from" value="<?php echo esc_attr( str_replace( ' ', 'T', $filter_from ) ); ?>" />
                 <span>to</span>
                 <input type="datetime-local" name="date_to" value="<?php echo esc_attr( str_replace( ' ', 'T', $filter_to ) ); ?>" />
@@ -97,7 +97,7 @@ $base_url = admin_url( 'admin.php?page=acl-audit-logs' );
     <?php if ( empty( $logs ) ) : ?>
     <p>No log entries found.</p>
     <?php else : ?>
-    <table class="wp-list-table widefat fixed striped acl-logs-table">
+    <table class="wp-list-table widefat fixed striped aicom-logs-table">
         <thead>
             <tr>
                 <th style="width:140px">Time</th>
@@ -112,15 +112,15 @@ $base_url = admin_url( 'admin.php?page=acl-audit-logs' );
         <tbody>
         <?php foreach ( $logs as $log ) :
             $status_cls = match ( true ) {
-                $log['status'] === 'success'              => 'acl-status-active',
-                str_starts_with( $log['status'], 'blocked' ) => 'acl-status-warning',
-                default                                    => 'acl-status-revoked',
+                $log['status'] === 'success'              => 'aicom-status-active',
+                str_starts_with( $log['status'], 'blocked' ) => 'aicom-status-warning',
+                default                                    => 'aicom-status-revoked',
             };
         ?>
             <tr>
                 <td><?php echo esc_html( $log['created_at'] ); ?></td>
                 <td><code><?php echo esc_html( $log['tool_name'] ); ?></code></td>
-                <td><span class="acl-status <?php echo esc_attr( $status_cls ); ?>"><?php echo esc_html( $log['status'] ); ?></span></td>
+                <td><span class="aicom-status <?php echo esc_attr( $status_cls ); ?>"><?php echo esc_html( $log['status'] ); ?></span></td>
                 <td><?php echo $log['duration_ms'] !== null ? esc_html( $log['duration_ms'] ) . 'ms' : '—'; ?></td>
                 <td><?php echo esc_html( $log['api_key_label'] ?: '—' ); ?></td>
                 <td><code><?php echo esc_html( $log['remote_ip'] ); ?></code></td>

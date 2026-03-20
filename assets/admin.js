@@ -1,12 +1,12 @@
-/* ACL - AI Control Layer — Admin JS */
+/* AICOM - AI Commander for WordPress — Admin JS */
 (function ($) {
     'use strict';
 
     $(function () {
 
         // ── Copy buttons ───────────────────────────────────────────────────
-        $(document).on('click', '.acl-copy-btn', function () {
-            var text = $(this).data('target') || $(this).siblings('.acl-copy-input').val();
+        $(document).on('click', '.aicom-copy-btn', function () {
+            var text = $(this).data('target') || $(this).siblings('.aicom-copy-input').val();
             if (!text) return;
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -34,8 +34,8 @@
         });
 
         // ── Hard lock disables soft lock checkbox ──────────────────────────
-        var $hardLock = $('#acl-hard-lock, #acl-hard-lock-toggle');
-        var $softLock = $('#acl-soft-lock');
+        var $hardLock = $('#aicom-hard-lock, #aicom-hard-lock-toggle');
+        var $softLock = $('#aicom-soft-lock');
 
         function syncLockState() {
             if ($hardLock.is(':checked')) {
@@ -49,8 +49,8 @@
         syncLockState();
 
         // ── Custom date range for audit log period selector ────────────────
-        var $periodSelect = $('#acl-period-select');
-        var $customRange  = $('#acl-custom-range');
+        var $periodSelect = $('#aicom-period-select');
+        var $customRange  = $('#aicom-custom-range');
 
         function syncPeriod() {
             if ($periodSelect.val() === 'custom') {
@@ -64,8 +64,8 @@
         syncPeriod();
 
         // ── Scope "Check all" toggle ───────────────────────────────────────
-        var $checkAll = $('#acl-scope-check-all');
-        var $scopeCbs = $('.acl-scope-cb');
+        var $checkAll = $('#aicom-scope-check-all');
+        var $scopeCbs = $('.aicom-scope-cb');
 
         $checkAll.on('change', function () {
             $scopeCbs.prop('checked', $(this).is(':checked'));
@@ -76,7 +76,7 @@
         });
 
         // ── Auto-select plain key text on focus ────────────────────────────
-        $('#acl-plain-key').on('focus click', function () {
+        $('#aicom-plain-key').on('focus click', function () {
             $(this).select();
         });
 

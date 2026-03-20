@@ -1,9 +1,9 @@
 <?php
 /**
  * Backup and Restore Ops module.
- * Stores snapshots in wp_acl_backups table.
+ * Stores snapshots in wp_aicom_backups table.
  */
-class ACL_Module_Backup extends ACL_Module_Base {
+class AICOM_Module_Backup extends AICOM_Module_Base {
 
     public function get_module_name(): string {
         return 'backup';
@@ -108,7 +108,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
 
     public function handle_list( array $args, array $key_record, bool $dry_run ): array {
         global $wpdb;
-        $table = $wpdb->prefix . 'acl_backups';
+        $table = $wpdb->prefix . 'aicom_backups';
 
         $where  = [ '1=1' ];
         $params = [];
@@ -145,7 +145,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
         }
 
         $row = $wpdb->get_row(
-            $wpdb->prepare( "SELECT id, created_at, tool_name, target_type, target_id, manifest_json FROM {$wpdb->prefix}acl_backups WHERE id = %d", $id ),
+            $wpdb->prepare( "SELECT id, created_at, tool_name, target_type, target_id, manifest_json FROM {$wpdb->prefix}aicom_backups WHERE id = %d", $id ),
             ARRAY_A
         );
 
@@ -190,7 +190,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_backup_post_id' => $post_id ] );
         }
 
-        $wpdb->insert( $wpdb->prefix . 'acl_backups', [
+        $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
             'created_at'   => current_time( 'mysql', true ),
             'api_key_id'   => (int) $key_record['id'],
             'tool_name'    => 'backup.post.create',
@@ -216,7 +216,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
         }
 
         $backup = $wpdb->get_row(
-            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}acl_backups WHERE id = %d AND target_type = 'post'", $backup_id ),
+            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}aicom_backups WHERE id = %d AND target_type = 'post'", $backup_id ),
             ARRAY_A
         );
 
@@ -286,7 +286,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_backup_term_id' => $term_id ] );
         }
 
-        $wpdb->insert( $wpdb->prefix . 'acl_backups', [
+        $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
             'created_at'   => current_time( 'mysql', true ),
             'api_key_id'   => (int) $key_record['id'],
             'tool_name'    => 'backup.term.create',
@@ -312,7 +312,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
         }
 
         $backup = $wpdb->get_row(
-            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}acl_backups WHERE id = %d AND target_type = 'term'", $backup_id ),
+            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}aicom_backups WHERE id = %d AND target_type = 'term'", $backup_id ),
             ARRAY_A
         );
 
@@ -366,7 +366,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter id is required', 'validation_failed' );
         }
 
-        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}acl_backups WHERE id = %d", $id ) );
+        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}aicom_backups WHERE id = %d", $id ) );
         if ( ! $exists ) {
             return $this->err( 'NOT_FOUND', "Backup $id not found", 'error', 404 );
         }
@@ -375,7 +375,7 @@ class ACL_Module_Backup extends ACL_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_delete_backup_id' => $id ] );
         }
 
-        $wpdb->delete( $wpdb->prefix . 'acl_backups', [ 'id' => $id ] );
+        $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'id' => $id ] );
         return $this->ok( [ 'id' => $id, 'deleted' => true ] );
     }
 
@@ -385,11 +385,11 @@ class ACL_Module_Backup extends ACL_Module_Base {
         $cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-$days days" ) );
 
         if ( $dry_run ) {
-            $count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}acl_backups WHERE created_at < %s", $cutoff ) );
+            $count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_backups WHERE created_at < %s", $cutoff ) );
             return $this->ok( [ 'dry_run' => true, 'would_delete_count' => $count ] );
         }
 
-        $deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}acl_backups WHERE created_at < %s", $cutoff ) );
+        $deleted = $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}aicom_backups WHERE created_at < %s", $cutoff ) );
         return $this->ok(
             [ 'deleted_count' => (int) $deleted, 'cutoff_date' => $cutoff ],
             [ 'target_type' => 'backup_purge', 'target_id' => $cutoff, 'summary' => [ 'deleted' => $deleted ] ]

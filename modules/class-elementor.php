@@ -3,7 +3,7 @@
  * Elementor Ops module — operates programmatically on _elementor_data postmeta.
  * Dependency: Elementor plugin must be active.
  */
-class ACL_Module_Elementor extends ACL_Module_Base {
+class AICOM_Module_Elementor extends AICOM_Module_Base {
 
     public function get_module_name(): string {
         return 'elementor';
@@ -243,7 +243,7 @@ class ACL_Module_Elementor extends ACL_Module_Base {
         }
 
         $wpdb->insert(
-            $wpdb->prefix . 'acl_backups',
+            $wpdb->prefix . 'aicom_backups',
             [
                 'created_at'   => current_time( 'mysql', true ),
                 'api_key_id'   => (int) $key_record['id'],
@@ -271,7 +271,7 @@ class ACL_Module_Elementor extends ACL_Module_Base {
         }
 
         $backup = $wpdb->get_row(
-            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}acl_backups WHERE id = %d AND target_type = 'elementor_page'", $backup_id ),
+            $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}aicom_backups WHERE id = %d AND target_type = 'elementor_page'", $backup_id ),
             ARRAY_A
         );
 

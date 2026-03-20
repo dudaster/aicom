@@ -14,7 +14,7 @@
  *   admin_sensitive → wp.menus.delete (confirm=true),
  *                      wp.menus.locations.set (confirm=true)
  */
-class ACL_Module_Menus extends ACL_Module_Base {
+class AICOM_Module_Menus extends AICOM_Module_Base {
 
     public function get_module_name(): string {
         return 'menus';

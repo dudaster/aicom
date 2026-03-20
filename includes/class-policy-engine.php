@@ -7,7 +7,7 @@
  *   soft_locked  → 'public', 'discovery', 'read'
  *   unlocked     → all classes
  */
-class ACL_Policy_Engine {
+class AICOM_Policy_Engine {
 
     // ── Lock Matrix ───────────────────────────────────────────────────────
 

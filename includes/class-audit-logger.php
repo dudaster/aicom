@@ -1,16 +1,16 @@
 <?php
 /**
- * Structured audit logging to wp_acl_logs.
+ * Structured audit logging to wp_aicom_logs.
  * All log entries record the full context needed for the Audit Logs UI filters.
  */
-class ACL_Audit_Logger {
+class AICOM_Audit_Logger {
 
     private static ?string $table = null;
 
     private static function table(): string {
         if ( self::$table === null ) {
             global $wpdb;
-            self::$table = $wpdb->prefix . 'acl_logs';
+            self::$table = $wpdb->prefix . 'aicom_logs';
         }
         return self::$table;
     }

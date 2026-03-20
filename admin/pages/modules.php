@@ -1,11 +1,11 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$module_status = ACL_Module_Detector::get_module_status_map();
-$active_modules = ACL_Module_Detector::get_active_modules();
+$module_status = AICOM_Module_Detector::get_module_status_map();
+$active_modules = AICOM_Module_Detector::get_active_modules();
 
 // Count registered tools per module
-$all_tools = ACL_Tool_Registry::get_for_modules( $active_modules );
+$all_tools = AICOM_Tool_Registry::get_for_modules( $active_modules );
 $tools_per_module = [];
 foreach ( $all_tools as $tool_meta ) {
     $mod = $tool_meta['module'];
@@ -57,37 +57,37 @@ $module_info = [
     ],
 ];
 ?>
-<div class="wrap acl-wrap">
+<div class="wrap aicom-wrap">
     <h1>Modules</h1>
 
-    <div class="acl-modules-grid">
+    <div class="aicom-modules-grid">
     <?php foreach ( $module_info as $slug => $info ) :
         $status      = $module_status[ $slug ] ?? 'inactive';
         $is_active   = $status === 'active';
-        $card_class  = $is_active ? 'acl-module-card-active' : 'acl-module-card-inactive';
+        $card_class  = $is_active ? 'aicom-module-card-active' : 'aicom-module-card-inactive';
         $tool_count  = $tools_per_module[ $slug ] ?? 0;
     ?>
-        <div class="acl-module-card <?php echo esc_attr( $card_class ); ?>">
-            <div class="acl-module-header">
+        <div class="aicom-module-card <?php echo esc_attr( $card_class ); ?>">
+            <div class="aicom-module-header">
                 <span class="dashicons <?php echo esc_attr( $info['icon'] ); ?>"></span>
                 <h3><?php echo esc_html( $info['label'] ); ?></h3>
-                <span class="acl-module-status-dot <?php echo $is_active ? 'acl-dot-active' : 'acl-dot-inactive'; ?>"></span>
+                <span class="aicom-module-status-dot <?php echo $is_active ? 'aicom-dot-active' : 'aicom-dot-inactive'; ?>"></span>
             </div>
-            <p class="acl-module-desc"><?php echo esc_html( $info['description'] ); ?></p>
-            <div class="acl-module-meta">
+            <p class="aicom-module-desc"><?php echo esc_html( $info['description'] ); ?></p>
+            <div class="aicom-module-meta">
                 <?php if ( $info['required'] ) : ?>
-                <span class="acl-module-requires"><?php echo esc_html( $is_active ? '✓ ' . $info['required'] : '⚠ Requires: ' . $info['required'] ); ?></span>
+                <span class="aicom-module-requires"><?php echo esc_html( $is_active ? '✓ ' . $info['required'] : '⚠ Requires: ' . $info['required'] ); ?></span>
                 <?php else : ?>
-                <span class="acl-module-requires">Always active</span>
+                <span class="aicom-module-requires">Always active</span>
                 <?php endif; ?>
-                <span class="acl-module-tools"><?php echo (int) $tool_count; ?> tool<?php echo $tool_count !== 1 ? 's' : ''; ?></span>
+                <span class="aicom-module-tools"><?php echo (int) $tool_count; ?> tool<?php echo $tool_count !== 1 ? 's' : ''; ?></span>
             </div>
         </div>
     <?php endforeach; ?>
     </div>
 
     <!-- Tool List per Module -->
-    <div class="acl-card">
+    <div class="aicom-card">
         <h2>All Registered Tools</h2>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -101,7 +101,7 @@ $module_info = [
             </thead>
             <tbody>
             <?php
-            $all = ACL_Tool_Registry::get_for_modules( $active_modules );
+            $all = AICOM_Tool_Registry::get_for_modules( $active_modules );
             foreach ( $all as $meta ) :
                 $flags = [];
                 if ( $meta['destructive'] )      $flags[] = 'destructive';
@@ -112,7 +112,7 @@ $module_info = [
                 <tr>
                     <td><code><?php echo esc_html( $meta['tool_name'] ); ?></code></td>
                     <td><?php echo esc_html( $meta['module'] ); ?></td>
-                    <td><span class="acl-class-badge acl-class-<?php echo esc_attr( $meta['class'] ); ?>"><?php echo esc_html( $meta['class'] ); ?></span></td>
+                    <td><span class="aicom-class-badge aicom-class-<?php echo esc_attr( $meta['class'] ); ?>"><?php echo esc_html( $meta['class'] ); ?></span></td>
                     <td><?php echo implode( ', ', array_map( 'esc_html', $meta['required_scopes'] ) ) ?: '—'; ?></td>
                     <td><?php echo implode( ' ', array_map( fn($f) => '<code>' . esc_html($f) . '</code>', $flags ) ); ?></td>
                 </tr>

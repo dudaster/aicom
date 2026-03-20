@@ -1,4 +1,4 @@
-# ACL – AI Control Layer for WordPress
+# AICOM - AI Commander for WordPress
 
 **Control your WordPress site with AI.** ACL is a WordPress plugin that turns your site into an MCP server — giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
 
@@ -6,7 +6,7 @@ No more copy-pasting between your AI assistant and WordPress. No more manual rep
 
 ---
 
-## What can you do with ACL?
+## What can you do with AICOM?
 
 - **Let an AI agent write and publish content** — create posts, pages, update metadata, manage categories and tags, all via natural language instructions to your AI.
 - **Automate your WooCommerce store** — update product descriptions, manage categories, read settings, all through an AI agent without touching the WordPress dashboard.
@@ -54,9 +54,9 @@ AI Agent → ACL Endpoint → WordPress
 
 ## Installation
 
-1. Upload the `acl-ai-control-layer` folder to `/wp-content/plugins/`
+1. Upload the `aicom` folder to `/wp-content/plugins/`
 2. Activate via **Plugins → Installed Plugins**
-3. Go to **ACL → API Keys** and create your first key
+3. Go to **AICOM → API Keys** and create your first key
 4. Point your AI agent or MCP client to your endpoint
 
 ---
@@ -65,18 +65,18 @@ AI Agent → ACL Endpoint → WordPress
 
 **REST API:**
 ```
-POST /wp-json/acl/v1/mcp
+POST /wp-json/aicom/v1/mcp
 ```
 
 **Fallback** (always works, no mod_rewrite / .htaccess required):
 ```
-POST /?acl=1
+POST /?aicom=1
 ```
 
 **Health check:**
 ```
-GET /?acl=1
-→ {"ok":true,"server":"ACL - AI Control Layer","version":"2.0.0"}
+GET /?aicom=1
+→ {"ok":true,"server":"AICOM - AI Commander for WordPress","version":"2.0.0"}
 ```
 
 ---
@@ -85,11 +85,11 @@ GET /?acl=1
 
 Pass your API key via header:
 ```
-Authorization: Bearer acl_XXXXXXXX_<secret>
+Authorization: Bearer aicom_XXXXXXXX_<secret>
 ```
 or:
 ```
-X-API-Key: acl_XXXXXXXX_<secret>
+X-API-Key: aicom_XXXXXXXX_<secret>
 ```
 
 > **Apache note:** Add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` to `.htaccess` if the Authorization header is stripped by your server.

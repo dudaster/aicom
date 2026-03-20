@@ -1,6 +1,6 @@
 <?php
 /**
- * Uninstall ACL - AI Control Layer
+ * Uninstall AICOM - AI Commander for WordPress
  *
  * Runs when the plugin is deleted from the WordPress admin.
  * Removes all plugin data: database tables and options.
@@ -14,15 +14,15 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 global $wpdb;
 
 // Drop plugin tables.
-$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}acl_api_keys`" );
-$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}acl_logs`" );
-$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}acl_backups`" );
+$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}aicom_api_keys`" );
+$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}aicom_logs`" );
+$wpdb->query( "DROP TABLE IF EXISTS `{$wpdb->prefix}aicom_backups`" );
 
 // Remove plugin options.
-delete_option( 'acl_db_version' );
-delete_option( 'acl_soft_lock' );
-delete_option( 'acl_hard_lock' );
+delete_option( 'aicom_db_version' );
+delete_option( 'aicom_soft_lock' );
+delete_option( 'aicom_hard_lock' );
 
 // Remove any leftover transients.
-$wpdb->query( "DELETE FROM `{$wpdb->options}` WHERE `option_name` LIKE '_transient_acl_new_key_%'" );
-$wpdb->query( "DELETE FROM `{$wpdb->options}` WHERE `option_name` LIKE '_transient_timeout_acl_new_key_%'" );
+$wpdb->query( "DELETE FROM `{$wpdb->options}` WHERE `option_name` LIKE '_transient_aicom_new_key_%'" );
+$wpdb->query( "DELETE FROM `{$wpdb->options}` WHERE `option_name` LIKE '_transient_timeout_aicom_new_key_%'" );

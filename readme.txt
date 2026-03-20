@@ -1,4 +1,4 @@
-=== ACL - AI Control Layer ===
+=== AICOM - AI Commander for WordPress ===
 Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
@@ -12,11 +12,11 @@ Connect AI agents to your WordPress site. MCP server plugin with API key auth, s
 
 == Description ==
 
-**ACL – AI Control Layer** turns your WordPress site into an MCP (Model Context Protocol) server, giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
+**AICOM - AI Commander for WordPress** turns your WordPress site into an MCP (Model Context Protocol) server, giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
 
 No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Describe what you want, and your AI agent does it.
 
-= What can you do with ACL? =
+= What can you do with AICOM? =
 
 * **AI-powered content creation** — let an AI agent write, update and publish posts, pages and custom post types directly on your site
 * **Automate your WooCommerce store** — update product descriptions, manage categories and read settings through an AI agent without touching the dashboard
@@ -71,21 +71,21 @@ Each API key is granted specific scopes — you control exactly what each AI age
 = Endpoint =
 
 **REST API:**
-`POST /wp-json/acl/v1/mcp`
+`POST /wp-json/aicom/v1/mcp`
 
 **Fallback** (no mod_rewrite required):
-`POST /?acl=1`
+`POST /?aicom=1`
 
 **Health check:**
-`GET /?acl=1`
+`GET /?aicom=1`
 
 = Authentication =
 
-`Authorization: Bearer acl_XXXXXXXX_<secret>`
+`Authorization: Bearer aicom_XXXXXXXX_<secret>`
 
 or:
 
-`X-API-Key: acl_XXXXXXXX_<secret>`
+`X-API-Key: aicom_XXXXXXXX_<secret>`
 
 = MCP Request Example =
 
@@ -93,11 +93,11 @@ or:
 
 == Installation ==
 
-1. Upload the `acl-ai-control-layer` folder to `/wp-content/plugins/`
+1. Upload the `aicom` folder to `/wp-content/plugins/`
 2. Activate the plugin via **Plugins → Installed Plugins**
-3. Go to **ACL → API Keys** and create your first API key
+3. Go to **AICOM → API Keys** and create your first API key
 4. Select the scopes you want to grant
-5. Point your AI agent or MCP client to `https://yoursite.com/wp-json/acl/v1/mcp`
+5. Point your AI agent or MCP client to `https://yoursite.com/wp-json/aicom/v1/mcp`
 6. Pass the key as `Authorization: Bearer <your-key>` header
 
 **Apache note:** If the Authorization header is stripped by your server, add this to `.htaccess`:
@@ -111,7 +111,7 @@ No. Every request must include a valid API key. Keys are bcrypt-hashed in the da
 
 = Does it work without mod_rewrite? =
 
-Yes. The fallback endpoint `/?acl=1` works on any server configuration, with or without pretty permalinks.
+Yes. The fallback endpoint `/?aicom=1` works on any server configuration, with or without pretty permalinks.
 
 = Is it compatible with WooCommerce / Elementor / Polylang? =
 
@@ -127,7 +127,7 @@ Yes. Send `"dry_run": true` in your request. The operation will be validated and
 
 = Does it log what AI agents do? =
 
-Yes. Every request is logged to the audit log with timestamp, remote IP, API key label, tool name, parameters, result summary, and duration. Accessible from **ACL → Audit Logs**.
+Yes. Every request is logged to the audit log with timestamp, remote IP, API key label, tool name, parameters, result summary, and duration. Accessible from **AICOM → Audit Logs**.
 
 = What is MCP (Model Context Protocol)? =
 

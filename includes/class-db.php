@@ -3,10 +3,10 @@
  * Database schema management and migrations.
  * Handles three tables: api_keys, logs, backups.
  */
-class ACL_DB {
+class AICOM_DB {
 
-    const DB_VERSION    = '3.0';
-    const VERSION_OPT   = 'acl_db_version';
+    const DB_VERSION    = '4.0';
+    const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
         self::run_migrations();
@@ -20,8 +20,11 @@ class ACL_DB {
     private static function run_migrations(): void {
         global $wpdb;
 
-        // Carry over version from old option name (rebrand from wpops_mcp_db_version).
+        // Carry over version from old option names (rebrand chain: wpops_mcp → acl → aicom).
         $current = get_option( self::VERSION_OPT, false );
+        if ( $current === false ) {
+            $current = get_option( 'acl_db_version', false );
+        }
         if ( $current === false ) {
             $current = get_option( 'wpops_mcp_db_version', '0' );
         }
@@ -30,7 +33,7 @@ class ACL_DB {
         if ( version_compare( $current, '2.0', '<' ) ) {
             $wpdb->hide_errors();
 
-            $wpdb->query( "ALTER TABLE {$wpdb->prefix}acl_api_keys
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_api_keys
                 MODIFY COLUMN key_prefix  VARCHAR(16)  NOT NULL,
                 MODIFY COLUMN status      VARCHAR(20)  NOT NULL DEFAULT 'active',
                 ADD COLUMN IF NOT EXISTS restrictions_json LONGTEXT NULL AFTER scopes_json,
@@ -40,7 +43,7 @@ class ACL_DB {
                 ADD COLUMN IF NOT EXISTS created_by_user_id BIGINT UNSIGNED NULL,
                 ADD COLUMN IF NOT EXISTS revoked_at       DATETIME NULL" );
 
-            $wpdb->query( "ALTER TABLE {$wpdb->prefix}acl_logs
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_logs
                 MODIFY COLUMN request_id  VARCHAR(64) NOT NULL,
                 MODIFY COLUMN tool_name   VARCHAR(191) NOT NULL,
                 MODIFY COLUMN module      VARCHAR(64)  NOT NULL,
@@ -52,22 +55,39 @@ class ACL_DB {
             $wpdb->show_errors();
         }
 
-        // v3.0: rename tables from old wpops_mcp_* prefix to acl_* (rebrand).
+        // v3.0: rename tables from wpops_mcp_* → acl_* (first rebrand).
         if ( version_compare( $current, '3.0', '<' ) ) {
             $wpdb->hide_errors();
 
-            $old_keys    = $wpdb->prefix . 'wpops_mcp_api_keys';
-            $old_logs    = $wpdb->prefix . 'wpops_mcp_logs';
-            $old_backups = $wpdb->prefix . 'wpops_mcp_backups';
+            $map = [
+                'wpops_mcp_api_keys' => 'acl_api_keys',
+                'wpops_mcp_logs'     => 'acl_logs',
+                'wpops_mcp_backups'  => 'acl_backups',
+            ];
+            foreach ( $map as $old => $new ) {
+                $old_table = $wpdb->prefix . $old;
+                if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_table'" ) === $old_table ) {
+                    $wpdb->query( "RENAME TABLE `$old_table` TO `{$wpdb->prefix}$new`" );
+                }
+            }
 
-            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_keys'" ) === $old_keys ) {
-                $wpdb->query( "RENAME TABLE `$old_keys` TO `{$wpdb->prefix}acl_api_keys`" );
-            }
-            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_logs'" ) === $old_logs ) {
-                $wpdb->query( "RENAME TABLE `$old_logs` TO `{$wpdb->prefix}acl_logs`" );
-            }
-            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_backups'" ) === $old_backups ) {
-                $wpdb->query( "RENAME TABLE `$old_backups` TO `{$wpdb->prefix}acl_backups`" );
+            $wpdb->show_errors();
+        }
+
+        // v4.0: rename tables from acl_* → aicom_* (second rebrand).
+        if ( version_compare( $current, '4.0', '<' ) ) {
+            $wpdb->hide_errors();
+
+            $map = [
+                'acl_api_keys' => 'aicom_api_keys',
+                'acl_logs'     => 'aicom_logs',
+                'acl_backups'  => 'aicom_backups',
+            ];
+            foreach ( $map as $old => $new ) {
+                $old_table = $wpdb->prefix . $old;
+                if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_table'" ) === $old_table ) {
+                    $wpdb->query( "RENAME TABLE `$old_table` TO `{$wpdb->prefix}$new`" );
+                }
             }
 
             $wpdb->show_errors();
@@ -80,7 +100,7 @@ class ACL_DB {
         $charset = $wpdb->get_charset_collate();
 
         // ── API Keys ─────────────────────────────────────────────────────
-        $sql_keys = "CREATE TABLE {$wpdb->prefix}acl_api_keys (
+        $sql_keys = "CREATE TABLE {$wpdb->prefix}aicom_api_keys (
             id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             label               VARCHAR(191)    NOT NULL,
             key_prefix          VARCHAR(16)     NOT NULL,
@@ -100,7 +120,7 @@ class ACL_DB {
         ) $charset;";
 
         // ── Audit Logs ────────────────────────────────────────────────────
-        $sql_logs = "CREATE TABLE {$wpdb->prefix}acl_logs (
+        $sql_logs = "CREATE TABLE {$wpdb->prefix}aicom_logs (
             id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at          DATETIME        NOT NULL,
             request_id          VARCHAR(64)     NOT NULL,
@@ -129,7 +149,7 @@ class ACL_DB {
         ) $charset;";
 
         // ── Backups ───────────────────────────────────────────────────────
-        $sql_backups = "CREATE TABLE {$wpdb->prefix}acl_backups (
+        $sql_backups = "CREATE TABLE {$wpdb->prefix}aicom_backups (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at    DATETIME        NOT NULL,
             request_id    VARCHAR(64)     NULL,
