@@ -1,12 +1,18 @@
 <?php
 /**
- * Plugin Name:  ACL - AI Control Layer
- * Plugin URI:   https://github.com/openclaw/acl-ai-control-layer
- * Description:  Standalone MCP server for OpenClaw. Exposes WordPress operations via a secure HTTP endpoint with API keys, scope control, lock management, and full audit logging.
- * Version:      2.0.0
- * Author:       dudaster
- * Requires PHP: 8.1
+ * Plugin Name:       ACL - AI Control Layer
+ * Plugin URI:        https://github.com/dudaster/acl-ai-control-layer
+ * Description:       Connect AI agents to your WordPress site. Exposes WordPress operations via a secure MCP endpoint with API key authentication, scope control, lock management, and full audit logging.
+ * Version:           2.0.0
+ * Author:            dudaster
+ * Author URI:        https://profiles.wordpress.org/dudaster/
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       acl-ai-control-layer
+ * Domain Path:       /languages
+ * Requires PHP:      8.1
  * Requires at least: 6.0
+ * Tested up to:      6.7
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -98,7 +104,10 @@ function acl_boot(): void {
         register_rest_route( 'acl/v1', '/mcp', [
             'methods'             => [ 'POST', 'GET' ],
             'callback'            => 'acl_rest_handler',
-            'permission_callback' => '__return_true', // Auth handled inside router
+            // permission_callback is intentionally open — authentication and authorization
+            // are fully handled inside ACL_Tool_Router::dispatch() via API key validation,
+            // scope checks, and lock-state enforcement before any operation is executed.
+            'permission_callback' => '__return_true',
         ] );
     } );
 
