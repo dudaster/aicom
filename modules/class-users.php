@@ -3,7 +3,7 @@
  * Users and Roles Ops module.
  * Includes anti-lockout guards to prevent removing the last admin.
  */
-class WPOPS_Module_Users extends WPOPS_Module_Base {
+class ACL_Module_Users extends ACL_Module_Base {
 
     public function get_module_name(): string {
         return 'users';

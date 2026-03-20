@@ -1,9 +1,9 @@
 <?php
 /**
  * Abstract base for all tool modules.
- * Each module registers its tools into WPOPS_Tool_Registry on boot.
+ * Each module registers its tools into ACL_Tool_Registry on boot.
  */
-abstract class WPOPS_Module_Base {
+abstract class ACL_Module_Base {
 
     /**
      * Module slug — must match Module_Detector keys.
@@ -11,7 +11,7 @@ abstract class WPOPS_Module_Base {
     abstract public function get_module_name(): string;
 
     /**
-     * Register all module tools into WPOPS_Tool_Registry.
+     * Register all module tools into ACL_Tool_Registry.
      * Called once during plugin boot.
      */
     abstract public function register_tools(): void;
@@ -65,6 +65,6 @@ abstract class WPOPS_Module_Base {
     protected function register( string $tool_name, array $meta ): void {
         $meta['module']     = $this->get_module_name();
         $meta['dependency'] = $meta['dependency'] ?? null;
-        WPOPS_Tool_Registry::register( $tool_name, $meta );
+        ACL_Tool_Registry::register( $tool_name, $meta );
     }
 }

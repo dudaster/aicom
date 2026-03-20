@@ -1,4 +1,4 @@
-# WP Ops MCP Gateway
+# ACL - AI Control Layer
 
 A standalone MCP (Model Context Protocol) server for WordPress. Exposes WordPress operations via a secure HTTP endpoint with API key authentication, scope control, lock management, and full audit logging.
 
@@ -14,35 +14,35 @@ A standalone MCP (Model Context Protocol) server for WordPress. Exposes WordPres
 
 ## Installation
 
-1. Upload the `wp-ops-mcp-gateway` folder to `/wp-content/plugins/`
+1. Upload the `acl-ai-control-layer` folder to `/wp-content/plugins/`
 2. Activate via **Plugins → Installed Plugins**
-3. Go to **WP Ops MCP → API Keys** and create your first key
+3. Go to **ACL → API Keys** and create your first key
 
 ## Endpoint
 
 ```
-POST /wp-json/wpops-mcp/v1/mcp
+POST /wp-json/acl/v1/mcp
 ```
 
 Fallback (always works, no mod_rewrite required):
 ```
-POST /?wpops_mcp=1
+POST /?acl=1
 ```
 
 Health check:
 ```
-GET /?wpops_mcp=1
+GET /?acl=1
 ```
 
 ## Authentication
 
 Pass your API key via header:
 ```
-Authorization: Bearer wpops_XXXXXXXX_<secret>
+Authorization: Bearer acl_XXXXXXXX_<secret>
 ```
 or:
 ```
-X-API-Key: wpops_XXXXXXXX_<secret>
+X-API-Key: acl_XXXXXXXX_<secret>
 ```
 
 > **Apache note:** Add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` to `.htaccess` if the Authorization header is stripped.

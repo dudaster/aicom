@@ -1,12 +1,12 @@
-/* WP Ops MCP Gateway — Admin JS */
+/* ACL - AI Control Layer — Admin JS */
 (function ($) {
     'use strict';
 
     $(function () {
 
         // ── Copy buttons ───────────────────────────────────────────────────
-        $(document).on('click', '.wpops-copy-btn', function () {
-            var text = $(this).data('target') || $(this).siblings('.wpops-copy-input').val();
+        $(document).on('click', '.acl-copy-btn', function () {
+            var text = $(this).data('target') || $(this).siblings('.acl-copy-input').val();
             if (!text) return;
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -34,8 +34,8 @@
         });
 
         // ── Hard lock disables soft lock checkbox ──────────────────────────
-        var $hardLock = $('#wpops-hard-lock, #wpops-hard-lock-toggle');
-        var $softLock = $('#wpops-soft-lock');
+        var $hardLock = $('#acl-hard-lock, #acl-hard-lock-toggle');
+        var $softLock = $('#acl-soft-lock');
 
         function syncLockState() {
             if ($hardLock.is(':checked')) {
@@ -49,8 +49,8 @@
         syncLockState();
 
         // ── Custom date range for audit log period selector ────────────────
-        var $periodSelect = $('#wpops-period-select');
-        var $customRange  = $('#wpops-custom-range');
+        var $periodSelect = $('#acl-period-select');
+        var $customRange  = $('#acl-custom-range');
 
         function syncPeriod() {
             if ($periodSelect.val() === 'custom') {
@@ -64,8 +64,8 @@
         syncPeriod();
 
         // ── Scope "Check all" toggle ───────────────────────────────────────
-        var $checkAll = $('#wpops-scope-check-all');
-        var $scopeCbs = $('.wpops-scope-cb');
+        var $checkAll = $('#acl-scope-check-all');
+        var $scopeCbs = $('.acl-scope-cb');
 
         $checkAll.on('change', function () {
             $scopeCbs.prop('checked', $(this).is(':checked'));
@@ -76,7 +76,7 @@
         });
 
         // ── Auto-select plain key text on focus ────────────────────────────
-        $('#wpops-plain-key').on('focus click', function () {
+        $('#acl-plain-key').on('focus click', function () {
             $(this).select();
         });
 

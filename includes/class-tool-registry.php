@@ -16,7 +16,7 @@
  *   description      string   Human-readable for tools/list
  *   input_schema     array    JSON-Schema-like parameter definitions
  */
-class WPOPS_Tool_Registry {
+class ACL_Tool_Registry {
 
     /** @var array<string, array> */
     private static array $tools = [];

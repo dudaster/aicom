@@ -1,11 +1,11 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$module_status = WPOPS_Module_Detector::get_module_status_map();
-$active_modules = WPOPS_Module_Detector::get_active_modules();
+$module_status = ACL_Module_Detector::get_module_status_map();
+$active_modules = ACL_Module_Detector::get_active_modules();
 
 // Count registered tools per module
-$all_tools = WPOPS_Tool_Registry::get_for_modules( $active_modules );
+$all_tools = ACL_Tool_Registry::get_for_modules( $active_modules );
 $tools_per_module = [];
 foreach ( $all_tools as $tool_meta ) {
     $mod = $tool_meta['module'];
@@ -57,37 +57,37 @@ $module_info = [
     ],
 ];
 ?>
-<div class="wrap wpops-wrap">
+<div class="wrap acl-wrap">
     <h1>Modules</h1>
 
-    <div class="wpops-modules-grid">
+    <div class="acl-modules-grid">
     <?php foreach ( $module_info as $slug => $info ) :
         $status      = $module_status[ $slug ] ?? 'inactive';
         $is_active   = $status === 'active';
-        $card_class  = $is_active ? 'wpops-module-card-active' : 'wpops-module-card-inactive';
+        $card_class  = $is_active ? 'acl-module-card-active' : 'acl-module-card-inactive';
         $tool_count  = $tools_per_module[ $slug ] ?? 0;
     ?>
-        <div class="wpops-module-card <?php echo esc_attr( $card_class ); ?>">
-            <div class="wpops-module-header">
+        <div class="acl-module-card <?php echo esc_attr( $card_class ); ?>">
+            <div class="acl-module-header">
                 <span class="dashicons <?php echo esc_attr( $info['icon'] ); ?>"></span>
                 <h3><?php echo esc_html( $info['label'] ); ?></h3>
-                <span class="wpops-module-status-dot <?php echo $is_active ? 'wpops-dot-active' : 'wpops-dot-inactive'; ?>"></span>
+                <span class="acl-module-status-dot <?php echo $is_active ? 'acl-dot-active' : 'acl-dot-inactive'; ?>"></span>
             </div>
-            <p class="wpops-module-desc"><?php echo esc_html( $info['description'] ); ?></p>
-            <div class="wpops-module-meta">
+            <p class="acl-module-desc"><?php echo esc_html( $info['description'] ); ?></p>
+            <div class="acl-module-meta">
                 <?php if ( $info['required'] ) : ?>
-                <span class="wpops-module-requires"><?php echo esc_html( $is_active ? '✓ ' . $info['required'] : '⚠ Requires: ' . $info['required'] ); ?></span>
+                <span class="acl-module-requires"><?php echo esc_html( $is_active ? '✓ ' . $info['required'] : '⚠ Requires: ' . $info['required'] ); ?></span>
                 <?php else : ?>
-                <span class="wpops-module-requires">Always active</span>
+                <span class="acl-module-requires">Always active</span>
                 <?php endif; ?>
-                <span class="wpops-module-tools"><?php echo (int) $tool_count; ?> tool<?php echo $tool_count !== 1 ? 's' : ''; ?></span>
+                <span class="acl-module-tools"><?php echo (int) $tool_count; ?> tool<?php echo $tool_count !== 1 ? 's' : ''; ?></span>
             </div>
         </div>
     <?php endforeach; ?>
     </div>
 
     <!-- Tool List per Module -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>All Registered Tools</h2>
         <table class="wp-list-table widefat fixed striped">
             <thead>
@@ -101,7 +101,7 @@ $module_info = [
             </thead>
             <tbody>
             <?php
-            $all = WPOPS_Tool_Registry::get_for_modules( $active_modules );
+            $all = ACL_Tool_Registry::get_for_modules( $active_modules );
             foreach ( $all as $meta ) :
                 $flags = [];
                 if ( $meta['destructive'] )      $flags[] = 'destructive';
@@ -112,7 +112,7 @@ $module_info = [
                 <tr>
                     <td><code><?php echo esc_html( $meta['tool_name'] ); ?></code></td>
                     <td><?php echo esc_html( $meta['module'] ); ?></td>
-                    <td><span class="wpops-class-badge wpops-class-<?php echo esc_attr( $meta['class'] ); ?>"><?php echo esc_html( $meta['class'] ); ?></span></td>
+                    <td><span class="acl-class-badge acl-class-<?php echo esc_attr( $meta['class'] ); ?>"><?php echo esc_html( $meta['class'] ); ?></span></td>
                     <td><?php echo implode( ', ', array_map( 'esc_html', $meta['required_scopes'] ) ) ?: '—'; ?></td>
                     <td><?php echo implode( ' ', array_map( fn($f) => '<code>' . esc_html($f) . '</code>', $flags ) ); ?></td>
                 </tr>

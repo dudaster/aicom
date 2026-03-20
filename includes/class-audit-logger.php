@@ -1,16 +1,16 @@
 <?php
 /**
- * Structured audit logging to wp_wpops_mcp_logs.
+ * Structured audit logging to wp_acl_logs.
  * All log entries record the full context needed for the Audit Logs UI filters.
  */
-class WPOPS_Audit_Logger {
+class ACL_Audit_Logger {
 
     private static ?string $table = null;
 
     private static function table(): string {
         if ( self::$table === null ) {
             global $wpdb;
-            self::$table = $wpdb->prefix . 'wpops_mcp_logs';
+            self::$table = $wpdb->prefix . 'acl_logs';
         }
         return self::$table;
     }

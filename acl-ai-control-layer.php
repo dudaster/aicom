@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name:  WP Ops MCP Gateway
- * Plugin URI:   https://github.com/openclaw/wp-ops-mcp-gateway
+ * Plugin Name:  ACL - AI Control Layer
+ * Plugin URI:   https://github.com/openclaw/acl-ai-control-layer
  * Description:  Standalone MCP server for OpenClaw. Exposes WordPress operations via a secure HTTP endpoint with API keys, scope control, lock management, and full audit logging.
  * Version:      2.0.0
  * Author:       dudaster
@@ -12,19 +12,19 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'WPOPS_MCP_VERSION', '2.0.0' );
-define( 'WPOPS_MCP_DIR',     plugin_dir_path( __FILE__ ) );
-define( 'WPOPS_MCP_URL',     plugin_dir_url( __FILE__ ) );
+define( 'ACL_VERSION', '2.0.0' );
+define( 'ACL_DIR',     plugin_dir_path( __FILE__ ) );
+define( 'ACL_URL',     plugin_dir_url( __FILE__ ) );
 
 // ── Autoloader ─────────────────────────────────────────────────────────────
 spl_autoload_register( function ( string $class ): void {
-    // Only handle WPOPS_ prefixed classes
-    if ( strpos( $class, 'WPOPS_' ) !== 0 ) {
+    // Only handle ACL_ prefixed classes
+    if ( strpos( $class, 'ACL_' ) !== 0 ) {
         return;
     }
 
-    // Strip 'WPOPS_' → remaining suffix, e.g. "Module_WP_Core", "Admin", "DB", "Module_Detector"
-    $suffix = substr( $class, strlen( 'WPOPS_' ) );
+    // Strip 'ACL_' → remaining suffix, e.g. "Module_WP_Core", "Admin", "DB", "Module_Detector"
+    $suffix = substr( $class, strlen( 'ACL_' ) );
     $slug   = strtolower( str_replace( '_', '-', $suffix ) ); // "module-wp-core", "admin", "db", "module-detector"
 
     // Candidate paths — checked in order:
@@ -33,16 +33,16 @@ spl_autoload_register( function ( string $class ): void {
     //   3. admin/class-{slug}.php             (e.g. class-admin.php)
     //   4. modules/class-{suffix_no_module}.php  (e.g. class-wp-core.php from Module_WP_Core)
     $candidates = [
-        WPOPS_MCP_DIR . "includes/class-$slug.php",
-        WPOPS_MCP_DIR . "modules/class-$slug.php",
-        WPOPS_MCP_DIR . "admin/class-$slug.php",
+        ACL_DIR . "includes/class-$slug.php",
+        ACL_DIR . "modules/class-$slug.php",
+        ACL_DIR . "admin/class-$slug.php",
     ];
 
     // For Module_* classes, also try modules/class-{without-module-prefix}.php
     if ( strpos( $suffix, 'Module_' ) === 0 ) {
         $inner = substr( $suffix, strlen( 'Module_' ) ); // "WP_Core", "Base", "Elementor"...
         $inner_slug = strtolower( str_replace( '_', '-', $inner ) );
-        $candidates[] = WPOPS_MCP_DIR . "modules/class-$inner_slug.php";
+        $candidates[] = ACL_DIR . "modules/class-$inner_slug.php";
     }
 
     foreach ( $candidates as $path ) {
@@ -55,33 +55,33 @@ spl_autoload_register( function ( string $class ): void {
 
 // ── Activation Hook ────────────────────────────────────────────────────────
 register_activation_hook( __FILE__, function (): void {
-    WPOPS_DB::install();
+    ACL_DB::install();
     // Flush rewrite rules so REST route is immediately accessible
     flush_rewrite_rules();
 } );
 
 // ── Boot on init ───────────────────────────────────────────────────────────
-add_action( 'plugins_loaded', 'wpops_mcp_boot', 5 );
+add_action( 'plugins_loaded', 'acl_boot', 5 );
 
-function wpops_mcp_boot(): void {
+function acl_boot(): void {
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
-        new WPOPS_Module_WP_Core(),
-        new WPOPS_Module_Menus(),
-        new WPOPS_Module_Media(),
-        new WPOPS_Module_Users(),
-        new WPOPS_Module_Backup(),
+        new ACL_Module_WP_Core(),
+        new ACL_Module_Menus(),
+        new ACL_Module_Media(),
+        new ACL_Module_Users(),
+        new ACL_Module_Backup(),
     ];
 
     // Conditional modules (only instantiate if dependency is active)
-    if ( WPOPS_Module_Detector::is_woocommerce_active() ) {
-        $modules[] = new WPOPS_Module_WooCommerce();
+    if ( ACL_Module_Detector::is_woocommerce_active() ) {
+        $modules[] = new ACL_Module_WooCommerce();
     }
-    if ( WPOPS_Module_Detector::is_elementor_active() ) {
-        $modules[] = new WPOPS_Module_Elementor();
+    if ( ACL_Module_Detector::is_elementor_active() ) {
+        $modules[] = new ACL_Module_Elementor();
     }
-    if ( WPOPS_Module_Detector::is_polylang_active() ) {
-        $modules[] = new WPOPS_Module_Polylang();
+    if ( ACL_Module_Detector::is_polylang_active() ) {
+        $modules[] = new ACL_Module_Polylang();
     }
 
     foreach ( $modules as $module ) {
@@ -90,28 +90,28 @@ function wpops_mcp_boot(): void {
 
     // ── Admin ──────────────────────────────────────────────────────────────
     if ( is_admin() ) {
-        new WPOPS_Admin();
+        new ACL_Admin();
     }
 
     // ── REST Endpoint ──────────────────────────────────────────────────────
     add_action( 'rest_api_init', function (): void {
-        register_rest_route( 'wpops-mcp/v1', '/mcp', [
+        register_rest_route( 'acl/v1', '/mcp', [
             'methods'             => [ 'POST', 'GET' ],
-            'callback'            => 'wpops_mcp_rest_handler',
+            'callback'            => 'acl_rest_handler',
             'permission_callback' => '__return_true', // Auth handled inside router
         ] );
     } );
 
-    // ── Fallback Endpoint (/index.php?wpops_mcp=1) ─────────────────────────
+    // ── Fallback Endpoint (/index.php?acl=1) ─────────────────────────
     add_action( 'init', function (): void {
-        if ( ! empty( $_GET['wpops_mcp'] ) && ( $_GET['wpops_mcp'] === '1' ) ) {
+        if ( ! empty( $_GET['acl'] ) && ( $_GET['acl'] === '1' ) ) {
             if ( $_SERVER['REQUEST_METHOD'] === 'GET' ) {
                 // Health check
-                wp_send_json( [ 'ok' => true, 'server' => 'WP Ops MCP Gateway', 'version' => WPOPS_MCP_VERSION ] );
+                wp_send_json( [ 'ok' => true, 'server' => 'ACL - AI Control Layer', 'version' => ACL_VERSION ] );
             }
 
             $body   = file_get_contents( 'php://input' );
-            $result = WPOPS_Tool_Router::dispatch( $body ?: '{}' );
+            $result = ACL_Tool_Router::dispatch( $body ?: '{}' );
 
             wp_send_json( $result );
         }
@@ -120,20 +120,20 @@ function wpops_mcp_boot(): void {
 
 // ── REST Handler ───────────────────────────────────────────────────────────
 
-function wpops_mcp_rest_handler( WP_REST_Request $request ): WP_REST_Response {
+function acl_rest_handler( WP_REST_Request $request ): WP_REST_Response {
     // GET = health/status endpoint
     if ( $request->get_method() === 'GET' ) {
         return new WP_REST_Response( [
             'ok'      => true,
-            'server'  => 'WP Ops MCP Gateway',
-            'version' => WPOPS_MCP_VERSION,
-            'lock'    => WPOPS_Lock_Manager::get_state(),
+            'server'  => 'ACL - AI Control Layer',
+            'version' => ACL_VERSION,
+            'lock'    => ACL_Lock_Manager::get_state(),
         ] );
     }
 
     // POST = MCP dispatch
     $body   = $request->get_body();
-    $result = WPOPS_Tool_Router::dispatch( $body ?: '{}' );
+    $result = ACL_Tool_Router::dispatch( $body ?: '{}' );
 
     $http_status = isset( $result['error'] ) ? ( $result['error']['http_status'] ?? 400 ) : 200;
     unset( $result['error']['http_status'] );

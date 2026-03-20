@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-$lock_state = WPOPS_Lock_Manager::get_state();
+$lock_state = ACL_Lock_Manager::get_state();
 
 $badge_label = match ( $lock_state['effective_lock'] ) {
     'hard_locked' => 'Hard Lock Active',
@@ -9,12 +9,12 @@ $badge_label = match ( $lock_state['effective_lock'] ) {
     default       => 'Unlocked',
 };
 $badge_class = match ( $lock_state['effective_lock'] ) {
-    'hard_locked' => 'wpops-badge-danger',
-    'soft_locked' => 'wpops-badge-warning',
-    default       => 'wpops-badge-success',
+    'hard_locked' => 'acl-badge-danger',
+    'soft_locked' => 'acl-badge-warning',
+    default       => 'acl-badge-success',
 };
 ?>
-<div class="wrap wpops-wrap">
+<div class="wrap acl-wrap">
     <h1>Safety Controls</h1>
 
     <?php if ( isset( $_GET['updated'] ) ) : ?>
@@ -22,9 +22,9 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
     <?php endif; ?>
 
     <!-- Current Status -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>Current Lock Status</h2>
-        <p class="wpops-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
+        <p class="acl-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
         <p class="description">
             <?php echo match ( $lock_state['effective_lock'] ) {
                 'hard_locked' => 'Only <code>server.status</code> is allowed. All other tools are blocked.',
@@ -35,14 +35,14 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
     </div>
 
     <!-- Lock Controls -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>Lock Controls</h2>
         <p class="description">Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests.</p>
 
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <input type="hidden" name="action" value="wpops_mcp_save" />
-            <input type="hidden" name="wpops_action" value="set_lock" />
-            <?php wp_nonce_field( WPOPS_Admin::NONCE_ACTION ); ?>
+            <input type="hidden" name="action" value="acl_save" />
+            <input type="hidden" name="acl_action" value="set_lock" />
+            <?php wp_nonce_field( ACL_Admin::NONCE_ACTION ); ?>
 
             <table class="form-table" role="presentation">
                 <tr>
@@ -52,7 +52,7 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
                             <input type="checkbox" name="soft_lock" value="1"
                                 <?php checked( $lock_state['soft_lock'] ); ?>
                                 <?php disabled( $lock_state['hard_lock'] ); ?>
-                                id="wpops-soft-lock"
+                                id="acl-soft-lock"
                             />
                             Enable Soft Lock
                         </label>
@@ -65,7 +65,7 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
                         <label>
                             <input type="checkbox" name="hard_lock" value="1"
                                 <?php checked( $lock_state['hard_lock'] ); ?>
-                                id="wpops-hard-lock"
+                                id="acl-hard-lock"
                             />
                             Enable Hard Lock
                         </label>
@@ -83,7 +83,7 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
     </div>
 
     <!-- Lock Behavior Reference -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>Lock Permission Matrix</h2>
         <table class="wp-list-table widefat fixed">
             <thead>
@@ -109,9 +109,9 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
                 <tr>
                     <td><code><?php echo esc_html( $class ); ?></code></td>
                     <td><?php echo esc_html( $examples ); ?></td>
-                    <td class="wpops-cell-<?php echo $unlocked === '✓' ? 'yes' : 'no'; ?>"><?php echo $unlocked; ?></td>
-                    <td class="wpops-cell-<?php echo $soft === '✓' ? 'yes' : 'no'; ?>"><?php echo $soft; ?></td>
-                    <td class="wpops-cell-<?php echo $hard === '✓' ? 'yes' : 'no'; ?>"><?php echo $hard; ?></td>
+                    <td class="acl-cell-<?php echo $unlocked === '✓' ? 'yes' : 'no'; ?>"><?php echo $unlocked; ?></td>
+                    <td class="acl-cell-<?php echo $soft === '✓' ? 'yes' : 'no'; ?>"><?php echo $soft; ?></td>
+                    <td class="acl-cell-<?php echo $hard === '✓' ? 'yes' : 'no'; ?>"><?php echo $hard; ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

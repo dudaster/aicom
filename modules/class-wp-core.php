@@ -4,7 +4,7 @@
  * Covers: site info, post types, taxonomies, posts, terms, meta, options.
  * 22 tools total.
  */
-class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
+class ACL_Module_WP_Core extends ACL_Module_Base {
 
     public function get_module_name(): string {
         return 'wp_core';
@@ -283,21 +283,21 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
     public function handle_server_status( array $args, array $key_record, bool $dry_run ): array {
         return $this->ok( [
             'server' => [
-                'name'              => 'WP Ops MCP Gateway',
-                'version'           => WPOPS_MCP_VERSION,
+                'name'              => 'ACL - AI Control Layer',
+                'version'           => ACL_VERSION,
                 'wordpress_version' => get_bloginfo( 'version' ),
                 'php_version'       => PHP_VERSION,
                 'site_url'          => get_site_url(),
             ],
-            'lock'    => WPOPS_Lock_Manager::get_state(),
-            'modules' => WPOPS_Module_Detector::get_module_status_map(),
+            'lock'    => ACL_Lock_Manager::get_state(),
+            'modules' => ACL_Module_Detector::get_module_status_map(),
         ] );
     }
 
     public function handle_tools_list( array $args, array $key_record, bool $dry_run ): array {
-        $active = WPOPS_Module_Detector::get_active_modules();
+        $active = ACL_Module_Detector::get_active_modules();
         return $this->ok( [
-            'tools' => WPOPS_Tool_Registry::to_mcp_list( $active ),
+            'tools' => ACL_Tool_Registry::to_mcp_list( $active ),
         ] );
     }
 
@@ -349,7 +349,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
     public function handle_posts_list( array $args, array $key_record, bool $dry_run ): array {
         $post_type = sanitize_key( $args['post_type'] ?? 'post' );
 
-        if ( ! WPOPS_Policy_Engine::check_post_type_allowlist( $key_record, $post_type ) ) {
+        if ( ! ACL_Policy_Engine::check_post_type_allowlist( $key_record, $post_type ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Post type not in allowlist: $post_type", 'denied_allowlist', 403 );
         }
 
@@ -365,7 +365,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
         }
 
         // Polylang language filter
-        if ( ! empty( $args['lang'] ) && WPOPS_Module_Detector::is_polylang_active() ) {
+        if ( ! empty( $args['lang'] ) && ACL_Module_Detector::is_polylang_active() ) {
             $query_args['lang'] = sanitize_key( $args['lang'] );
         }
 
@@ -404,7 +404,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'NOT_FOUND', "Post $id not found", 'error', 404 );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
+        if ( ! ACL_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Post type not in allowlist', 'denied_allowlist', 403 );
         }
 
@@ -432,7 +432,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
         }
 
         $post_type = sanitize_key( $args['post_type'] ?? 'post' );
-        if ( ! WPOPS_Policy_Engine::check_post_type_allowlist( $key_record, $post_type ) ) {
+        if ( ! ACL_Policy_Engine::check_post_type_allowlist( $key_record, $post_type ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Post type not in allowlist: $post_type", 'denied_allowlist', 403 );
         }
 
@@ -477,7 +477,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'NOT_FOUND', "Post $id not found", 'error', 404 );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
+        if ( ! ACL_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Post type not in allowlist', 'denied_allowlist', 403 );
         }
 
@@ -581,7 +581,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter taxonomy is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_taxonomy_allowlist( $key_record, $taxonomy ) ) {
+        if ( ! ACL_Policy_Engine::check_taxonomy_allowlist( $key_record, $taxonomy ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Taxonomy not in allowlist: $taxonomy", 'denied_allowlist', 403 );
         }
 
@@ -637,7 +637,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters name and taxonomy are required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_taxonomy_allowlist( $key_record, $taxonomy ) ) {
+        if ( ! ACL_Policy_Engine::check_taxonomy_allowlist( $key_record, $taxonomy ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Taxonomy not in allowlist: $taxonomy", 'denied_allowlist', 403 );
         }
 
@@ -766,7 +766,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
         }
 
         if ( $meta_key ) {
-            if ( ! WPOPS_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
+            if ( ! ACL_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
                 return $this->err( 'DENIED_ALLOWLIST', "Meta key not in allowlist: $meta_key", 'denied_allowlist', 403 );
             }
             $value = get_post_meta( $post_id, $meta_key, false );
@@ -787,7 +787,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters post_id and meta_key are required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
+        if ( ! ACL_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Meta key not in allowlist: $meta_key", 'denied_allowlist', 403 );
         }
 
@@ -811,7 +811,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters post_id and meta_key are required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
+        if ( ! ACL_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Meta key not in allowlist: $meta_key", 'denied_allowlist', 403 );
         }
 
@@ -832,7 +832,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter option_name is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_option_allowlist( $key_record, $option_name ) ) {
+        if ( ! ACL_Policy_Engine::check_option_allowlist( $key_record, $option_name ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Option not in allowlist: $option_name", 'denied_allowlist', 403 );
         }
 
@@ -848,7 +848,7 @@ class WPOPS_Module_WP_Core extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter option_name is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_option_allowlist( $key_record, $option_name ) ) {
+        if ( ! ACL_Policy_Engine::check_option_allowlist( $key_record, $option_name ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Option not in allowlist: $option_name", 'denied_allowlist', 403 );
         }
 

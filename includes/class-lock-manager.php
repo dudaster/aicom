@@ -7,10 +7,10 @@
  *   soft_lock ON  → "soft_locked"
  *   both OFF      → "unlocked"
  */
-class WPOPS_Lock_Manager {
+class ACL_Lock_Manager {
 
-    const OPT_SOFT = 'wpops_mcp_soft_lock';
-    const OPT_HARD = 'wpops_mcp_hard_lock';
+    const OPT_SOFT = 'acl_soft_lock';
+    const OPT_HARD = 'acl_hard_lock';
 
     public static function get_effective_lock(): string {
         if ( get_option( self::OPT_HARD, false ) ) {

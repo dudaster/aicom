@@ -7,7 +7,7 @@
  *   soft_locked  → 'public', 'discovery', 'read'
  *   unlocked     → all classes
  */
-class WPOPS_Policy_Engine {
+class ACL_Policy_Engine {
 
     // ── Lock Matrix ───────────────────────────────────────────────────────
 

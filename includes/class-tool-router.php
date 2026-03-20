@@ -22,7 +22,7 @@
  * 11.  Update key last_used_at
  * 12.  Audit log + return MCP response
  */
-class WPOPS_Tool_Router {
+class ACL_Tool_Router {
 
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
@@ -62,20 +62,20 @@ class WPOPS_Tool_Router {
         }
 
         // Resolve metadata early (needed for lock check)
-        $tool_meta   = WPOPS_Tool_Registry::get( $tool_name );
+        $tool_meta   = ACL_Tool_Registry::get( $tool_name );
         $tool_class  = $tool_meta['class']  ?? 'unknown';
         $tool_module = $tool_meta['module'] ?? 'unknown';
 
         // ── Step 2: Lock check ────────────────────────────────────────────
-        $effective_lock = WPOPS_Lock_Manager::get_effective_lock();
+        $effective_lock = ACL_Lock_Manager::get_effective_lock();
 
         // If tool exists AND its class is blocked — reject before auth.
         // Unknown tools fall through to step 4 (tool not found) after auth.
-        if ( $tool_meta !== null && ! WPOPS_Policy_Engine::is_tool_allowed_by_lock( $tool_class, $effective_lock ) ) {
+        if ( $tool_meta !== null && ! ACL_Policy_Engine::is_tool_allowed_by_lock( $tool_class, $effective_lock ) ) {
             $lock_status = $effective_lock === 'hard_locked' ? 'blocked_hard_lock' : 'blocked_soft_lock';
             $lock_code   = $effective_lock === 'hard_locked' ? 'HARD_LOCK_ACTIVE'  : 'SOFT_LOCK_ACTIVE';
 
-            WPOPS_Audit_Logger::log( [
+            ACL_Audit_Logger::log( [
                 'request_id'  => $request_id,
                 'remote_ip'   => $remote_ip,
                 'tool_name'   => $tool_name,
@@ -91,19 +91,19 @@ class WPOPS_Tool_Router {
         }
 
         // ── Step 3: Auth ──────────────────────────────────────────────────
-        $plain_key = WPOPS_Auth::extract_key_from_request();
+        $plain_key = ACL_Auth::extract_key_from_request();
 
         if ( ! $plain_key ) {
             return self::early_error( 'auth_failed', 'API key missing', 401, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
         }
 
-        $key_record = WPOPS_Auth::validate_key( $plain_key );
+        $key_record = ACL_Auth::validate_key( $plain_key );
 
         if ( ! $key_record ) {
             return self::early_error( 'auth_failed', 'Invalid or revoked API key', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
         }
 
-        if ( ! WPOPS_Auth::check_ip_allowlist( $key_record, $remote_ip ) ) {
+        if ( ! ACL_Auth::check_ip_allowlist( $key_record, $remote_ip ) ) {
             return self::early_error( 'auth_failed', 'IP not in allowlist', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, (int) $key_record['id'], $key_record['label'], $rpc_id );
         }
 
@@ -128,9 +128,9 @@ class WPOPS_Tool_Router {
 
         if ( $dependency !== null ) {
             $dep_active = match ( $dependency ) {
-                'woocommerce' => WPOPS_Module_Detector::is_woocommerce_active(),
-                'elementor'   => WPOPS_Module_Detector::is_elementor_active(),
-                'polylang'    => WPOPS_Module_Detector::is_polylang_active(),
+                'woocommerce' => ACL_Module_Detector::is_woocommerce_active(),
+                'elementor'   => ACL_Module_Detector::is_elementor_active(),
+                'polylang'    => ACL_Module_Detector::is_polylang_active(),
                 default       => false,
             };
 
@@ -140,19 +140,19 @@ class WPOPS_Tool_Router {
         }
 
         // ── Step 6: Scope check ───────────────────────────────────────────
-        if ( ! WPOPS_Auth::check_scopes( $key_record, $tool_meta['required_scopes'] ) ) {
+        if ( ! ACL_Auth::check_scopes( $key_record, $tool_meta['required_scopes'] ) ) {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DENIED_SCOPE', 'Insufficient scope for this tool', 'denied_scope', 403, $arguments, $start, $rpc_id );
         }
 
         // ── Step 7: (Delegated) Allowlist checks are done inside handlers ─
 
         // ── Step 8: Confirm flag ──────────────────────────────────────────
-        if ( ! WPOPS_Policy_Engine::check_confirm_flag( $tool_meta, $arguments ) ) {
+        if ( ! ACL_Policy_Engine::check_confirm_flag( $tool_meta, $arguments ) ) {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'CONFIRM_REQUIRED', 'This operation requires arguments.confirm = true', 'validation_failed', 400, $arguments, $start, $rpc_id );
         }
 
         // ── Step 9: Dry-run mode ──────────────────────────────────────────
-        $is_dry_run = ! empty( $arguments['dry_run'] ) || WPOPS_Policy_Engine::is_dry_run_only( $key_record );
+        $is_dry_run = ! empty( $arguments['dry_run'] ) || ACL_Policy_Engine::is_dry_run_only( $key_record );
 
         // ── Step 10: Execute ──────────────────────────────────────────────
         $handler = $tool_meta['handler'];
@@ -168,7 +168,7 @@ class WPOPS_Tool_Router {
         }
 
         // ── Step 11: Touch key ────────────────────────────────────────────
-        WPOPS_Auth::touch_key( $key_id, $remote_ip );
+        ACL_Auth::touch_key( $key_id, $remote_ip );
 
         // ── Step 12: Audit log + return ───────────────────────────────────
         $duration = self::elapsed( $start );
@@ -176,7 +176,7 @@ class WPOPS_Tool_Router {
         $is_error = isset( $result['error'] );
         $meta     = $result['_meta'] ?? [];
 
-        WPOPS_Audit_Logger::log( [
+        ACL_Audit_Logger::log( [
             'request_id'          => $request_id,
             'remote_ip'           => $remote_ip,
             'api_key_id'          => $key_id,
@@ -220,7 +220,7 @@ class WPOPS_Tool_Router {
         string $key_label = '',
         mixed  $rpc_id = null
     ): array {
-        WPOPS_Audit_Logger::log( [
+        ACL_Audit_Logger::log( [
             'request_id'    => $request_id,
             'remote_ip'     => $remote_ip,
             'api_key_id'    => $key_id ?: null,
@@ -255,7 +255,7 @@ class WPOPS_Tool_Router {
         float  $start,
         mixed  $rpc_id = null
     ): array {
-        WPOPS_Audit_Logger::log( [
+        ACL_Audit_Logger::log( [
             'request_id'    => $request_id,
             'remote_ip'     => $remote_ip,
             'api_key_id'    => $key_id,

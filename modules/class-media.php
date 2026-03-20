@@ -3,7 +3,7 @@
  * Media and Files Ops module.
  * Covers WordPress media library and controlled file operations.
  */
-class WPOPS_Module_Media extends WPOPS_Module_Base {
+class ACL_Module_Media extends ACL_Module_Base {
 
     // Blocked file extensions (executable / dangerous)
     const BLOCKED_EXTENSIONS = [ 'php', 'phar', 'sh', 'bash', 'exe', 'bat', 'cmd', 'msi', 'dll', 'so', 'py', 'rb', 'pl', 'cgi', 'htaccess', 'htpasswd' ];
@@ -302,7 +302,7 @@ class WPOPS_Module_Media extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter path is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_file_path_allowlist( $key_record, $path ) ) {
+        if ( ! ACL_Policy_Engine::check_file_path_allowlist( $key_record, $path ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Path not in allowlist', 'denied_allowlist', 403 );
         }
 
@@ -335,7 +335,7 @@ class WPOPS_Module_Media extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters path, filename, and base64_content are required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_file_path_allowlist( $key_record, $path ) ) {
+        if ( ! ACL_Policy_Engine::check_file_path_allowlist( $key_record, $path ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Path not in allowlist', 'denied_allowlist', 403 );
         }
 
@@ -371,7 +371,7 @@ class WPOPS_Module_Media extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter path is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_file_path_allowlist( $key_record, $filepath ) ) {
+        if ( ! ACL_Policy_Engine::check_file_path_allowlist( $key_record, $filepath ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Path not in allowlist', 'denied_allowlist', 403 );
         }
 

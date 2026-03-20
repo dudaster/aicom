@@ -3,7 +3,7 @@
  * Detect active optional plugin dependencies.
  * All methods are static — no instantiation needed.
  */
-class WPOPS_Module_Detector {
+class ACL_Module_Detector {
 
     public static function is_woocommerce_active(): bool {
         return class_exists( 'WooCommerce' );

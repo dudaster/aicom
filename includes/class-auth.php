@@ -2,14 +2,14 @@
 /**
  * API Key generation, validation, rotation, and revocation.
  *
- * Key format: wpops_ (6) + 8-char alphanumeric prefix + _ (1) + 40-char hex secret = 55 chars
- * DB stores:  key_prefix = "wpops_XXXXXXXX" (14 chars), key_hash = password_hash(full_key)
- * Lookup:     Extract prefix (substr 0..13) → query → password_verify full key
+ * Key format: acl_ (4) + 8-char alphanumeric prefix + _ (1) + 40-char hex secret = 53 chars
+ * DB stores:  key_prefix = "acl_XXXXXXXX" (12 chars), key_hash = password_hash(full_key)
+ * Lookup:     Extract prefix (substr 0..11) → query → password_verify full key
  */
-class WPOPS_Auth {
+class ACL_Auth {
 
-    const PREFIX_MARKER = 'wpops_';
-    const PREFIX_LEN    = 14; // "wpops_" (6) + 8 random chars
+    const PREFIX_MARKER = 'acl_';
+    const PREFIX_LEN    = 12; // "acl_" (4) + 8 random chars
 
     // ── Key Generation ────────────────────────────────────────────────────
 
@@ -41,7 +41,7 @@ class WPOPS_Auth {
         $now      = current_time( 'mysql', true ); // UTC
 
         $wpdb->insert(
-            $wpdb->prefix . 'wpops_mcp_api_keys',
+            $wpdb->prefix . 'acl_api_keys',
             [
                 'label'              => sanitize_text_field( $label ),
                 'key_prefix'         => $key_data['key_prefix'],
@@ -73,7 +73,7 @@ class WPOPS_Auth {
         }
 
         $prefix = substr( $plain_key, 0, self::PREFIX_LEN );
-        $table  = $wpdb->prefix . 'wpops_mcp_api_keys';
+        $table  = $wpdb->prefix . 'acl_api_keys';
 
         $row = $wpdb->get_row(
             $wpdb->prepare(
@@ -102,7 +102,7 @@ class WPOPS_Auth {
         global $wpdb;
 
         $exists = $wpdb->get_var(
-            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}wpops_mcp_api_keys WHERE id = %d", $key_id )
+            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}acl_api_keys WHERE id = %d", $key_id )
         );
 
         if ( ! $exists ) {
@@ -112,7 +112,7 @@ class WPOPS_Auth {
         $key_data = self::generate_key();
 
         $wpdb->update(
-            $wpdb->prefix . 'wpops_mcp_api_keys',
+            $wpdb->prefix . 'acl_api_keys',
             [
                 'key_prefix' => $key_data['key_prefix'],
                 'key_hash'   => $key_data['key_hash'],
@@ -131,7 +131,7 @@ class WPOPS_Auth {
         global $wpdb;
 
         $rows = $wpdb->update(
-            $wpdb->prefix . 'wpops_mcp_api_keys',
+            $wpdb->prefix . 'acl_api_keys',
             [
                 'status'     => 'revoked',
                 'revoked_at' => current_time( 'mysql', true ),
@@ -149,7 +149,7 @@ class WPOPS_Auth {
     public static function touch_key( int $key_id, string $ip ): void {
         global $wpdb;
         $wpdb->update(
-            $wpdb->prefix . 'wpops_mcp_api_keys',
+            $wpdb->prefix . 'acl_api_keys',
             [
                 'last_used_at' => current_time( 'mysql', true ),
                 'last_used_ip' => substr( $ip, 0, 45 ),

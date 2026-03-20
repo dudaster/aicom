@@ -2,13 +2,13 @@
 defined( 'ABSPATH' ) || exit;
 global $wpdb;
 
-$table = $wpdb->prefix . 'wpops_mcp_api_keys';
+$table = $wpdb->prefix . 'acl_api_keys';
 
 // Check for one-time display of a newly created/rotated key
 $new_key_id  = (int) ( $_GET['created'] ?? $_GET['rotated'] ?? 0 );
-$plain_key   = $new_key_id ? get_transient( 'wpops_new_key_' . $new_key_id ) : null;
+$plain_key   = $new_key_id ? get_transient( 'acl_new_key_' . $new_key_id ) : null;
 if ( $plain_key ) {
-    delete_transient( 'wpops_new_key_' . $new_key_id );
+    delete_transient( 'acl_new_key_' . $new_key_id );
 }
 
 // All available scopes from spec
@@ -35,15 +35,15 @@ $all_scopes = [
 
 $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, last_used_at, created_at FROM $table ORDER BY created_at DESC", ARRAY_A );
 ?>
-<div class="wrap wpops-wrap">
+<div class="wrap acl-wrap">
     <h1>API Keys</h1>
 
     <?php if ( $plain_key ) : ?>
-    <div class="notice notice-success wpops-notice-key">
+    <div class="notice notice-success acl-notice-key">
         <h3>✓ Key <?php echo esc_html( $new_key_id ? 'rotated' : 'created' ); ?> — copy now, will not be shown again</h3>
-        <div class="wpops-copy-row">
-            <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>" class="large-text wpops-copy-input" id="wpops-plain-key" />
-            <button class="button wpops-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>">Copy Key</button>
+        <div class="acl-copy-row">
+            <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>" class="large-text acl-copy-input" id="acl-plain-key" />
+            <button class="button acl-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>">Copy Key</button>
         </div>
     </div>
     <?php endif; ?>
@@ -53,33 +53,33 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
     <?php endif; ?>
 
     <!-- Create New Key -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>Generate New API Key</h2>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <input type="hidden" name="action" value="wpops_mcp_save" />
-            <input type="hidden" name="wpops_action" value="create_key" />
-            <?php wp_nonce_field( WPOPS_Admin::NONCE_ACTION ); ?>
+            <input type="hidden" name="action" value="acl_save" />
+            <input type="hidden" name="acl_action" value="create_key" />
+            <?php wp_nonce_field( ACL_Admin::NONCE_ACTION ); ?>
 
             <table class="form-table" role="presentation">
                 <tr>
-                    <th><label for="wpops-key-label">Label</label></th>
+                    <th><label for="acl-key-label">Label</label></th>
                     <td>
-                        <input type="text" name="label" id="wpops-key-label" class="regular-text" required placeholder="e.g. OpenClaw Production" />
+                        <input type="text" name="label" id="acl-key-label" class="regular-text" required placeholder="e.g. OpenClaw Production" />
                     </td>
                 </tr>
                 <tr>
                     <th>Scopes</th>
                     <td>
-                        <label class="wpops-check-all-label">
-                            <input type="checkbox" id="wpops-scope-check-all" />
+                        <label class="acl-check-all-label">
+                            <input type="checkbox" id="acl-scope-check-all" />
                             <strong>Check all</strong>
                         </label>
-                        <div class="wpops-scope-grid">
+                        <div class="acl-scope-grid">
                         <?php foreach ( $all_scopes as $scope_key => $scope_label ) : ?>
-                            <label class="wpops-scope-label">
-                                <input type="checkbox" name="scopes[]" value="<?php echo esc_attr( $scope_key ); ?>" class="wpops-scope-cb" />
+                            <label class="acl-scope-label">
+                                <input type="checkbox" name="scopes[]" value="<?php echo esc_attr( $scope_key ); ?>" class="acl-scope-cb" />
                                 <span><?php echo esc_html( $scope_label ); ?></span>
-                                <code class="wpops-scope-code"><?php echo esc_html( $scope_key ); ?></code>
+                                <code class="acl-scope-code"><?php echo esc_html( $scope_key ); ?></code>
                             </label>
                         <?php endforeach; ?>
                         </div>
@@ -107,7 +107,7 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
     </div>
 
     <!-- Existing Keys Table -->
-    <div class="wpops-card">
+    <div class="acl-card">
         <h2>Existing Keys</h2>
         <?php if ( empty( $keys ) ) : ?>
         <p>No API keys yet.</p>
@@ -127,12 +127,12 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
             <tbody>
             <?php foreach ( $keys as $key ) :
                 $scopes = json_decode( $key['scopes_json'], true ) ?: [];
-                $status_class = $key['status'] === 'active' ? 'wpops-status-active' : 'wpops-status-revoked';
+                $status_class = $key['status'] === 'active' ? 'acl-status-active' : 'acl-status-revoked';
             ?>
                 <tr>
                     <td><strong><?php echo esc_html( $key['label'] ); ?></strong></td>
                     <td><code><?php echo esc_html( $key['key_prefix'] ); ?>...</code></td>
-                    <td><span class="wpops-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span></td>
+                    <td><span class="acl-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span></td>
                     <td>
                         <?php if ( empty( $scopes ) ) : ?>
                         <em>none</em>
@@ -149,19 +149,19 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
                         <?php if ( $key['status'] === 'active' ) : ?>
                         <!-- Rotate -->
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="wpops_mcp_save" />
-                            <input type="hidden" name="wpops_action" value="rotate_key" />
+                            <input type="hidden" name="action" value="acl_save" />
+                            <input type="hidden" name="acl_action" value="rotate_key" />
                             <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( WPOPS_Admin::NONCE_ACTION ); ?>
+                            <?php wp_nonce_field( ACL_Admin::NONCE_ACTION ); ?>
                             <button type="submit" class="button button-small" onclick="return confirm('Rotate this key? The old key will stop working immediately.')">Rotate</button>
                         </form>
                         <!-- Revoke -->
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="wpops_mcp_save" />
-                            <input type="hidden" name="wpops_action" value="revoke_key" />
+                            <input type="hidden" name="action" value="acl_save" />
+                            <input type="hidden" name="acl_action" value="revoke_key" />
                             <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( WPOPS_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small wpops-btn-danger" onclick="return confirm('Revoke this key? This cannot be undone.')">Revoke</button>
+                            <?php wp_nonce_field( ACL_Admin::NONCE_ACTION ); ?>
+                            <button type="submit" class="button button-small acl-btn-danger" onclick="return confirm('Revoke this key? This cannot be undone.')">Revoke</button>
                         </form>
                         <?php else : ?>
                         <em>—</em>

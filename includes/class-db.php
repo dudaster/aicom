@@ -3,10 +3,10 @@
  * Database schema management and migrations.
  * Handles three tables: api_keys, logs, backups.
  */
-class WPOPS_DB {
+class ACL_DB {
 
-    const DB_VERSION    = '2.0';
-    const VERSION_OPT   = 'wpops_mcp_db_version';
+    const DB_VERSION    = '3.0';
+    const VERSION_OPT   = 'acl_db_version';
 
     public static function install(): void {
         self::run_migrations();
@@ -15,18 +15,22 @@ class WPOPS_DB {
     }
 
     /**
-     * Run ALTER TABLE migrations for columns dbDelta() cannot change.
-     * Safe to call on fresh installs (errors are suppressed).
+     * Run migrations in order. Safe to call on fresh installs (errors suppressed).
      */
     private static function run_migrations(): void {
         global $wpdb;
-        $current = get_option( self::VERSION_OPT, '0' );
 
+        // Carry over version from old option name (rebrand from wpops_mcp_db_version).
+        $current = get_option( self::VERSION_OPT, false );
+        if ( $current === false ) {
+            $current = get_option( 'wpops_mcp_db_version', '0' );
+        }
+
+        // v2.0: column changes (ran against old table names before rebrand).
         if ( version_compare( $current, '2.0', '<' ) ) {
-            // Suppress errors — tables may not exist yet on fresh install.
             $wpdb->hide_errors();
 
-            $wpdb->query( "ALTER TABLE {$wpdb->prefix}wpops_mcp_api_keys
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}acl_api_keys
                 MODIFY COLUMN key_prefix  VARCHAR(16)  NOT NULL,
                 MODIFY COLUMN status      VARCHAR(20)  NOT NULL DEFAULT 'active',
                 ADD COLUMN IF NOT EXISTS restrictions_json LONGTEXT NULL AFTER scopes_json,
@@ -36,7 +40,7 @@ class WPOPS_DB {
                 ADD COLUMN IF NOT EXISTS created_by_user_id BIGINT UNSIGNED NULL,
                 ADD COLUMN IF NOT EXISTS revoked_at       DATETIME NULL" );
 
-            $wpdb->query( "ALTER TABLE {$wpdb->prefix}wpops_mcp_logs
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}acl_logs
                 MODIFY COLUMN request_id  VARCHAR(64) NOT NULL,
                 MODIFY COLUMN tool_name   VARCHAR(191) NOT NULL,
                 MODIFY COLUMN module      VARCHAR(64)  NOT NULL,
@@ -44,6 +48,27 @@ class WPOPS_DB {
                 MODIFY COLUMN http_status SMALLINT NULL,
                 MODIFY COLUMN duration_ms INT UNSIGNED NULL,
                 ADD COLUMN IF NOT EXISTS target_id VARCHAR(100) NULL AFTER target_type" );
+
+            $wpdb->show_errors();
+        }
+
+        // v3.0: rename tables from old wpops_mcp_* prefix to acl_* (rebrand).
+        if ( version_compare( $current, '3.0', '<' ) ) {
+            $wpdb->hide_errors();
+
+            $old_keys    = $wpdb->prefix . 'wpops_mcp_api_keys';
+            $old_logs    = $wpdb->prefix . 'wpops_mcp_logs';
+            $old_backups = $wpdb->prefix . 'wpops_mcp_backups';
+
+            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_keys'" ) === $old_keys ) {
+                $wpdb->query( "RENAME TABLE `$old_keys` TO `{$wpdb->prefix}acl_api_keys`" );
+            }
+            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_logs'" ) === $old_logs ) {
+                $wpdb->query( "RENAME TABLE `$old_logs` TO `{$wpdb->prefix}acl_logs`" );
+            }
+            if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_backups'" ) === $old_backups ) {
+                $wpdb->query( "RENAME TABLE `$old_backups` TO `{$wpdb->prefix}acl_backups`" );
+            }
 
             $wpdb->show_errors();
         }
@@ -55,7 +80,7 @@ class WPOPS_DB {
         $charset = $wpdb->get_charset_collate();
 
         // ── API Keys ─────────────────────────────────────────────────────
-        $sql_keys = "CREATE TABLE {$wpdb->prefix}wpops_mcp_api_keys (
+        $sql_keys = "CREATE TABLE {$wpdb->prefix}acl_api_keys (
             id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             label               VARCHAR(191)    NOT NULL,
             key_prefix          VARCHAR(16)     NOT NULL,
@@ -75,7 +100,7 @@ class WPOPS_DB {
         ) $charset;";
 
         // ── Audit Logs ────────────────────────────────────────────────────
-        $sql_logs = "CREATE TABLE {$wpdb->prefix}wpops_mcp_logs (
+        $sql_logs = "CREATE TABLE {$wpdb->prefix}acl_logs (
             id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at          DATETIME        NOT NULL,
             request_id          VARCHAR(64)     NOT NULL,
@@ -104,7 +129,7 @@ class WPOPS_DB {
         ) $charset;";
 
         // ── Backups ───────────────────────────────────────────────────────
-        $sql_backups = "CREATE TABLE {$wpdb->prefix}wpops_mcp_backups (
+        $sql_backups = "CREATE TABLE {$wpdb->prefix}acl_backups (
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at    DATETIME        NOT NULL,
             request_id    VARCHAR(64)     NULL,

@@ -3,7 +3,7 @@
  * WooCommerce Ops module — products, categories, attributes, settings.
  * Dependency: WooCommerce must be active.
  */
-class WPOPS_Module_WooCommerce extends WPOPS_Module_Base {
+class ACL_Module_WooCommerce extends ACL_Module_Base {
 
     public function get_module_name(): string {
         return 'woocommerce';
@@ -521,7 +521,7 @@ class WPOPS_Module_WooCommerce extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter key is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_option_allowlist( $key_record, $key ) ) {
+        if ( ! ACL_Policy_Engine::check_option_allowlist( $key_record, $key ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Option not in allowlist: $key", 'denied_allowlist', 403 );
         }
 
@@ -537,7 +537,7 @@ class WPOPS_Module_WooCommerce extends WPOPS_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter key is required', 'validation_failed' );
         }
 
-        if ( ! WPOPS_Policy_Engine::check_option_allowlist( $key_record, $key ) ) {
+        if ( ! ACL_Policy_Engine::check_option_allowlist( $key_record, $key ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Option not in allowlist: $key", 'denied_allowlist', 403 );
         }
 
