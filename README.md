@@ -1,38 +1,85 @@
-# ACL - AI Control Layer
+# ACL – AI Control Layer for WordPress
 
-A standalone MCP (Model Context Protocol) server for WordPress. Exposes WordPress operations via a secure HTTP endpoint with API key authentication, scope control, lock management, and full audit logging.
+**Control your WordPress site with AI.** ACL is a WordPress plugin that turns your site into an MCP server — giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
+
+No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Just describe what you want, and your AI agent does it.
+
+---
+
+## What can you do with ACL?
+
+- **Let an AI agent write and publish content** — create posts, pages, update metadata, manage categories and tags, all via natural language instructions to your AI.
+- **Automate your WooCommerce store** — update product descriptions, manage categories, read settings, all through an AI agent without touching the WordPress dashboard.
+- **Manage multilingual sites automatically** — connect with Polylang to create and manage translations via AI.
+- **Control Elementor pages** — validate and inspect Elementor-built pages programmatically.
+- **Build AI-powered editorial workflows** — let AI draft, review, schedule and publish content on your behalf.
+- **Sync content across sites** — use AI agents to mirror or migrate content between WordPress installations.
+- **Automate SEO tasks** — bulk update meta fields, slugs, titles and descriptions via AI instructions.
+- **Monitor and audit your site** — every AI action is logged with full details: who, what, when, from which IP.
+
+## Who is this for?
+
+- **Developers** building AI-powered WordPress tools or integrations
+- **Agencies** that want to automate client site management with AI
+- **Content teams** using AI writing assistants and wanting direct WordPress integration
+- **OpenClaw users** — ACL is the official WordPress connector for the OpenClaw AI platform
+- **Anyone** using Claude, ChatGPT, or other AI agents who wants them to directly control a WordPress site
+
+---
+
+## How it works
+
+ACL exposes a secure HTTP endpoint on your WordPress site. AI platforms and agents send structured requests to this endpoint (using the MCP / Model Context Protocol standard). ACL authenticates the request, checks permissions, executes the operation, and returns a structured response — all in milliseconds.
+
+Your AI agent can list posts, create content, update settings, manage users, and much more — all without needing browser access or manual intervention.
+
+```
+AI Agent → ACL Endpoint → WordPress
+```
+
+---
 
 ## Features
 
-- **MCP Standard** — Full JSON-RPC 2.0 support (`tools/call`, `tools/list`)
+- **MCP Standard** — Full JSON-RPC 2.0 support (`tools/call`, `tools/list`), compatible with any MCP client
 - **87 tools** across 8 modules: WP Core, Menus, Media, Users, Backup, WooCommerce, Elementor, Polylang
-- **Security** — API key authentication (hashed), IP allowlists, scope-based access control
-- **Lock system** — Hard lock, soft lock, unlocked modes
-- **Audit logging** — Every request logged with duration, key, tool, params, result
-- **Dry-run mode** — Test operations without applying changes
-- **Confirm flag** — Destructive operations require explicit `confirm: true`
+- **Security-first** — API key authentication (bcrypt-hashed), IP allowlists, scope-based access control
+- **Lock system** — Hard lock (read-only emergency mode), soft lock, unlocked — switchable from the WordPress admin
+- **Audit logging** — Every request logged with duration, API key, tool used, parameters and result
+- **Dry-run mode** — Test what an operation would do without applying changes
+- **Confirm flag** — Destructive operations require explicit `confirm: true` — prevents accidental AI mistakes
+- **Modular** — WooCommerce, Elementor and Polylang tools only activate when those plugins are present
+
+---
 
 ## Installation
 
 1. Upload the `acl-ai-control-layer` folder to `/wp-content/plugins/`
 2. Activate via **Plugins → Installed Plugins**
 3. Go to **ACL → API Keys** and create your first key
+4. Point your AI agent or MCP client to your endpoint
+
+---
 
 ## Endpoint
 
+**REST API:**
 ```
 POST /wp-json/acl/v1/mcp
 ```
 
-Fallback (always works, no mod_rewrite required):
+**Fallback** (always works, no mod_rewrite / .htaccess required):
 ```
 POST /?acl=1
 ```
 
-Health check:
+**Health check:**
 ```
 GET /?acl=1
+→ {"ok":true,"server":"ACL - AI Control Layer","version":"2.0.0"}
 ```
+
+---
 
 ## Authentication
 
@@ -45,7 +92,9 @@ or:
 X-API-Key: acl_XXXXXXXX_<secret>
 ```
 
-> **Apache note:** Add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` to `.htaccess` if the Authorization header is stripped.
+> **Apache note:** Add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` to `.htaccess` if the Authorization header is stripped by your server.
+
+---
 
 ## MCP Request Format
 
@@ -67,6 +116,8 @@ X-API-Key: acl_XXXXXXXX_<secret>
 { "tool": "wp.posts.list", "arguments": { "post_type": "page" } }
 ```
 
+---
+
 ## Modules & Tools
 
 | Module | Tools | Dependency |
@@ -80,9 +131,11 @@ X-API-Key: acl_XXXXXXXX_<secret>
 | Elementor | elementor.page.*, elementor.widget.* | Elementor |
 | Polylang | pll.* | Polylang |
 
+---
+
 ## Scopes
 
-API keys are granted specific scopes:
+API keys are granted specific scopes — you control exactly what each AI agent can and cannot do:
 
 | Scope | Access |
 |-------|--------|
@@ -99,11 +152,22 @@ API keys are granted specific scopes:
 | `manage.elementor` | Elementor page editing |
 | `manage.polylang` | Polylang translations |
 
+---
+
 ## Requirements
 
 - PHP 8.1+
 - WordPress 6.0+
 - Optional: WooCommerce, Elementor, Polylang
+
+---
+
+## Related
+
+- [OpenClaw](https://openclaw.io) — AI agent platform with native ACL support
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io) — the open standard ACL implements
+
+---
 
 ## License
 
