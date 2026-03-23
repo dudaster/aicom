@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       AICOM - AI Commander for WordPress
  * Plugin URI:        https://github.com/dudaster/aicom
- * Description:       Connect AI agents to your WordPress site. Exposes WordPress operations via a secure MCP endpoint with API key authentication, scope control, lock management, and full audit logging.
+ * Description:       Let AI agents control your WordPress site. MCP server with API key auth, scope control, safety locks, audit logging and 87 tools for posts, WooCommerce, Elementor and more.
  * Version:           2.0.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
