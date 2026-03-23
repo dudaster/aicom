@@ -4,7 +4,7 @@
  */
 class AICOM_Admin {
 
-    const MENU_SLUG    = 'acl';
+    const MENU_SLUG    = 'aicom';
     const CAPABILITY   = 'manage_options';
     const NONCE_ACTION = 'aicom_admin';
 
@@ -39,7 +39,7 @@ class AICOM_Admin {
 
     public function enqueue_assets( string $hook ): void {
         // Only enqueue on our own pages
-        if ( strpos( $hook, 'acl' ) === false ) {
+        if ( strpos( $hook, 'aicom' ) === false ) {
             return;
         }
 
