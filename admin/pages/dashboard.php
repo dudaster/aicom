@@ -106,7 +106,7 @@ $badge_label = match ( $lock_state['effective_lock'] ) {
         <h2>Active Modules</h2>
         <div class="aicom-modules-row">
             <?php foreach ( AICOM_Module_Detector::get_module_status_map() as $module => $status ) : ?>
-            <div class="aicom-module-pill <?php echo $status === 'active' ? 'aicom-module-active' : 'aicom-module-inactive'; ?>">
+            <div class="aicom-module-pill <?php echo esc_attr( $status === 'active' ? 'aicom-module-active' : 'aicom-module-inactive' ); ?>">
                 <?php echo esc_html( ucfirst( str_replace( '_', ' ', $module ) ) ); ?>
                 <span class="aicom-dot"></span>
             </div>

@@ -135,9 +135,17 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
     <div class="tablenav bottom">
         <div class="tablenav-pages">
             <?php
-            $pagination_args = array_merge( $_GET, [] );
-            unset( $pagination_args['paged'] );
-            $base = $base_url . '&' . http_build_query( $pagination_args );
+            $pagination_args = array_filter( [
+                'page'       => 'aicom-audit-logs',
+                'tool_name'  => $filter_tool,
+                'status'     => $filter_status,
+                'api_key_id' => $filter_key_id ?: null,
+                'remote_ip'  => $filter_ip,
+                'period'     => $filter_period,
+                'date_from'  => $filter_from,
+                'date_to'    => $filter_to,
+            ] );
+            $base = admin_url( 'admin.php' ) . '?' . http_build_query( $pagination_args );
 
             for ( $p = 1; $p <= $num_pages; $p++ ) :
                 $url = $base . '&paged=' . $p;

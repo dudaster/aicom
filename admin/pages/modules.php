@@ -71,7 +71,7 @@ $module_info = [
             <div class="aicom-module-header">
                 <span class="dashicons <?php echo esc_attr( $info['icon'] ); ?>"></span>
                 <h3><?php echo esc_html( $info['label'] ); ?></h3>
-                <span class="aicom-module-status-dot <?php echo $is_active ? 'aicom-dot-active' : 'aicom-dot-inactive'; ?>"></span>
+                <span class="aicom-module-status-dot <?php echo esc_attr( $is_active ? 'aicom-dot-active' : 'aicom-dot-inactive' ); ?>"></span>
             </div>
             <p class="aicom-module-desc"><?php echo esc_html( $info['description'] ); ?></p>
             <div class="aicom-module-meta">

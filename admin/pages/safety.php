@@ -26,11 +26,14 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
         <h2>Current Lock Status</h2>
         <p class="aicom-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
         <p class="description">
-            <?php echo match ( $lock_state['effective_lock'] ) {
+            <?php
+            $lock_desc = match ( $lock_state['effective_lock'] ) {
                 'hard_locked' => 'Only <code>server.status</code> is allowed. All other tools are blocked.',
                 'soft_locked' => 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.',
                 default       => 'All tools permitted (subject to scope and allowlist checks).',
-            }; ?>
+            };
+            echo wp_kses( $lock_desc, [ 'code' => [] ] );
+            ?>
         </p>
     </div>
 
@@ -109,9 +112,9 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
                 <tr>
                     <td><code><?php echo esc_html( $class ); ?></code></td>
                     <td><?php echo esc_html( $examples ); ?></td>
-                    <td class="aicom-cell-<?php echo $unlocked === '✓' ? 'yes' : 'no'; ?>"><?php echo $unlocked; ?></td>
-                    <td class="aicom-cell-<?php echo $soft === '✓' ? 'yes' : 'no'; ?>"><?php echo $soft; ?></td>
-                    <td class="aicom-cell-<?php echo $hard === '✓' ? 'yes' : 'no'; ?>"><?php echo $hard; ?></td>
+                    <td class="aicom-cell-<?php echo esc_attr( $unlocked === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $unlocked ); ?></td>
+                    <td class="aicom-cell-<?php echo esc_attr( $soft === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $soft ); ?></td>
+                    <td class="aicom-cell-<?php echo esc_attr( $hard === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $hard ); ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
