@@ -126,7 +126,10 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
         $limit     = min( (int) ( $args['limit'] ?? 50 ), 200 );
         $params[]  = $limit;
 
+        // $table = $wpdb->prefix.'aicom_backups' (trusted); user filters use %s/%d placeholders.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $sql  = "SELECT id, created_at, tool_name, target_type, target_id, manifest_json FROM $table WHERE $where_sql ORDER BY created_at DESC LIMIT %d";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $rows = $wpdb->get_results( $wpdb->prepare( $sql, ...$params ), ARRAY_A );
 
         foreach ( $rows as &$row ) {

@@ -18,12 +18,17 @@ $where_sql = implode( ' AND ', $where );
 $offset    = ( $page_num - 1 ) * $per_page;
 $table     = $wpdb->prefix . 'aicom_backups';
 
+// $table = $wpdb->prefix.'aicom_backups' (trusted); user filters use %s/%d placeholders.
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 $count_sql = "SELECT COUNT(*) FROM $table WHERE $where_sql";
-$total     = empty( $params ) ? (int) $wpdb->get_var( $count_sql ) : (int) $wpdb->get_var( $wpdb->prepare( $count_sql, ...$params ) );
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+$total = empty( $params ) ? (int) $wpdb->get_var( $count_sql ) : (int) $wpdb->get_var( $wpdb->prepare( $count_sql, ...$params ) );
 
 $data_params = array_merge( $params, [ $per_page, $offset ] );
-$data_sql    = "SELECT id, created_at, tool_name, target_type, target_id, manifest_json FROM $table WHERE $where_sql ORDER BY created_at DESC LIMIT %d OFFSET %d";
-$backups     = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ), ARRAY_A );
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+$data_sql = "SELECT id, created_at, tool_name, target_type, target_id, manifest_json FROM $table WHERE $where_sql ORDER BY created_at DESC LIMIT %d OFFSET %d";
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+$backups = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ), ARRAY_A );
 
 $num_pages = (int) ceil( $total / $per_page );
 $type_options = [ '' => 'All Types', 'post' => 'Post', 'term' => 'Term', 'elementor_page' => 'Elementor Page' ];

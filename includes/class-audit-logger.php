@@ -93,16 +93,23 @@ class AICOM_Audit_Logger {
         $offset    = ( max( 1, $page ) - 1 ) * $per_page;
         $table     = self::table();
 
-        // Count query (no ORDER BY or LIMIT)
+        // Count query (no ORDER BY or LIMIT).
+        // $table = $wpdb->prefix.'aicom_logs' (trusted); user filters use %s/%d placeholders.
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
         $count_sql = "SELECT COUNT(*) FROM $table WHERE $where_sql";
-        $total     = empty( $params )
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $total = empty( $params )
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             ? (int) $wpdb->get_var( $count_sql )
+            // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
             : (int) $wpdb->get_var( $wpdb->prepare( $count_sql, ...$params ) );
 
-        // Data query
-        $data_params   = array_merge( $params, [ $per_page, $offset ] );
-        $data_sql      = "SELECT * FROM $table WHERE $where_sql ORDER BY created_at DESC LIMIT %d OFFSET %d";
-        $items         = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ), ARRAY_A );
+        // Data query — always uses prepare (has %d LIMIT/%d OFFSET at minimum).
+        $data_params = array_merge( $params, [ $per_page, $offset ] );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $data_sql = "SELECT * FROM $table WHERE $where_sql ORDER BY created_at DESC LIMIT %d OFFSET %d";
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
+        $items = $wpdb->get_results( $wpdb->prepare( $data_sql, ...$data_params ), ARRAY_A );
 
         return [
             'items' => $items ?: [],

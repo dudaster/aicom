@@ -113,8 +113,8 @@ $module_info = [
                     <td><code><?php echo esc_html( $meta['tool_name'] ); ?></code></td>
                     <td><?php echo esc_html( $meta['module'] ); ?></td>
                     <td><span class="aicom-class-badge aicom-class-<?php echo esc_attr( $meta['class'] ); ?>"><?php echo esc_html( $meta['class'] ); ?></span></td>
-                    <td><?php echo implode( ', ', array_map( 'esc_html', $meta['required_scopes'] ) ) ?: '—'; ?></td>
-                    <td><?php echo implode( ' ', array_map( fn($f) => '<code>' . esc_html($f) . '</code>', $flags ) ); ?></td>
+                    <td><?php echo ! empty( $meta['required_scopes'] ) ? esc_html( implode( ', ', $meta['required_scopes'] ) ) : '&#8212;'; ?></td>
+                    <td><?php echo wp_kses( implode( ' ', array_map( fn( $f ) => '<code>' . esc_html( $f ) . '</code>', $flags ) ), [ 'code' => [] ] ); ?></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

@@ -192,7 +192,7 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             ];
 
             $attachment_id = media_handle_sideload( $file_array, (int) ( $args['post_id'] ?? 0 ) );
-            @unlink( $tmp );
+            wp_delete_file( $tmp );
         } elseif ( $content ) {
             // Decode base64
             $decoded = base64_decode( $content, true );
@@ -319,7 +319,7 @@ class AICOM_Module_Media extends AICOM_Module_Base {
                 'name'     => $file,
                 'is_dir'   => is_dir( $full ),
                 'size'     => is_file( $full ) ? filesize( $full ) : null,
-                'modified' => date( 'Y-m-d H:i:s', filemtime( $full ) ),
+                'modified' => gmdate( 'Y-m-d H:i:s', filemtime( $full ) ),
             ];
         }
 
@@ -387,8 +387,8 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_delete_file' => $filepath ] );
         }
 
-        $success = unlink( $filepath );
-        if ( ! $success ) {
+        wp_delete_file( $filepath );
+        if ( file_exists( $filepath ) ) {
             return $this->err( 'DELETE_FAILED', "Failed to delete: $filepath", 'error', 500 );
         }
 
