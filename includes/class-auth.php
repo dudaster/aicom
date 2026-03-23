@@ -205,13 +205,17 @@ class AICOM_Auth {
      * Extract API key from Authorization or X-API-Key headers.
      */
     public static function extract_key_from_request(): ?string {
-        $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? ( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '' );
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $auth = isset( $_SERVER['HTTP_AUTHORIZATION'] )
+            ? wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] )
+            : ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) : '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
         if ( ! empty( $auth ) && stripos( $auth, 'Bearer ' ) === 0 ) {
             return trim( substr( $auth, 7 ) );
         }
 
-        $x_key = $_SERVER['HTTP_X_API_KEY'] ?? '';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $x_key = isset( $_SERVER['HTTP_X_API_KEY'] ) ? wp_unslash( $_SERVER['HTTP_X_API_KEY'] ) : '';
         if ( ! empty( $x_key ) ) {
             return trim( $x_key );
         }

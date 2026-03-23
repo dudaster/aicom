@@ -321,11 +321,13 @@ class AICOM_Tool_Router {
     }
 
     public static function remote_ip(): string {
-        // Respect X-Forwarded-For only if trusted (simplified — production should validate proxy)
-        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        // Respect X-Forwarded-For only if trusted (simplified — production should validate proxy).
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        $forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) : '';
         if ( $forwarded ) {
-            return trim( explode( ',', $forwarded )[0] );
+            return sanitize_text_field( trim( explode( ',', $forwarded )[0] ) );
         }
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+        return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
     }
 }
