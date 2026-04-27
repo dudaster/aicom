@@ -193,11 +193,13 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
             <tbody>
             <?php foreach ( $keys as $key ) :
                 $scopes = json_decode( $key['scopes_json'], true ) ?: [];
-                $status_class = match( $key['status'] ) {
-                    'active'    => 'aicom-status-active',
-                    'suspended' => 'aicom-status-suspended',
-                    default     => 'aicom-status-revoked',
-                };
+                if ( $key['status'] === 'active' ) {
+                    $status_class = 'aicom-status-active';
+                } elseif ( $key['status'] === 'suspended' ) {
+                    $status_class = 'aicom-status-suspended';
+                } else {
+                    $status_class = 'aicom-status-revoked';
+                }
             ?>
                 <tr>
                     <td><strong><?php echo esc_html( $key['label'] ); ?></strong></td>
