@@ -67,6 +67,14 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
     <div class="notice notice-warning is-dismissible"><p>Key revoked.</p></div>
     <?php endif; ?>
 
+    <?php if ( isset( $_GET['suspended'] ) ) : ?>
+    <div class="notice notice-warning is-dismissible"><p>Key suspended — access blocked until unsuspended.</p></div>
+    <?php endif; ?>
+
+    <?php if ( isset( $_GET['unsuspended'] ) ) : ?>
+    <div class="notice notice-success is-dismissible"><p>Key unsuspended — access restored.</p></div>
+    <?php endif; ?>
+
     <!-- Connection Info -->
     <div class="aicom-card">
         <h2>Connection Info</h2>
@@ -185,7 +193,11 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
             <tbody>
             <?php foreach ( $keys as $key ) :
                 $scopes = json_decode( $key['scopes_json'], true ) ?: [];
-                $status_class = $key['status'] === 'active' ? 'aicom-status-active' : 'aicom-status-revoked';
+                $status_class = match( $key['status'] ) {
+                    'active'    => 'aicom-status-active',
+                    'suspended' => 'aicom-status-suspended',
+                    default     => 'aicom-status-revoked',
+                };
             ?>
                 <tr>
                     <td><strong><?php echo esc_html( $key['label'] ); ?></strong></td>
@@ -213,7 +225,32 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
                             <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
                             <button type="submit" class="button button-small" onclick="return confirm('Rotate this key? The old key will stop working immediately.')">Rotate</button>
                         </form>
+                        <!-- Suspend -->
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                            <input type="hidden" name="action" value="aicom_save" />
+                            <input type="hidden" name="aicom_action" value="suspend_key" />
+                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                            <button type="submit" class="button button-small aicom-btn-warning">Suspend</button>
+                        </form>
                         <!-- Revoke -->
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                            <input type="hidden" name="action" value="aicom_save" />
+                            <input type="hidden" name="aicom_action" value="revoke_key" />
+                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                            <button type="submit" class="button button-small aicom-btn-danger" onclick="return confirm('Revoke this key? This cannot be undone.')">Revoke</button>
+                        </form>
+                        <?php elseif ( $key['status'] === 'suspended' ) : ?>
+                        <!-- Unsuspend -->
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                            <input type="hidden" name="action" value="aicom_save" />
+                            <input type="hidden" name="aicom_action" value="unsuspend_key" />
+                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                            <button type="submit" class="button button-small aicom-btn-primary">Unsuspend</button>
+                        </form>
+                        <!-- Revoke while suspended -->
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
                             <input type="hidden" name="action" value="aicom_save" />
                             <input type="hidden" name="aicom_action" value="revoke_key" />

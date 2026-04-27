@@ -2,14 +2,14 @@
 /**
  * API Key generation, validation, rotation, and revocation.
  *
- * Key format: aicom_ (5) + 8-char alphanumeric prefix + _ (1) + 40-char hex secret = 54 chars
- * DB stores:  key_prefix = "aicom_XXXXXXXX" (13 chars), key_hash = password_hash(full_key)
- * Lookup:     Extract prefix (substr 0..12) → query → password_verify full key
+ * Key format: aicom_ (6) + 8-char alphanumeric prefix + _ (1) + 40-char hex secret = 55 chars
+ * DB stores:  key_prefix = "aicom_XXXXXXXX" (14 chars), key_hash = password_hash(full_key)
+ * Lookup:     Extract prefix (substr 0..13) → query → password_verify full key
  */
 class AICOM_Auth {
 
     const PREFIX_MARKER = 'aicom_';
-    const PREFIX_LEN    = 13; // "aicom_" (5) + 8 random chars
+    const PREFIX_LEN    = 14; // "aicom_" (6) + 8 random chars
 
     // ── Key Generation ────────────────────────────────────────────────────
 
@@ -73,11 +73,10 @@ class AICOM_Auth {
         }
 
         $prefix = substr( $plain_key, 0, self::PREFIX_LEN );
-        $table  = $wpdb->prefix . 'aicom_api_keys';
 
         $row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM $table WHERE key_prefix = %s AND status = 'active'",
+                "SELECT * FROM {$wpdb->prefix}aicom_api_keys WHERE key_prefix = %s AND status = 'active'",
                 $prefix
             ),
             ARRAY_A
@@ -122,6 +121,42 @@ class AICOM_Auth {
         );
 
         return $key_data['plain_key'];
+    }
+
+    /**
+     * Suspend a key temporarily (status → suspended). Reversible via unsuspend_key().
+     */
+    public static function suspend_key( int $key_id ): bool {
+        global $wpdb;
+
+        $rows = $wpdb->update(
+            $wpdb->prefix . 'aicom_api_keys',
+            [
+                'status'     => 'suspended',
+                'updated_at' => current_time( 'mysql', true ),
+            ],
+            [ 'id' => $key_id, 'status' => 'active' ]
+        );
+
+        return $rows !== false && $rows > 0;
+    }
+
+    /**
+     * Unsuspend a key (status → active). Only works on suspended keys.
+     */
+    public static function unsuspend_key( int $key_id ): bool {
+        global $wpdb;
+
+        $rows = $wpdb->update(
+            $wpdb->prefix . 'aicom_api_keys',
+            [
+                'status'     => 'active',
+                'updated_at' => current_time( 'mysql', true ),
+            ],
+            [ 'id' => $key_id, 'status' => 'suspended' ]
+        );
+
+        return $rows !== false && $rows > 0;
     }
 
     /**
@@ -205,17 +240,15 @@ class AICOM_Auth {
      * Extract API key from Authorization or X-API-Key headers.
      */
     public static function extract_key_from_request(): ?string {
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         $auth = isset( $_SERVER['HTTP_AUTHORIZATION'] )
-            ? wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] )
-            : ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) : '' ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+            ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] ) )
+            : ( isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ) ) : '' );
 
         if ( ! empty( $auth ) && stripos( $auth, 'Bearer ' ) === 0 ) {
             return trim( substr( $auth, 7 ) );
         }
 
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $x_key = isset( $_SERVER['HTTP_X_API_KEY'] ) ? wp_unslash( $_SERVER['HTTP_X_API_KEY'] ) : '';
+        $x_key = isset( $_SERVER['HTTP_X_API_KEY'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_API_KEY'] ) ) : '';
         if ( ! empty( $x_key ) ) {
             return trim( $x_key );
         }

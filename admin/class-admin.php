@@ -14,6 +14,13 @@ class AICOM_Admin {
         add_action( 'admin_menu',          [ $this, 'register_menus' ] );
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
         add_action( 'admin_post_aicom_save', [ $this, 'handle_post' ] );
+        add_filter( 'plugin_action_links_aicom/aicom.php', [ $this, 'plugin_action_links' ] );
+    }
+
+    public function plugin_action_links( array $links ): array {
+        $setup_link = '<a href="' . esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ) . '"><strong>Setup API Key</strong></a>';
+        array_unshift( $links, $setup_link );
+        return $links;
     }
 
     // ── Menu Registration ─────────────────────────────────────────────────
@@ -109,27 +116,46 @@ class AICOM_Admin {
         }
         check_admin_referer( self::NONCE_ACTION );
 
-        $action = sanitize_key( $_POST['aicom_action'] ?? '' );
+        // All $_POST reads happen here, after nonce verification, then passed as typed params.
+        $action = sanitize_key( wp_unslash( $_POST['aicom_action'] ?? '' ) );
 
         switch ( $action ) {
             case 'set_lock':
-                $this->handle_set_lock();
+                $this->handle_set_lock(
+                    ! empty( $_POST['soft_lock'] ),
+                    ! empty( $_POST['hard_lock'] )
+                );
                 break;
 
             case 'create_key':
-                $this->handle_create_key();
+                $raw_scopes = filter_input( INPUT_POST, 'scopes', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) ?? [];
+                $scopes = array_map( 'sanitize_text_field', wp_unslash( $raw_scopes ) );
+                $this->handle_create_key(
+                    sanitize_text_field( wp_unslash( $_POST['label'] ?? '' ) ),
+                    $scopes,
+                    ! empty( $_POST['dry_run_only'] ),
+                    sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) )
+                );
                 break;
 
             case 'rotate_key':
-                $this->handle_rotate_key();
+                $this->handle_rotate_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
                 break;
 
             case 'revoke_key':
-                $this->handle_revoke_key();
+                $this->handle_revoke_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
+                break;
+
+            case 'suspend_key':
+                $this->handle_suspend_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
+                break;
+
+            case 'unsuspend_key':
+                $this->handle_unsuspend_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
                 break;
 
             case 'delete_backup':
-                $this->handle_delete_backup();
+                $this->handle_delete_backup( absint( wp_unslash( $_POST['backup_id'] ?? 0 ) ) );
                 break;
 
             default:
@@ -140,10 +166,7 @@ class AICOM_Admin {
 
     // ── Action Handlers ───────────────────────────────────────────────────
 
-    private function handle_set_lock(): void {
-        $soft_lock = ! empty( $_POST['soft_lock'] );
-        $hard_lock = ! empty( $_POST['hard_lock'] );
-
+    private function handle_set_lock( bool $soft_lock, bool $hard_lock ): void {
         AICOM_Lock_Manager::set_soft_lock( $soft_lock );
         AICOM_Lock_Manager::set_hard_lock( $hard_lock );
 
@@ -164,21 +187,18 @@ class AICOM_Admin {
         exit;
     }
 
-    private function handle_create_key(): void {
-        $label  = sanitize_text_field( $_POST['label'] ?? '' );
-        $scopes = array_map( 'sanitize_text_field', (array) ( $_POST['scopes'] ?? [] ) );
-
-        $restrictions = [];
-        if ( ! empty( $_POST['dry_run_only'] ) ) {
-            $restrictions['dry_run_only'] = true;
-        }
-        if ( ! empty( $_POST['ip_allowlist'] ) ) {
-            $restrictions['ip_allowlist'] = array_filter( array_map( 'trim', explode( "\n", $_POST['ip_allowlist'] ) ) );
-        }
-
+    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw ): void {
         if ( ! $label ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=missing_label' ) );
             exit;
+        }
+
+        $restrictions = [];
+        if ( $dry_run_only ) {
+            $restrictions['dry_run_only'] = true;
+        }
+        if ( $ip_allowlist_raw ) {
+            $restrictions['ip_allowlist'] = array_filter( array_map( 'trim', explode( "\n", $ip_allowlist_raw ) ) );
         }
 
         $result = AICOM_Auth::create_key( $label, $scopes, $restrictions );
@@ -190,28 +210,35 @@ class AICOM_Admin {
         exit;
     }
 
-    private function handle_rotate_key(): void {
-        $key_id  = (int) ( $_POST['key_id'] ?? 0 );
+    private function handle_rotate_key( int $key_id ): void {
         $new_key = AICOM_Auth::rotate_key( $key_id );
-
         if ( $new_key ) {
             set_transient( 'aicom_new_key_' . $key_id, $new_key, 60 );
         }
-
         wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&rotated=' . $key_id ) );
         exit;
     }
 
-    private function handle_revoke_key(): void {
-        $key_id = (int) ( $_POST['key_id'] ?? 0 );
+    private function handle_revoke_key( int $key_id ): void {
         AICOM_Auth::revoke_key( $key_id );
         wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&revoked=' . $key_id ) );
         exit;
     }
 
-    private function handle_delete_backup(): void {
+    private function handle_suspend_key( int $key_id ): void {
+        AICOM_Auth::suspend_key( $key_id );
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&suspended=' . $key_id ) );
+        exit;
+    }
+
+    private function handle_unsuspend_key( int $key_id ): void {
+        AICOM_Auth::unsuspend_key( $key_id );
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&unsuspended=' . $key_id ) );
+        exit;
+    }
+
+    private function handle_delete_backup( int $id ): void {
         global $wpdb;
-        $id = (int) ( $_POST['backup_id'] ?? 0 );
         if ( $id ) {
             $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'id' => $id ] );
         }
