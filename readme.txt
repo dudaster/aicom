@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.0.8
+Stable tag: 2.0.9
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.0.9 =
+* New: Suspend/Unsuspend for API keys — temporarily block a key without revoking it. Suspended keys return 401 automatically (auth query filters status = active). Active keys show Suspend button; suspended keys show Unsuspend + Revoke.
 
 = 2.0.8 =
 * New: wp.plugins.list — list all installed plugins with version, update availability, and status. Optional force_refresh=true for a live check against wordpress.org.
