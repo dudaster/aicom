@@ -1,20 +1,20 @@
-=== AICOM - AI Commander for WordPress ===
+=== AICOM - AI Commander ===
 Contributors: dudaster
-Tags: mcp, ai, automation, rest-api, ai-agent
+Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.0.0
-Requires PHP: 8.1
+Stable tag: 2.0.8
+Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Let AI agents control your WordPress site. MCP server with API key auth, scope control, safety locks, audit logging and 87 tools for posts, WooCommerce, Elementor and more.
+Control WordPress with Claude Code, OpenClaw, Celine, Goose and any AI agent via MCP. API key auth, scope control, safety locks, audit logging and 87 tools.
 
 == Description ==
 
-**AICOM - AI Commander for WordPress** turns your WordPress site into an MCP (Model Context Protocol) server, giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
+**AICOM - AI Commander** turns your WordPress site into an MCP (Model Context Protocol) server, giving AI agents direct, structured access to your WordPress content, settings, and data.
 
-No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Describe what you want, and your AI agent does it.
+Control your WordPress site through **Claude Code**, **OpenClaw**, **Celine**, **Goose**, and any other MCP-compatible AI agent. No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Describe what you want, and your AI agent does it.
 
 = What can you do with AICOM? =
 
@@ -31,7 +31,9 @@ No more copy-pasting between your AI assistant and WordPress. No more manual rep
 * **Developers** building AI-powered WordPress tools or integrations
 * **Agencies** automating client site management with AI agents
 * **Content teams** using AI writing assistants and wanting direct WordPress integration
-* **OpenClaw users** — AICOM is the official WordPress connector for the OpenClaw AI platform
+* **Claude Code users** — use AICOM as an MCP server directly from your terminal with Claude Code
+* **OpenClaw users** — AICOM works with the OpenClaw AI platform as a native WordPress MCP connector
+* **Celine & Goose users** — connect Celine or Goose to your WordPress site via AICOM's MCP endpoint
 * **Anyone** using Claude, ChatGPT, Gemini, or other AI agents who wants them to directly control a WordPress site
 
 = How it works =
@@ -65,7 +67,7 @@ AICOM exposes a secure HTTP endpoint on your WordPress site. AI platforms and ag
 
 Each API key is granted specific scopes — you control exactly what each AI agent can and cannot do:
 
-`read.wp`, `write.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.wordpress.settings`, `manage.media`, `manage.users`, `manage.woocommerce.products`, `manage.woocommerce.settings`, `manage.elementor`, `manage.polylang`
+`read.wp`, `write.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.wordpress.settings`, `manage.media`, `manage.users`, `manage.plugins`, `manage.woocommerce.products`, `manage.woocommerce.settings`, `manage.elementor`, `manage.polylang`
 
 = Endpoint =
 
@@ -157,6 +159,37 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.0.8 =
+* New: wp.plugins.list — list all installed plugins with version, update availability, and status. Optional force_refresh=true for a live check against wordpress.org.
+* New: wp.plugins.update_all — update all plugins with available updates in one call (dry_run and include[] filter supported). Uses WordPress's native Plugin_Upgrader + Automatic_Upgrader_Skin, identical to background auto-updates.
+* New scope: manage.plugins — dedicated scope for plugin management tools, separate from manage.wordpress.settings.
+
+= 2.0.7 =
+* New: elementor.template.set_conditions — dedicated tool that writes _elementor_conditions meta AND rebuilds the global elementor_pro_theme_builder_conditions option, then flushes the conditions cache. Uses Elementor Pro Conditions_Manager API when available, falls back to a manual option rebuild. Fixes Theme Builder templates not attaching to pages when conditions were set via wp.meta.set + wp.options.set.
+
+= 2.0.6 =
+* Fix: wp.meta.set now applies wp_slash() on string values before passing to update_post_meta() — prevents backslash stripping that broke Elementor JSON stored in post meta
+
+= 2.0.5 =
+* Fix: pll.string.set no longer calls PLL()->model->get_language() which is null in REST API context — replaced with direct pll_languages_list() lookup
+
+= 2.0.4 =
+* Fix: pll.strings.list, pll.string.get, pll.string.set no longer depend on pll_get_strings() (Polylang Pro only) — now works on Polylang free via direct PLL_MO access
+* WordPress core strings (blogname, blogdescription, date_format, time_format) can be set per-language using wp_option parameter without Polylang Pro
+
+= 2.0.3 =
+* New: pll.strings.list — list all registered Polylang strings with current translations per language
+* New: pll.string.get — get a specific string and all its translations
+* New: pll.string.set — set the translation of a registered string for a specific language (supports dry-run)
+
+= 2.0.2 =
+* Fix: wp.menus.delete and wp.menus.items.remove now document confirm=true in their input schema — agents can now discover this requirement via tools/list
+* Fix: wp.menus.items.add no longer requires url for custom type items — WordPress supports label-only menu items with an empty URL
+
+= 2.0.1 =
+* Fix: pll.post.link_translation and pll.term.link_translation now preserve existing translation group members when adding a new language — previously a third language (e.g. UK) was dropped when linking two posts
+* Changed: link_translation tools now accept a translations map {"lang": id} instead of pairs, supporting any number of languages in a single call
 
 = 2.0.0 =
 * Complete rewrite with modular, autoloaded architecture

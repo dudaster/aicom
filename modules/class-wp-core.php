@@ -217,6 +217,30 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'handler'          => [ $this, 'handle_options_set' ],
         ] );
 
+        // ── Plugins ───────────────────────────────────────────────────────
+        $this->register( 'wp.plugins.list', [
+            'class'           => 'read',
+            'required_scopes' => [ 'manage.plugins' ],
+            'description'     => 'List all installed plugins with version, status and available update info. Set force_refresh=true to bypass the 12-hour update cache.',
+            'input_schema'    => [
+                'force_refresh' => [ 'type' => 'boolean', 'description' => 'Force a fresh check against wordpress.org update API (slower).' ],
+            ],
+            'handler'         => [ $this, 'handle_plugins_list' ],
+        ] );
+
+        $this->register( 'wp.plugins.update_all', [
+            'class'            => 'admin_sensitive',
+            'required_scopes'  => [ 'manage.plugins' ],
+            'supports_dry_run' => true,
+            'requires_confirm' => true,
+            'description'      => 'Update all plugins that have available updates. Pass include[] to limit to specific plugin files. Requires direct filesystem access (no FTP). Confirm=true required.',
+            'input_schema'     => [
+                'include' => [ 'type' => 'array',   'description' => 'Optional list of plugin file paths (e.g. ["akismet/akismet.php"]) to restrict which plugins are updated. Defaults to all available updates.' ],
+                'confirm' => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
+            ],
+            'handler'          => [ $this, 'handle_plugins_update_all' ],
+        ] );
+
         // ── Destructive ────────────────────────────────────────────────────
         $this->register( 'wp.posts.trash', [
             'class'           => 'destructive',
@@ -795,7 +819,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_set' => [ 'post_id' => $post_id, 'meta_key' => $meta_key ] ] );
         }
 
-        update_post_meta( $post_id, $meta_key, $meta_value );
+        // wp_slash() counteracts update_post_meta's internal wp_unslash(), preserving backslashes in JSON strings
+        update_post_meta( $post_id, $meta_key, is_string( $meta_value ) ? wp_slash( $meta_value ) : $meta_value );
 
         return $this->ok(
             [ 'post_id' => $post_id, 'meta_key' => $meta_key, 'updated' => true ],
@@ -860,6 +885,138 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         return $this->ok(
             [ 'option_name' => $option_name, 'updated' => true ],
             [ 'target_type' => 'option', 'target_id' => $option_name ]
+        );
+    }
+
+    public function handle_plugins_list( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        if ( ! empty( $args['force_refresh'] ) ) {
+            delete_site_transient( 'update_plugins' );
+            wp_update_plugins();
+        }
+
+        $all_plugins    = get_plugins();
+        $active_plugins = (array) get_option( 'active_plugins', [] );
+        $update_cache   = get_site_transient( 'update_plugins' );
+        $available      = isset( $update_cache->response ) && is_array( $update_cache->response )
+                          ? $update_cache->response : [];
+
+        $plugins = [];
+        foreach ( $all_plugins as $file => $data ) {
+            $has_update  = isset( $available[ $file ] );
+            $plugins[] = [
+                'file'             => $file,
+                'name'             => $data['Name'],
+                'version'          => $data['Version'],
+                'new_version'      => $has_update ? ( $available[ $file ]->new_version ?? null ) : null,
+                'update_available' => $has_update,
+                'status'           => in_array( $file, $active_plugins, true ) ? 'active' : 'inactive',
+                'author'           => wp_strip_all_tags( $data['Author'] ?? '' ),
+            ];
+        }
+
+        $update_count = count( array_filter( $plugins, fn( $p ) => $p['update_available'] ) );
+
+        return $this->ok( [
+            'plugins'           => $plugins,
+            'total'             => count( $plugins ),
+            'updates_available' => $update_count,
+            'cache_refreshed'   => ! empty( $args['force_refresh'] ),
+        ] );
+    }
+
+    public function handle_plugins_update_all( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! function_exists( 'get_plugins' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        }
+
+        $update_cache = get_site_transient( 'update_plugins' );
+        $available    = isset( $update_cache->response ) && is_array( $update_cache->response )
+                        ? $update_cache->response : [];
+
+        if ( empty( $available ) ) {
+            return $this->ok( [
+                'updated'       => [],
+                'errors'        => [],
+                'total_updated' => 0,
+                'message'       => 'No plugin updates available.',
+            ] );
+        }
+
+        // Restrict to specific plugin files if caller provided an include list
+        $include = isset( $args['include'] ) && is_array( $args['include'] ) ? $args['include'] : [];
+        if ( ! empty( $include ) ) {
+            $available = array_filter( $available, fn( $file ) => in_array( $file, $include, true ), ARRAY_FILTER_USE_KEY );
+        }
+
+        $all_plugins = get_plugins();
+
+        if ( $dry_run ) {
+            $would_update = [];
+            foreach ( $available as $file => $update_data ) {
+                $would_update[] = [
+                    'file' => $file,
+                    'name' => $all_plugins[ $file ]['Name'] ?? $file,
+                    'from' => $all_plugins[ $file ]['Version'] ?? '?',
+                    'to'   => $update_data->new_version ?? '?',
+                ];
+            }
+            return $this->ok( [
+                'dry_run'      => true,
+                'would_update' => $would_update,
+                'count'        => count( $would_update ),
+            ] );
+        }
+
+        if ( ! class_exists( 'Plugin_Upgrader' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        }
+        // WP_Filesystem must be initialised for the upgrader to write files
+        if ( ! function_exists( 'WP_Filesystem' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        WP_Filesystem();
+
+        $results     = [];
+        $error_count = 0;
+
+        foreach ( $available as $file => $update_data ) {
+            $from = $all_plugins[ $file ]['Version'] ?? '?';
+            $to   = $update_data->new_version ?? '?';
+            $name = $all_plugins[ $file ]['Name'] ?? $file;
+
+            // Automatic_Upgrader_Skin runs silently — same skin used by WP background auto-updates
+            $upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+            $result   = $upgrader->upgrade( $file );
+
+            $success = $result === true;
+            if ( ! $success ) {
+                $error_count++;
+            }
+
+            $results[] = [
+                'file'    => $file,
+                'name'    => $name,
+                'from'    => $from,
+                'to'      => $to,
+                'success' => $success,
+                'error'   => $success ? null : ( is_wp_error( $result ) ? $result->get_error_message() : (string) $result ),
+            ];
+        }
+
+        wp_clean_plugins_cache( true );
+
+        return $this->ok(
+            [
+                'updated'       => array_values( array_filter( $results, fn( $r ) => $r['success'] ) ),
+                'errors'        => array_values( array_filter( $results, fn( $r ) => ! $r['success'] ) ),
+                'total_updated' => count( $results ) - $error_count,
+                'total_errors'  => $error_count,
+            ],
+            [ 'target_type' => 'plugins', 'target_id' => 0, 'summary' => [ 'updated' => count( $results ) - $error_count ] ]
         );
     }
 }

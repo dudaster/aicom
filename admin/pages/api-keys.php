@@ -1,11 +1,13 @@
 <?php
 defined( 'ABSPATH' ) || exit;
+
+( function () {
 global $wpdb;
 
-$table = $wpdb->prefix . 'aicom_api_keys';
-
 // Check for one-time display of a newly created/rotated key
-$new_key_id  = (int) ( $_GET['created'] ?? $_GET['rotated'] ?? 0 );
+$created  = isset( $_GET['created'] ) ? absint( wp_unslash( $_GET['created'] ) ) : 0;
+$rotated  = isset( $_GET['rotated'] ) ? absint( wp_unslash( $_GET['rotated'] ) ) : 0;
+$new_key_id = $created ?: $rotated;
 $plain_key   = $new_key_id ? get_transient( 'aicom_new_key_' . $new_key_id ) : null;
 if ( $plain_key ) {
     delete_transient( 'aicom_new_key_' . $new_key_id );
@@ -29,21 +31,34 @@ $all_scopes = [
     'delete.users'                     => 'Delete Users',
     'manage.roles'                     => 'Manage Roles',
     'manage.menus'                     => 'Nav Menus',
+    'manage.plugins'                   => 'Plugins (list & update)',
     'manage.backups'                   => 'Backup & Restore',
     'manage.wordpress.settings'        => 'WP Options/Settings',
 ];
 
-$keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, last_used_at, created_at FROM $table ORDER BY created_at DESC", ARRAY_A );
+$keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, last_used_at, created_at FROM {$wpdb->prefix}aicom_api_keys ORDER BY created_at DESC", ARRAY_A );
 ?>
 <div class="wrap aicom-wrap">
     <h1>API Keys</h1>
 
-    <?php if ( $plain_key ) : ?>
+    <?php if ( $plain_key ) :
+        $mcp_url      = get_site_url() . '/wp-json/aicom/v1/mcp';
+        $fallback_url = get_site_url() . '/?aicom=1';
+        $agent_text   = "Connect to my WordPress site via MCP:\n\nEndpoint: {$mcp_url}\nFallback: {$fallback_url}\nAuthorization: Bearer {$plain_key}\n\nUse the endpoint and the Authorization header for every request.";
+    ?>
     <div class="notice notice-success aicom-notice-key">
-        <h3>✓ Key <?php echo esc_html( $new_key_id ? 'rotated' : 'created' ); ?> — copy now, will not be shown again</h3>
+        <h3>✓ Key <?php echo esc_html( $created ? 'created' : 'rotated' ); ?> — copy now, will not be shown again</h3>
+
+        <p><strong>API Key</strong></p>
         <div class="aicom-copy-row">
             <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>" class="large-text aicom-copy-input" id="aicom-plain-key" />
             <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>">Copy Key</button>
+        </div>
+
+        <p style="margin-top:16px"><strong>Ready-to-use prompt for your AI agent</strong> — paste this directly into OpenClaw or any MCP client:</p>
+        <div class="aicom-copy-row" style="align-items:flex-start">
+            <textarea readonly rows="6" class="large-text aicom-copy-input" style="font-family:monospace;font-size:12px"><?php echo esc_textarea( $agent_text ); ?></textarea>
+            <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $agent_text ); ?>" style="align-self:flex-start">Copy</button>
         </div>
     </div>
     <?php endif; ?>
@@ -51,6 +66,49 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
     <?php if ( isset( $_GET['revoked'] ) ) : ?>
     <div class="notice notice-warning is-dismissible"><p>Key revoked.</p></div>
     <?php endif; ?>
+
+    <!-- Connection Info -->
+    <div class="aicom-card">
+        <h2>Connection Info</h2>
+        <table class="form-table" role="presentation">
+            <tr>
+                <th>Primary Endpoint</th>
+                <td>
+                    <div class="aicom-copy-row">
+                        <input type="text" readonly value="<?php echo esc_attr( get_site_url() . '/wp-json/aicom/v1/mcp' ); ?>" class="large-text aicom-copy-input" />
+                        <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( get_site_url() . '/wp-json/aicom/v1/mcp' ); ?>">Copy</button>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <th>Fallback Endpoint</th>
+                <td>
+                    <div class="aicom-copy-row">
+                        <input type="text" readonly value="<?php echo esc_attr( get_site_url() . '/?aicom=1' ); ?>" class="large-text aicom-copy-input" />
+                        <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( get_site_url() . '/?aicom=1' ); ?>">Copy</button>
+                    </div>
+                    <p class="description">Use this if the primary endpoint returns 404 (no mod_rewrite required).</p>
+                </td>
+            </tr>
+            <tr>
+                <th>Authentication</th>
+                <td>
+                    <code>Authorization: Bearer &lt;your-api-key&gt;</code>
+                    <p class="description">Or alternatively: <code>X-API-Key: &lt;your-api-key&gt;</code></p>
+                </td>
+            </tr>
+            <tr>
+                <th>Apache Note</th>
+                <td>
+                    <p class="description">If the Authorization header is stripped by your server, add this to <code>.htaccess</code>:</p>
+                    <div class="aicom-copy-row">
+                        <input type="text" readonly value="SetEnvIf Authorization &quot;(.*)&quot; HTTP_AUTHORIZATION=$1" class="large-text aicom-copy-input" />
+                        <button class="button aicom-copy-btn" data-target='SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1'>Copy</button>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
     <!-- Create New Key -->
     <div class="aicom-card">
@@ -174,3 +232,5 @@ $keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, 
         <?php endif; ?>
     </div>
 </div>
+<?php
+} )();

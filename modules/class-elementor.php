@@ -108,6 +108,20 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
             ],
             'handler'         => [ $this, 'handle_regenerate_assets' ],
         ] );
+
+        $this->register( 'elementor.template.set_conditions', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'manage.elementor' ],
+            'dependency'       => $dep,
+            'supports_dry_run' => true,
+            'description'      => 'Set Theme Builder display conditions for an elementor_library template. Updates _elementor_conditions meta AND the global elementor_pro_theme_builder_conditions option, then clears the conditions cache. Equivalent to saving conditions via Elementor UI.',
+            'input_schema'     => [
+                'post_id'       => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of the elementor_library post.' ],
+                'conditions'    => [ 'type' => 'array',   'required' => true, 'description' => 'Array of condition strings, e.g. ["include/general"] or ["include/page/123", "exclude/page/456"].' ],
+                'template_type' => [ 'type' => 'string',  'description' => 'Template type: header, footer, single, archive, etc. Optional if _elementor_template_type meta is already set.' ],
+            ],
+            'handler'          => [ $this, 'handle_set_conditions' ],
+        ] );
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────
@@ -340,6 +354,80 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
         );
     }
 
+    public function handle_set_conditions( array $args, array $key_record, bool $dry_run ): array {
+        $post_id       = $this->require_int( $args, 'post_id' );
+        $conditions    = $args['conditions'] ?? null;
+        $template_type = isset( $args['template_type'] ) ? sanitize_key( $args['template_type'] ) : '';
+
+        if ( ! $post_id ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter post_id is required', 'validation_failed' );
+        }
+        if ( ! is_array( $conditions ) ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter conditions must be an array (e.g. ["include/general"])', 'validation_failed' );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post || $post->post_type !== 'elementor_library' ) {
+            return $this->err( 'NOT_FOUND', "Post $post_id is not an elementor_library post", 'error', 404 );
+        }
+
+        // Resolve template_type from existing meta when not supplied
+        if ( ! $template_type ) {
+            $template_type = (string) get_post_meta( $post_id, '_elementor_template_type', true );
+        }
+        if ( ! $template_type ) {
+            return $this->err( 'MISSING_PARAM', 'template_type is required (or set _elementor_template_type meta first)', 'validation_failed' );
+        }
+
+        if ( $dry_run ) {
+            return $this->ok( [
+                'dry_run'       => true,
+                'would_set'     => [
+                    'post_id'       => $post_id,
+                    'template_type' => $template_type,
+                    'conditions'    => $conditions,
+                ],
+            ] );
+        }
+
+        // Persist template type if it was supplied explicitly
+        if ( isset( $args['template_type'] ) ) {
+            update_post_meta( $post_id, '_elementor_template_type', $template_type );
+        }
+        update_post_meta( $post_id, '_elementor_conditions', $conditions );
+
+        // Try Elementor Pro Conditions_Manager API (handles cache + option rebuild internally)
+        $method = 'manual';
+        if ( class_exists( '\ElementorPro\Plugin' ) ) {
+            try {
+                $tb = \ElementorPro\Plugin::instance()->modules_manager->get_modules( 'theme-builder' );
+                if ( $tb && method_exists( $tb, 'get_conditions_manager' ) ) {
+                    $cm = $tb->get_conditions_manager();
+                    if ( $cm && method_exists( $cm, 'save_conditions' ) ) {
+                        $cm->save_conditions( $post_id, $conditions );
+                        $method = 'elementor_pro_api';
+                    }
+                }
+            } catch ( \Throwable $e ) {
+                // Fall through to manual rebuild
+            }
+        }
+
+        if ( $method === 'manual' ) {
+            $this->save_conditions_manual( $post_id, $template_type, $conditions );
+        }
+
+        return $this->ok(
+            [
+                'post_id'       => $post_id,
+                'template_type' => $template_type,
+                'conditions'    => $conditions,
+                'method'        => $method,
+            ],
+            [ 'target_type' => 'elementor_template', 'target_id' => $post_id ]
+        );
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────
 
     private function get_elementor_data( int $post_id ): ?array {
@@ -399,7 +487,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
     /**
      * Recursively find widget by ID and update a field in settings.
      */
-    private function update_widget_field( array &$elements, string $widget_id, string $field, mixed $value, bool &$updated ): void {
+    private function update_widget_field( array &$elements, string $widget_id, string $field, $value, bool &$updated ): void {
         foreach ( $elements as &$el ) {
             if ( ( $el['id'] ?? '' ) === $widget_id ) {
                 $el['settings'][ $field ] = $value;
@@ -410,6 +498,46 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
                 $this->update_widget_field( $el['elements'], $widget_id, $field, $value, $updated );
                 if ( $updated ) return;
             }
+        }
+    }
+
+    /**
+     * Manual conditions rebuild used when Elementor Pro API is unavailable.
+     * Mirrors what Conditions_Manager::save_conditions() does internally:
+     * removes the post from every type bucket, re-inserts under the correct
+     * type, saves the option, and flushes all known cache locations.
+     */
+    private function save_conditions_manual( int $post_id, string $template_type, array $conditions ): void {
+        $all = get_option( 'elementor_pro_theme_builder_conditions', [] );
+        if ( ! is_array( $all ) ) {
+            $all = [];
+        }
+
+        // Remove this template from every type bucket to prevent duplicates
+        foreach ( $all as $type => &$map ) {
+            if ( is_array( $map ) ) {
+                unset( $map[ $post_id ] );
+            }
+        }
+        unset( $map );
+
+        // Insert under the resolved type
+        if ( ! empty( $conditions ) ) {
+            $all[ $template_type ][ $post_id ] = $conditions;
+        }
+
+        // Drop empty type buckets
+        $all = array_filter( $all, fn( $v ) => ! empty( $v ) );
+
+        update_option( 'elementor_pro_theme_builder_conditions', $all );
+
+        // Clear all known conditions cache locations
+        delete_option( 'elementor_pro_theme_builder_conditions_cache' );
+        delete_transient( 'elementor_pro_theme_builder_conditions' );
+        delete_transient( 'elementor_pro_theme_builder_conditions_cache' );
+
+        if ( class_exists( '\Elementor\Plugin' ) ) {
+            \Elementor\Plugin::$instance->files_manager->clear_cache();
         }
     }
 }

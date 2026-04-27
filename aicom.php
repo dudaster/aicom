@@ -1,16 +1,16 @@
 <?php
 /**
- * Plugin Name:       AICOM - AI Commander for WordPress
- * Plugin URI:        https://github.com/dudaster/aicom
- * Description:       Let AI agents control your WordPress site. MCP server with API key auth, scope control, safety locks, audit logging and 87 tools for posts, WooCommerce, Elementor and more.
- * Version:           2.0.0
+ * Plugin Name:       AICOM - AI Commander
+ * Plugin URI:        https://wordpress.org/plugins/aicom/
+ * Description:       Let AI agents control your site via MCP. API key auth, scope control, safety locks, audit logging and 87 tools for WP, WooCommerce, Elementor.
+ * Version:           2.0.8
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       aicom
  * Domain Path:       /languages
- * Requires PHP:      8.1
+ * Requires PHP:      7.4
  * Requires at least: 6.0
  * Tested up to:      6.9
  */
@@ -114,9 +114,9 @@ function aicom_boot(): void {
     // ── Fallback Endpoint (/index.php?aicom=1) ─────────────────────────
     add_action( 'init', function (): void {
         if ( ! empty( $_GET['aicom'] ) && ( $_GET['aicom'] === '1' ) ) {
-            if ( $_SERVER['REQUEST_METHOD'] === 'GET' ) {
+            if ( isset( $_SERVER['REQUEST_METHOD'] ) && $_SERVER['REQUEST_METHOD'] === 'GET' ) {
                 // Health check
-                wp_send_json( [ 'ok' => true, 'server' => 'AICOM - AI Commander for WordPress', 'version' => AICOM_VERSION ] );
+                wp_send_json( [ 'ok' => true, 'server' => 'AICOM - AI Commander', 'version' => AICOM_VERSION ] );
             }
 
             $body   = file_get_contents( 'php://input' );
@@ -134,7 +134,7 @@ function aicom_rest_handler( WP_REST_Request $request ): WP_REST_Response {
     if ( $request->get_method() === 'GET' ) {
         return new WP_REST_Response( [
             'ok'      => true,
-            'server'  => 'AICOM - AI Commander for WordPress',
+            'server'  => 'AICOM - AI Commander',
             'version' => AICOM_VERSION,
             'lock'    => AICOM_Lock_Manager::get_state(),
         ] );
