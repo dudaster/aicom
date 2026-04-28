@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.0.10
+Stable tag: 2.0.11
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.0.11 =
+* Fix: wp.posts.update and wp.posts.create now support post_date parameter — previously the parameter was silently ignored and the tool returned success without changing the date. Accepts YYYY-MM-DD HH:MM:SS or ISO 8601; invalid format returns a clear error.
+* Fix: wp.posts.update now also exposes post_excerpt in its input schema (was handled in code but not documented).
 
 = 2.0.10 =
 * Fix: replaced match() expression with if/elseif for PHP 7.4 compatibility — caused parse error on API Keys page for sites running PHP < 8.0

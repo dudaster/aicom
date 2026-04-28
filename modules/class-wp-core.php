@@ -116,11 +116,12 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'supports_dry_run' => true,
             'description'      => 'Create a new post.',
             'input_schema'     => [
-                'post_type'    => [ 'type' => 'string', 'default' => 'post' ],
-                'post_title'   => [ 'type' => 'string', 'required' => true ],
+                'post_type'    => [ 'type' => 'string',  'default' => 'post' ],
+                'post_title'   => [ 'type' => 'string',  'required' => true ],
                 'post_content' => [ 'type' => 'string' ],
-                'post_status'  => [ 'type' => 'string', 'default' => 'draft' ],
+                'post_status'  => [ 'type' => 'string',  'default' => 'draft' ],
                 'post_author'  => [ 'type' => 'integer' ],
+                'post_date'    => [ 'type' => 'string',  'description' => 'Publish date in YYYY-MM-DD HH:MM:SS or ISO 8601 format. Uses site timezone.' ],
             ],
             'handler'          => [ $this, 'handle_posts_create' ],
         ] );
@@ -135,6 +136,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'post_title'   => [ 'type' => 'string' ],
                 'post_content' => [ 'type' => 'string' ],
                 'post_status'  => [ 'type' => 'string' ],
+                'post_excerpt' => [ 'type' => 'string' ],
+                'post_date'    => [ 'type' => 'string',  'description' => 'Publish date in YYYY-MM-DD HH:MM:SS or ISO 8601 format. Uses site timezone.' ],
             ],
             'handler'          => [ $this, 'handle_posts_update' ],
         ] );
@@ -478,6 +481,14 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             $data['post_author'] = (int) $args['post_author'];
         }
 
+        if ( isset( $args['post_date'] ) ) {
+            $date = $this->normalize_post_date( $args['post_date'] );
+            if ( $date === null ) {
+                return $this->err( 'INVALID_PARAM', 'post_date must be YYYY-MM-DD HH:MM:SS or ISO 8601 (e.g. 2026-04-28T10:00:00)', 'validation_failed' );
+            }
+            $data['post_date'] = $date;
+        }
+
         $id = wp_insert_post( $data, true );
 
         if ( is_wp_error( $id ) ) {
@@ -510,10 +521,19 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
 
         $data = [ 'ID' => $id ];
-        if ( isset( $args['post_title'] ) )   $data['post_title']   = sanitize_text_field( $args['post_title'] );
-        if ( isset( $args['post_content'] ) )  $data['post_content']  = wp_kses_post( $args['post_content'] );
-        if ( isset( $args['post_status'] ) )   $data['post_status']   = sanitize_key( $args['post_status'] );
-        if ( isset( $args['post_excerpt'] ) )  $data['post_excerpt']  = sanitize_text_field( $args['post_excerpt'] );
+        if ( isset( $args['post_title'] ) )    $data['post_title']   = sanitize_text_field( $args['post_title'] );
+        if ( isset( $args['post_content'] ) )  $data['post_content'] = wp_kses_post( $args['post_content'] );
+        if ( isset( $args['post_status'] ) )   $data['post_status']  = sanitize_key( $args['post_status'] );
+        if ( isset( $args['post_excerpt'] ) )  $data['post_excerpt'] = sanitize_text_field( $args['post_excerpt'] );
+
+        if ( isset( $args['post_date'] ) ) {
+            $date = $this->normalize_post_date( $args['post_date'] );
+            if ( $date === null ) {
+                return $this->err( 'INVALID_PARAM', 'post_date must be YYYY-MM-DD HH:MM:SS or ISO 8601 (e.g. 2026-04-28T10:00:00)', 'validation_failed' );
+            }
+            $data['post_date']     = $date;
+            $data['post_date_gmt'] = get_gmt_from_date( $date );
+        }
 
         $result = wp_update_post( $data, true );
         if ( is_wp_error( $result ) ) {
@@ -1018,5 +1038,34 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             ],
             [ 'target_type' => 'plugins', 'target_id' => 0, 'summary' => [ 'updated' => count( $results ) - $error_count ] ]
         );
+    }
+
+    /**
+     * Normalize a date string to MySQL format (YYYY-MM-DD HH:MM:SS).
+     * Accepts MySQL format directly or ISO 8601 with T separator.
+     * Returns null if the value cannot be parsed as a valid date.
+     */
+    private function normalize_post_date( string $raw ): ?string {
+        $raw = trim( $raw );
+
+        // Normalize ISO 8601 T separator → space
+        $normalized = str_replace( 'T', ' ', $raw );
+        // Strip timezone suffix (Z, +HH:MM, -HH:MM) — WP stores local time
+        $normalized = preg_replace( '/[\+\-]\d{2}:\d{2}$|Z$/', '', $normalized );
+        $normalized = trim( $normalized );
+
+        // Validate with DateTime — rejects invalid dates like 2026-02-30
+        $dt = \DateTime::createFromFormat( 'Y-m-d H:i:s', $normalized );
+        if ( $dt && $dt->format( 'Y-m-d H:i:s' ) === $normalized ) {
+            return $normalized;
+        }
+
+        // Accept date-only input, default to midnight
+        $dt = \DateTime::createFromFormat( 'Y-m-d', $normalized );
+        if ( $dt && $dt->format( 'Y-m-d' ) === $normalized ) {
+            return $normalized . ' 00:00:00';
+        }
+
+        return null;
     }
 }
