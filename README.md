@@ -1,89 +1,61 @@
-# AICOM - AI Commander for WordPress
+# AICOM — AI Commander for WordPress
 
-**Control your WordPress site with AI.** ACL is a WordPress plugin that turns your site into an MCP server — giving AI agents, automation tools, and platforms like OpenClaw direct, structured access to your WordPress content, settings, and data.
+> **Control your WordPress site with any AI agent.** AICOM turns your site into an MCP server — giving AI agents, automation tools, and platforms like Claude Code, OpenClaw, Celine and Goose direct, structured access to your WordPress content, settings, and data.
 
-No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Just describe what you want, and your AI agent does it.
+[![WordPress](https://img.shields.io/badge/WordPress-6.0%2B-blue)](https://wordpress.org/plugins/aicom/)
+[![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple)](https://php.net)
+[![License](https://img.shields.io/badge/License-GPL--2.0--or--later-green)](https://www.gnu.org/licenses/gpl-2.0.html)
+[![WordPress Plugin](https://img.shields.io/badge/WordPress.org-AICOM-blue)](https://wordpress.org/plugins/aicom/)
 
 ---
 
 ## What can you do with AICOM?
 
-- **Let an AI agent write and publish content** — create posts, pages, update metadata, manage categories and tags, all via natural language instructions to your AI.
-- **Automate your WooCommerce store** — update product descriptions, manage categories, read settings, all through an AI agent without touching the WordPress dashboard.
-- **Manage multilingual sites automatically** — connect with Polylang to create and manage translations via AI.
-- **Control Elementor pages** — validate and inspect Elementor-built pages programmatically.
-- **Build AI-powered editorial workflows** — let AI draft, review, schedule and publish content on your behalf.
-- **Sync content across sites** — use AI agents to mirror or migrate content between WordPress installations.
-- **Automate SEO tasks** — bulk update meta fields, slugs, titles and descriptions via AI instructions.
-- **Monitor and audit your site** — every AI action is logged with full details: who, what, when, from which IP.
-
-## Who is this for?
-
-- **Developers** building AI-powered WordPress tools or integrations
-- **Agencies** that want to automate client site management with AI
-- **Content teams** using AI writing assistants and wanting direct WordPress integration
-- **OpenClaw users** — ACL is the official WordPress connector for the OpenClaw AI platform
-- **Anyone** using Claude, ChatGPT, or other AI agents who wants them to directly control a WordPress site
-
----
+- **AI-powered content creation** — write, update and publish posts, pages and custom post types via AI
+- **Automate your WooCommerce store** — update products, manage categories, read settings through an AI agent
+- **Manage multilingual sites** — connect Polylang so AI agents can create and manage translations automatically
+- **Control Elementor pages** — update widget content, set Theme Builder conditions, validate and restore pages
+- **Build AI editorial workflows** — draft, review, schedule and publish content via AI instructions
+- **Bulk SEO tasks** — update meta fields, slugs, titles and descriptions in bulk via AI
+- **Maintain your plugins** — list installed plugins, check for updates and update them all in one AI call
+- **Audit every AI action** — full log of every request: who, what, when, from which IP, with result
 
 ## How it works
 
-ACL exposes a secure HTTP endpoint on your WordPress site. AI platforms and agents send structured requests to this endpoint (using the MCP / Model Context Protocol standard). ACL authenticates the request, checks permissions, executes the operation, and returns a structured response — all in milliseconds.
-
-Your AI agent can list posts, create content, update settings, manage users, and much more — all without needing browser access or manual intervention.
-
 ```
-AI Agent → ACL Endpoint → WordPress
+AI Agent → AICOM Endpoint → WordPress
 ```
 
----
-
-## Features
-
-- **MCP Standard** — Full JSON-RPC 2.0 support (`tools/call`, `tools/list`), compatible with any MCP client
-- **87 tools** across 8 modules: WP Core, Menus, Media, Users, Backup, WooCommerce, Elementor, Polylang
-- **Security-first** — API key authentication (bcrypt-hashed), IP allowlists, scope-based access control
-- **Lock system** — Hard lock (read-only emergency mode), soft lock, unlocked — switchable from the WordPress admin
-- **Audit logging** — Every request logged with duration, API key, tool used, parameters and result
-- **Dry-run mode** — Test what an operation would do without applying changes
-- **Confirm flag** — Destructive operations require explicit `confirm: true` — prevents accidental AI mistakes
-- **Modular** — WooCommerce, Elementor and Polylang tools only activate when those plugins are present
+AICOM exposes a secure HTTP endpoint. AI platforms send structured [MCP](https://modelcontextprotocol.io) / JSON-RPC 2.0 requests. AICOM authenticates the request, checks permissions, executes the operation, and returns a structured response.
 
 ---
 
 ## Installation
 
-1. Upload the `aicom` folder to `/wp-content/plugins/`
+1. Install from [WordPress.org/plugins/aicom](https://wordpress.org/plugins/aicom/) or upload the `aicom` folder to `/wp-content/plugins/`
 2. Activate via **Plugins → Installed Plugins**
-3. Go to **AICOM → API Keys** and create your first key
-4. Point your AI agent or MCP client to your endpoint
+3. Go to **AICOM → API Keys** and click **Generate New Key**
+4. Select scopes, copy the key (shown once), point your agent at the endpoint
 
 ---
 
 ## Endpoint
 
-**REST API:**
-```
-POST /wp-json/aicom/v1/mcp
-```
+| Type | URL |
+|------|-----|
+| Primary (REST API) | `POST /wp-json/aicom/v1/mcp` |
+| Fallback (no mod_rewrite needed) | `POST /?aicom=1` |
+| Health check | `GET /?aicom=1` |
 
-**Fallback** (always works, no mod_rewrite / .htaccess required):
+**Apache note:** If the `Authorization` header is stripped, add to `.htaccess`:
 ```
-POST /?aicom=1
-```
-
-**Health check:**
-```
-GET /?aicom=1
-→ {"ok":true,"server":"AICOM - AI Commander for WordPress","version":"2.0.0"}
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 ```
 
 ---
 
 ## Authentication
 
-Pass your API key via header:
 ```
 Authorization: Bearer aicom_XXXXXXXX_<secret>
 ```
@@ -92,28 +64,31 @@ or:
 X-API-Key: aicom_XXXXXXXX_<secret>
 ```
 
-> **Apache note:** Add `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` to `.htaccess` if the Authorization header is stripped by your server.
-
 ---
 
 ## MCP Request Format
 
-**Standard (JSON-RPC 2.0):**
+**Standard JSON-RPC 2.0:**
 ```json
 {
   "jsonrpc": "2.0",
   "method": "tools/call",
   "params": {
     "name": "wp.posts.list",
-    "arguments": { "post_type": "page", "posts_per_page": 10 }
+    "arguments": { "post_type": "post", "posts_per_page": 10 }
   },
   "id": 1
 }
 ```
 
+**List tools:**
+```json
+{ "jsonrpc": "2.0", "method": "tools/list", "params": {}, "id": 1 }
+```
+
 **Shorthand:**
 ```json
-{ "tool": "wp.posts.list", "arguments": { "post_type": "page" } }
+{ "tool": "wp.posts.list", "arguments": { "post_type": "post" } }
 ```
 
 ---
@@ -122,53 +97,158 @@ X-API-Key: aicom_XXXXXXXX_<secret>
 
 | Module | Tools | Dependency |
 |--------|-------|------------|
-| WP Core | server.status, wp.site.info, wp.posts.*, wp.terms.*, wp.meta.*, wp.options.* | — |
-| Menus | wp.menus.*, wp.menus.items.* | — |
-| Media | media.*, files.* | — |
-| Users | wp.users.*, wp.roles.* | — |
-| Backup | backup.* | — |
-| WooCommerce | wc.products.*, wc.categories.*, wc.settings.* | WooCommerce |
-| Elementor | elementor.page.*, elementor.widget.* | Elementor |
-| Polylang | pll.* | Polylang |
+| **WP Core** | `server.status`, `wp.site.info`, `wp.post_types.list`, `wp.taxonomies.list`, `wp.posts.list/get/create/update/trash/restore/delete`, `wp.terms.list/get/create/update/delete/assign_to_post/remove_from_post`, `wp.meta.get/set/delete`, `wp.options.get/set`, `wp.plugins.list/update_all` | — |
+| **Menus** | `wp.menus.list/get/create/update/delete`, `wp.menus.items.list/add/update/remove` | — |
+| **Media** | `media.list/get/upload/update/delete`, `files.list/read/write` | — |
+| **Users** | `wp.users.list/get/create/update/delete`, `wp.roles.list/create/update_caps/delete` | — |
+| **Backup** | `backup.post/term/restore/list/delete/purge` | — |
+| **WooCommerce** | `wc.products.list/get/create/update/delete`, `wc.categories.list/get/create/update/delete`, `wc.settings.get/update` | WooCommerce |
+| **Elementor** | `elementor.page.get_tree/get_texts/backup/restore/validate/regenerate_assets`, `elementor.widget.update_field`, `elementor.page.bulk_update_texts`, `elementor.template.set_conditions` | Elementor |
+| **Polylang** | `pll.languages.list`, `pll.post.translate/link_translation`, `pll.term.translate/link_translation`, `pll.strings.list/get/set` | Polylang |
 
 ---
 
 ## Scopes
 
-API keys are granted specific scopes — you control exactly what each AI agent can and cannot do:
+Each API key is granted specific scopes — you control exactly what each AI agent can and cannot do:
 
 | Scope | Access |
 |-------|--------|
 | `read.wp` | Read posts, terms, meta |
-| `write.wp.posts` | Create/update/delete posts |
-| `manage.taxonomies` | Create/update terms |
+| `write.wp.posts` | Create/update posts |
+| `delete.wp.posts` | Trash/delete posts |
+| `manage.taxonomies` | Create/update/delete terms |
 | `manage.meta` | Read/write post meta |
-| `manage.wordpress.settings` | Read/write options |
-| `manage.menus` | Menu operations |
-| `manage.media` | Media operations |
-| `manage.users` | User management |
-| `manage.woocommerce.products` | WooCommerce products |
+| `manage.wordpress.settings` | Read/write WP options |
+| `manage.menus` | Nav menu operations |
+| `manage.media` | Media library operations |
+| `manage.files` | Filesystem read/write (restricted) |
+| `manage.plugins` | List plugins and run updates |
+| `read.users` | Read user list/profile |
+| `manage.users` | Create/update users |
+| `delete.users` | Delete users |
+| `manage.roles` | Create/update/delete roles and capabilities |
+| `manage.backups` | Backup and restore operations |
+| `manage.woocommerce.products` | WooCommerce products and categories |
 | `manage.woocommerce.settings` | WooCommerce settings |
-| `manage.elementor` | Elementor page editing |
-| `manage.polylang` | Polylang translations |
+| `manage.elementor` | Elementor page editing and Theme Builder |
+| `manage.polylang` | Polylang translations and strings |
+
+---
+
+## Security Features
+
+- **API key authentication** — bcrypt-hashed keys with prefix-based fast lookup
+- **Scope-based access control** — each key has only the scopes you explicitly grant
+- **IP allowlist per key** — optionally restrict keys to specific IPs or CIDR ranges
+- **Key suspend/unsuspend** — temporarily block a key without revoking it
+- **Hard Lock** — emergency read-only mode: only `public` tools allowed, blocks all writes site-wide
+- **Soft Lock** — blocks all write/destructive tools site-wide regardless of key scopes
+- **Confirm flag** — destructive operations require explicit `"confirm": true`
+- **Dry-run mode** — simulate any operation without applying changes (`"dry_run": true`)
+- **Audit log** — every request logged: timestamp, IP, key label, tool, params, result, duration
+
+---
+
+## Lock System
+
+| Mode | Allowed tool classes |
+|------|---------------------|
+| **Unlocked** | All tools |
+| **Soft Lock** | `public`, `discovery`, `read` only |
+| **Hard Lock** | `public` only (`server.status`) |
+
+Switchable from **AICOM → Safety** in the WordPress admin.
+
+---
+
+## Usage Examples
+
+### Claude Code (via MCP config)
+
+```json
+{
+  "mcpServers": {
+    "my-wordpress": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {
+        "MCP_ENDPOINT": "https://yoursite.com/wp-json/aicom/v1/mcp",
+        "MCP_API_KEY": "aicom_XXXXXXXX_your_secret"
+      }
+    }
+  }
+}
+```
+
+### Direct API call
+
+```bash
+curl -X POST https://yoursite.com/wp-json/aicom/v1/mcp \
+  -H "Authorization: Bearer aicom_XXXXXXXX_your_secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "wp.posts.create",
+      "arguments": {
+        "post_title": "Hello from AI",
+        "post_status": "draft",
+        "post_content": "This post was created by an AI agent."
+      }
+    },
+    "id": 1
+  }'
+```
+
+### Plugin maintenance agent
+
+```bash
+# List plugins with available updates
+{ "tool": "wp.plugins.list", "arguments": {} }
+
+# Update all plugins (dry run first)
+{ "tool": "wp.plugins.update_all", "arguments": { "dry_run": true, "confirm": true } }
+
+# Apply updates
+{ "tool": "wp.plugins.update_all", "arguments": { "confirm": true } }
+```
+
+### Elementor Theme Builder via AI
+
+```bash
+# Create header template
+{ "tool": "wp.posts.create", "arguments": { "post_type": "elementor_library", "post_title": "Site Header", "post_status": "publish" } }
+
+# Set template type and conditions
+{ "tool": "elementor.template.set_conditions", "arguments": { "post_id": 123, "template_type": "header", "conditions": ["include/general"] } }
+```
 
 ---
 
 ## Requirements
 
-- PHP 8.1+
+- PHP 7.4+
 - WordPress 6.0+
-- Optional: WooCommerce, Elementor, Polylang
+- Optional: WooCommerce, Elementor (free or Pro), Polylang (free or Pro)
 
 ---
 
-## Related
+## Changelog
 
-- [OpenClaw](https://openclaw.io) — AI agent platform with native ACL support
-- [Model Context Protocol (MCP)](https://modelcontextprotocol.io) — the open standard ACL implements
+See [readme.txt](readme.txt) for the full changelog.
 
 ---
 
 ## License
 
-GPL-2.0-or-later
+GPL-2.0-or-later — see [LICENSE](https://www.gnu.org/licenses/gpl-2.0.html)
+
+---
+
+## Links
+
+- [WordPress.org plugin page](https://wordpress.org/plugins/aicom/)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+- [Report a bug](https://github.com/dudaster/aicom/issues)
