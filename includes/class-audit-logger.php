@@ -123,13 +123,12 @@ class AICOM_Audit_Logger {
     public static function get_stats_today(): array {
         global $wpdb;
         $today = current_time( 'Y-m-d' );
-        $t     = self::table();
 
         return [
-            'total_today'   => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE DATE(created_at) = %s", $today ) ),
-            'success_today' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE DATE(created_at) = %s AND status = 'success'", $today ) ),
-            'errors_today'  => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE DATE(created_at) = %s AND status = 'error'", $today ) ),
-            'blocked_today' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $t WHERE DATE(created_at) = %s AND (status = 'blocked_soft_lock' OR status = 'blocked_hard_lock')", $today ) ),
+            'total_today'   => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_logs WHERE DATE(created_at) = %s", $today ) ),
+            'success_today' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_logs WHERE DATE(created_at) = %s AND status = 'success'", $today ) ),
+            'errors_today'  => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_logs WHERE DATE(created_at) = %s AND status = 'error'", $today ) ),
+            'blocked_today' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_logs WHERE DATE(created_at) = %s AND (status = 'blocked_soft_lock' OR status = 'blocked_hard_lock')", $today ) ),
         ];
     }
 }

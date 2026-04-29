@@ -1,28 +1,44 @@
 <?php
 defined( 'ABSPATH' ) || exit;
+
+( function () {
 global $wpdb;
 
 // ── Filters ────────────────────────────────────────────────────────────
-$filter_tool    = sanitize_text_field( $_GET['tool_name'] ?? '' );
-$filter_status  = sanitize_key( $_GET['status'] ?? '' );
-$filter_key_id  = (int) ( $_GET['api_key_id'] ?? 0 );
-$filter_ip      = sanitize_text_field( $_GET['remote_ip'] ?? '' );
-$filter_period  = sanitize_key( $_GET['period'] ?? 'today' );
-$filter_from    = sanitize_text_field( $_GET['date_from'] ?? '' );
-$filter_to      = sanitize_text_field( $_GET['date_to'] ?? '' );
-$page_num       = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+$filter_tool    = sanitize_text_field( wp_unslash( $_GET['tool_name'] ?? '' ) );
+$filter_status  = sanitize_key( wp_unslash( $_GET['status'] ?? '' ) );
+$filter_key_id  = absint( wp_unslash( $_GET['api_key_id'] ?? 0 ) );
+$filter_ip      = sanitize_text_field( wp_unslash( $_GET['remote_ip'] ?? '' ) );
+$filter_period  = sanitize_key( wp_unslash( $_GET['period'] ?? 'today' ) );
+$filter_from    = sanitize_text_field( wp_unslash( $_GET['date_from'] ?? '' ) );
+$filter_to      = sanitize_text_field( wp_unslash( $_GET['date_to'] ?? '' ) );
+$page_num       = max( 1, absint( wp_unslash( $_GET['paged'] ?? 1 ) ) );
 $per_page       = 50;
 
 // Resolve date range from period preset
 if ( $filter_period !== 'custom' ) {
     $now = current_time( 'mysql', true );
-    [ $filter_from, $filter_to ] = match ( $filter_period ) {
-        'today'   => [ current_time( 'Y-m-d' ) . ' 00:00:00', $now ],
-        '7days'   => [ gmdate( 'Y-m-d', strtotime( '-7 days' ) ) . ' 00:00:00', $now ],
-        '30days'  => [ gmdate( 'Y-m-d', strtotime( '-30 days' ) ) . ' 00:00:00', $now ],
-        'year'    => [ gmdate( 'Y' ) . '-01-01 00:00:00', $now ],
-        default   => [ '', '' ],
-    };
+    switch ( $filter_period ) {
+        case 'today':
+            $filter_from = current_time( 'Y-m-d' ) . ' 00:00:00';
+            $filter_to   = $now;
+            break;
+        case '7days':
+            $filter_from = gmdate( 'Y-m-d', strtotime( '-7 days' ) ) . ' 00:00:00';
+            $filter_to   = $now;
+            break;
+        case '30days':
+            $filter_from = gmdate( 'Y-m-d', strtotime( '-30 days' ) ) . ' 00:00:00';
+            $filter_to   = $now;
+            break;
+        case 'year':
+            $filter_from = gmdate( 'Y' ) . '-01-01 00:00:00';
+            $filter_to   = $now;
+            break;
+        default:
+            $filter_from = '';
+            $filter_to   = '';
+    }
 }
 
 $filters = array_filter( [
@@ -111,11 +127,13 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
         </thead>
         <tbody>
         <?php foreach ( $logs as $log ) :
-            $status_cls = match ( true ) {
-                $log['status'] === 'success'              => 'aicom-status-active',
-                str_starts_with( $log['status'], 'blocked' ) => 'aicom-status-warning',
-                default                                    => 'aicom-status-revoked',
-            };
+            if ( $log['status'] === 'success' ) {
+                $status_cls = 'aicom-status-active';
+            } elseif ( strpos( $log['status'], 'blocked' ) === 0 ) {
+                $status_cls = 'aicom-status-warning';
+            } else {
+                $status_cls = 'aicom-status-revoked';
+            }
         ?>
             <tr>
                 <td><?php echo esc_html( $log['created_at'] ); ?></td>
@@ -158,3 +176,5 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
     <?php endif; ?>
     <?php endif; ?>
 </div>
+<?php
+} )();

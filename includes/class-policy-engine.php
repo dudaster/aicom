@@ -12,11 +12,14 @@ class AICOM_Policy_Engine {
     // ── Lock Matrix ───────────────────────────────────────────────────────
 
     private static function allowed_classes( string $effective_lock ): array {
-        return match ( $effective_lock ) {
-            'hard_locked' => [ 'public' ],
-            'soft_locked' => [ 'public', 'discovery', 'read' ],
-            default       => [ 'public', 'discovery', 'read', 'write', 'destructive', 'admin_sensitive' ],
-        };
+        switch ( $effective_lock ) {
+            case 'hard_locked':
+                return [ 'public' ];
+            case 'soft_locked':
+                return [ 'public', 'discovery', 'read' ];
+            default:
+                return [ 'public', 'discovery', 'read', 'write', 'destructive', 'admin_sensitive' ];
+        }
     }
 
     public static function is_tool_allowed_by_lock( string $tool_class, string $effective_lock ): bool {

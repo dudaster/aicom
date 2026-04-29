@@ -1,18 +1,23 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
+( function () {
 $lock_state = AICOM_Lock_Manager::get_state();
 
-$badge_label = match ( $lock_state['effective_lock'] ) {
-    'hard_locked' => 'Hard Lock Active',
-    'soft_locked' => 'Soft Lock Active',
-    default       => 'Unlocked',
-};
-$badge_class = match ( $lock_state['effective_lock'] ) {
-    'hard_locked' => 'aicom-badge-danger',
-    'soft_locked' => 'aicom-badge-warning',
-    default       => 'aicom-badge-success',
-};
+if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+    $badge_label = 'Hard Lock Active';
+} elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+    $badge_label = 'Soft Lock Active';
+} else {
+    $badge_label = 'Unlocked';
+}
+if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+    $badge_class = 'aicom-badge-danger';
+} elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+    $badge_class = 'aicom-badge-warning';
+} else {
+    $badge_class = 'aicom-badge-success';
+}
 ?>
 <div class="wrap aicom-wrap">
     <h1>Safety Controls</h1>
@@ -27,11 +32,13 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
         <p class="aicom-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
         <p class="description">
             <?php
-            $lock_desc = match ( $lock_state['effective_lock'] ) {
-                'hard_locked' => 'Only <code>server.status</code> is allowed. All other tools are blocked.',
-                'soft_locked' => 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.',
-                default       => 'All tools permitted (subject to scope and allowlist checks).',
-            };
+            if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+                $lock_desc = 'Only <code>server.status</code> is allowed. All other tools are blocked.';
+            } elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+                $lock_desc = 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.';
+            } else {
+                $lock_desc = 'All tools permitted (subject to scope and allowlist checks).';
+            }
             echo wp_kses( $lock_desc, [ 'code' => [] ] );
             ?>
         </p>
@@ -121,3 +128,5 @@ $badge_class = match ( $lock_state['effective_lock'] ) {
         </table>
     </div>
 </div>
+<?php
+} )();

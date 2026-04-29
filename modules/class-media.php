@@ -194,22 +194,25 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             $attachment_id = media_handle_sideload( $file_array, (int) ( $args['post_id'] ?? 0 ) );
             wp_delete_file( $tmp );
         } elseif ( $content ) {
-            // Decode base64
+            // Decode base64 and sideload via a proper system temp file.
             $decoded = base64_decode( $content, true );
             if ( $decoded === false ) {
                 return $this->err( 'INVALID_BASE64', 'Invalid base64 content', 'validation_failed' );
             }
 
-            $upload_dir = wp_upload_dir();
-            $filename   = $name ?: 'upload_' . time();
-            $filepath   = $upload_dir['path'] . '/' . sanitize_file_name( $filename );
+            $filename = sanitize_file_name( $name ?: 'upload_' . time() );
+            $tmp_file = wp_tempnam( $filename );
 
-            file_put_contents( $filepath, $decoded );
+            if ( file_put_contents( $tmp_file, $decoded ) === false ) {
+                wp_delete_file( $tmp_file );
+                return $this->err( 'WRITE_FAILED', 'Failed to create temp file', 'error', 500 );
+            }
 
             $attachment_id = media_handle_sideload(
-                [ 'name' => $filename, 'tmp_name' => $filepath ],
+                [ 'name' => $filename, 'tmp_name' => $tmp_file ],
                 (int) ( $args['post_id'] ?? 0 )
             );
+            wp_delete_file( $tmp_file );
         }
 
         if ( is_wp_error( $attachment_id ) ) {
@@ -337,6 +340,14 @@ class AICOM_Module_Media extends AICOM_Module_Base {
 
         if ( ! AICOM_Policy_Engine::check_file_path_allowlist( $key_record, $path ) ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Path not in allowlist', 'denied_allowlist', 403 );
+        }
+
+        // Hard-block writes to the plugin directory — plugin folders are deleted on
+        // upgrade, and any data stored there is publicly accessible.
+        $real_path       = realpath( $path ) ?: $path;
+        $real_plugin_dir = realpath( WP_PLUGIN_DIR ) ?: WP_PLUGIN_DIR;
+        if ( strpos( $real_path, $real_plugin_dir ) === 0 ) {
+            return $this->err( 'DENIED_PLUGIN_DIR', 'Writes to the plugin directory are not allowed', 'validation_failed', 400 );
         }
 
         if ( $this->is_blocked_extension( $name ) ) {

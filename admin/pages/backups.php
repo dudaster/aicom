@@ -1,10 +1,12 @@
 <?php
 defined( 'ABSPATH' ) || exit;
+
+( function () {
 global $wpdb;
 
-$filter_type = sanitize_key( $_GET['target_type'] ?? '' );
+$filter_type = sanitize_key( wp_unslash( $_GET['target_type'] ?? '' ) );
 $per_page    = 50;
-$page_num    = max( 1, (int) ( $_GET['paged'] ?? 1 ) );
+$page_num    = max( 1, absint( wp_unslash( $_GET['paged'] ?? 1 ) ) );
 
 // Build query
 $where  = [ '1=1' ];
@@ -116,3 +118,5 @@ $type_options = [ '' => 'All Types', 'post' => 'Post', 'term' => 'Term', 'elemen
     <?php endif; ?>
 
 </div>
+<?php
+} )();

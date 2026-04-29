@@ -60,13 +60,10 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'admin_sensitive',
             'required_scopes' => [ 'write.wp.posts', $scopes ],
             'dependency'      => $dep,
-            'description'     => 'Link two posts as translations of each other (confirm=true required).',
+            'description'     => 'Link posts as translations. Pass translations as {"en": 123, "ro": 456, "uk": 789}. Existing group members not mentioned are preserved.',
             'input_schema'    => [
-                'post_id_1' => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of first post.' ],
-                'post_id_2' => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of second post.' ],
-                'lang_1'    => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug of post_id_1 (e.g. "en").' ],
-                'lang_2'    => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug of post_id_2 (e.g. "ro").' ],
-                'confirm'   => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
+                'translations' => [ 'type' => 'object', 'required' => true, 'description' => 'Map of language_slug => post_id for all translations to link.' ],
+                'confirm'      => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
             ],
             'handler'         => [ $this, 'handle_post_link_translation' ],
         ] );
@@ -117,17 +114,52 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'handler'         => [ $this, 'handle_term_get_translations' ],
         ] );
 
+        $this->register( 'pll.strings.list', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp', $scopes ],
+            'dependency'      => $dep,
+            'description'     => 'List WordPress core strings with their current translations per language. Works on Polylang free and Pro.',
+            'input_schema'    => [],
+            'handler'         => [ $this, 'handle_strings_list' ],
+        ] );
+
+        $this->register( 'pll.string.get', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp', $scopes ],
+            'dependency'      => $dep,
+            'description'     => 'Get a WordPress core string and all its Polylang translations. Use wp_option (e.g. "blogdescription") or name+group.',
+            'input_schema'    => [
+                'wp_option' => [ 'type' => 'string', 'description' => 'WP option name: blogname, blogdescription, date_format, time_format.' ],
+                'name'      => [ 'type' => 'string', 'description' => 'Polylang string name (alternative to wp_option).' ],
+                'group'     => [ 'type' => 'string', 'description' => 'Polylang string group (required when using name).' ],
+            ],
+            'handler'         => [ $this, 'handle_string_get' ],
+        ] );
+
+        $this->register( 'pll.string.set', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'write.wp.posts', $scopes ],
+            'supports_dry_run' => true,
+            'dependency'       => $dep,
+            'description'      => 'Set the Polylang translation of a string for a specific language. Works on free and Pro. Use wp_option for WordPress core strings.',
+            'input_schema'     => [
+                'wp_option'   => [ 'type' => 'string', 'description' => 'WP option name to translate: blogname, blogdescription, date_format, time_format.' ],
+                'name'        => [ 'type' => 'string', 'description' => 'Polylang string name (alternative to wp_option, requires pll_get_strings — Polylang Pro).' ],
+                'group'       => [ 'type' => 'string', 'description' => 'String group (required when using name).' ],
+                'language'    => [ 'type' => 'string', 'required' => true, 'description' => 'Language slug (e.g. "ro", "en", "uk").' ],
+                'translation' => [ 'type' => 'string', 'required' => true, 'description' => 'Translated string value.' ],
+            ],
+            'handler'          => [ $this, 'handle_string_set' ],
+        ] );
+
         $this->register( 'pll.term.link_translation', [
             'class'           => 'admin_sensitive',
             'required_scopes' => [ 'manage.taxonomies', $scopes ],
             'dependency'      => $dep,
-            'description'     => 'Link two terms as translations of each other (confirm=true required).',
+            'description'     => 'Link terms as translations. Pass translations as {"en": 5, "ro": 8, "uk": 11}. Existing group members not mentioned are preserved.',
             'input_schema'    => [
-                'term_id_1' => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of first term.' ],
-                'term_id_2' => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of second term.' ],
-                'lang_1'    => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug of term_id_1.' ],
-                'lang_2'    => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug of term_id_2.' ],
-                'confirm'   => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
+                'translations' => [ 'type' => 'object', 'required' => true, 'description' => 'Map of language_slug => term_id for all translations to link.' ],
+                'confirm'      => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
             ],
             'handler'         => [ $this, 'handle_term_link_translation' ],
         ] );
@@ -201,26 +233,48 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
     }
 
     public function handle_post_link_translation( array $args, array $key_record, bool $dry_run ): array {
-        $post_id_1 = $this->require_int( $args, 'post_id_1' );
-        $post_id_2 = $this->require_int( $args, 'post_id_2' );
-        $lang_1    = sanitize_key( $args['lang_1'] ?? '' );
-        $lang_2    = sanitize_key( $args['lang_2'] ?? '' );
+        $translations = $args['translations'] ?? null;
 
-        if ( ! $post_id_1 || ! $post_id_2 || ! $lang_1 || ! $lang_2 ) {
-            return $this->err( 'MISSING_PARAM', 'Parameters post_id_1, post_id_2, lang_1, lang_2 are required', 'validation_failed' );
+        if ( ! is_array( $translations ) || empty( $translations ) ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter translations must be an object mapping language slugs to post IDs.', 'validation_failed' );
+        }
+
+        // Sanitize and validate each entry
+        $new_map = [];
+        foreach ( $translations as $lang => $post_id ) {
+            $lang    = sanitize_key( $lang );
+            $post_id = (int) $post_id;
+            if ( ! $lang || ! $post_id ) {
+                return $this->err( 'INVALID_PARAM', "Invalid entry in translations: lang=$lang post_id=$post_id", 'validation_failed' );
+            }
+            $new_map[ $lang ] = $post_id;
         }
 
         if ( $dry_run ) {
-            return $this->ok( [ 'dry_run' => true, 'would_link' => [ $post_id_1 => $lang_1, $post_id_2 => $lang_2 ] ] );
+            return $this->ok( [ 'dry_run' => true, 'would_link' => $new_map ] );
+        }
+
+        // Merge with existing translation groups so we never drop languages not mentioned
+        $merged = $new_map;
+        if ( function_exists( 'pll_get_post_translations' ) ) {
+            foreach ( $new_map as $post_id ) {
+                $existing = pll_get_post_translations( $post_id );
+                foreach ( $existing as $existing_lang => $existing_id ) {
+                    // New map takes precedence; only add languages not already specified
+                    if ( ! isset( $merged[ $existing_lang ] ) ) {
+                        $merged[ $existing_lang ] = $existing_id;
+                    }
+                }
+            }
         }
 
         if ( function_exists( 'pll_save_post_translations' ) ) {
-            pll_save_post_translations( [ $lang_1 => $post_id_1, $lang_2 => $post_id_2 ] );
+            pll_save_post_translations( $merged );
         }
 
         return $this->ok(
-            [ 'linked' => true, 'posts' => [ $post_id_1, $post_id_2 ] ],
-            [ 'target_type' => 'pll_translation', 'target_id' => "$post_id_1-$post_id_2" ]
+            [ 'linked' => true, 'group' => $merged ],
+            [ 'target_type' => 'pll_translation', 'target_id' => implode( '-', array_values( $merged ) ) ]
         );
     }
 
@@ -245,6 +299,195 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
         return $this->ok(
             [ 'post_id' => $post_id, 'unlinked' => true ],
             [ 'target_type' => 'post', 'target_id' => $post_id ]
+        );
+    }
+
+    // Returns a PLL_Language object by slug without relying on PLL()->model,
+    // which may be null in REST API / fallback endpoint contexts.
+    private function get_pll_language( string $slug ) {
+        if ( ! function_exists( 'pll_languages_list' ) ) {
+            return null;
+        }
+        foreach ( pll_languages_list( [ 'fields' => false ] ) as $lang ) {
+            if ( isset( $lang->slug ) && $lang->slug === $slug ) {
+                return $lang;
+            }
+        }
+        return null;
+    }
+
+    // Known WordPress core strings that Polylang translates in both free and Pro.
+    // Maps wp_option_name => [ 'name' => PLL string name, 'group' => PLL group ]
+    private function wp_core_strings(): array {
+        return [
+            'blogname'        => [ 'name' => 'Site Title',   'group' => 'WordPress' ],
+            'blogdescription' => [ 'name' => 'Site Tagline', 'group' => 'WordPress' ],
+            'date_format'     => [ 'name' => 'Date Format',  'group' => 'WordPress' ],
+            'time_format'     => [ 'name' => 'Time Format',  'group' => 'WordPress' ],
+        ];
+    }
+
+    // Resolve the original string value from either wp_option or name+group (Pro).
+    // Returns [ 'original' => string, 'label' => string ] or WP_Error string on failure.
+    private function resolve_original( array $args ): array {
+        $wp_option = sanitize_key( $args['wp_option'] ?? '' );
+
+        if ( $wp_option ) {
+            $map = $this->wp_core_strings();
+            if ( ! isset( $map[ $wp_option ] ) ) {
+                return [ 'error' => "wp_option '$wp_option' is not a supported core string. Supported: " . implode( ', ', array_keys( $map ) ) ];
+            }
+            $original = get_option( $wp_option );
+            if ( $original === false ) {
+                return [ 'error' => "WordPress option '$wp_option' not found" ];
+            }
+            return [ 'original' => (string) $original, 'label' => $map[ $wp_option ]['name'] . ' (' . $wp_option . ')' ];
+        }
+
+        // Fall back to pll_get_strings (Polylang Pro)
+        $name  = sanitize_text_field( $args['name'] ?? '' );
+        $group = sanitize_text_field( $args['group'] ?? '' );
+        if ( ! $name || ! $group ) {
+            return [ 'error' => 'Provide wp_option (e.g. "blogdescription") or name+group for Polylang Pro.' ];
+        }
+        if ( ! function_exists( 'pll_get_strings' ) ) {
+            return [ 'error' => 'pll_get_strings() not available (Polylang Pro required for name+group lookup). Use wp_option instead.' ];
+        }
+        foreach ( pll_get_strings() as $s ) {
+            if ( $s['name'] === $name && $s['group'] === $group ) {
+                return [ 'original' => $s['string'], 'label' => "$group/$name" ];
+            }
+        }
+        return [ 'error' => "String '$name' in group '$group' not found." ];
+    }
+
+    public function handle_strings_list( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! function_exists( 'pll_languages_list' ) ) {
+            return $this->err( 'UNAVAILABLE', 'Polylang not initialised', 'error', 500 );
+        }
+
+        $lang_slugs = pll_languages_list( [ 'fields' => 'slug' ] );
+        $result     = [];
+
+        // Always include known WP core strings
+        foreach ( $this->wp_core_strings() as $option => $meta ) {
+            $original = get_option( $option );
+            if ( $original === false ) {
+                continue;
+            }
+            $translations = [];
+            foreach ( $lang_slugs as $lang ) {
+                $translations[ $lang ] = function_exists( 'pll_translate_string' )
+                    ? pll_translate_string( (string) $original, $lang )
+                    : '';
+            }
+            $result[] = [
+                'wp_option'    => $option,
+                'name'         => $meta['name'],
+                'group'        => $meta['group'],
+                'original'     => $original,
+                'translations' => $translations,
+            ];
+        }
+
+        // Append extra strings from Polylang Pro if available
+        if ( function_exists( 'pll_get_strings' ) ) {
+            $core_originals = array_map( 'get_option', array_keys( $this->wp_core_strings() ) );
+            foreach ( pll_get_strings() as $s ) {
+                if ( in_array( $s['string'], $core_originals, true ) ) {
+                    continue; // already listed above
+                }
+                $translations = [];
+                foreach ( $lang_slugs as $lang ) {
+                    $translations[ $lang ] = pll_translate_string( $s['string'], $lang );
+                }
+                $result[] = [
+                    'wp_option'    => null,
+                    'name'         => $s['name'],
+                    'group'        => $s['group'],
+                    'original'     => $s['string'],
+                    'translations' => $translations,
+                ];
+            }
+        }
+
+        return $this->ok( [ 'strings' => $result, 'total' => count( $result ) ] );
+    }
+
+    public function handle_string_get( array $args, array $key_record, bool $dry_run ): array {
+        $resolved = $this->resolve_original( $args );
+        if ( isset( $resolved['error'] ) ) {
+            return $this->err( 'INVALID_PARAM', $resolved['error'], 'validation_failed', 400 );
+        }
+
+        $original   = $resolved['original'];
+        $lang_slugs = pll_languages_list( [ 'fields' => 'slug' ] );
+
+        $translations = [];
+        foreach ( $lang_slugs as $lang ) {
+            $translations[ $lang ] = function_exists( 'pll_translate_string' )
+                ? pll_translate_string( $original, $lang )
+                : '';
+        }
+
+        return $this->ok( [
+            'label'        => $resolved['label'],
+            'original'     => $original,
+            'translations' => $translations,
+        ] );
+    }
+
+    public function handle_string_set( array $args, array $key_record, bool $dry_run ): array {
+        $language    = sanitize_key( $args['language'] ?? '' );
+        $translation = $args['translation'] ?? null;
+
+        if ( ! $language || $translation === null ) {
+            return $this->err( 'MISSING_PARAM', 'Parameters language and translation are required', 'validation_failed' );
+        }
+
+        if ( ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $language ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $language", 'denied_allowlist', 403 );
+        }
+
+        $resolved = $this->resolve_original( $args );
+        if ( isset( $resolved['error'] ) ) {
+            return $this->err( 'INVALID_PARAM', $resolved['error'], 'validation_failed', 400 );
+        }
+        $original = $resolved['original'];
+
+        if ( ! class_exists( 'PLL_MO' ) ) {
+            return $this->err( 'UNAVAILABLE', 'PLL_MO class not available', 'error', 500 );
+        }
+
+        $lang_obj = $this->get_pll_language( $language );
+        if ( ! $lang_obj ) {
+            return $this->err( 'NOT_FOUND', "Language not found: $language", 'error', 404 );
+        }
+
+        if ( $dry_run ) {
+            return $this->ok( [
+                'dry_run'     => true,
+                'label'       => $resolved['label'],
+                'original'    => $original,
+                'language'    => $language,
+                'translation' => $translation,
+            ] );
+        }
+
+        $mo = new PLL_MO();
+        $mo->import_from_db( $lang_obj );
+        $mo->add_entry( $mo->make_entry( $original, (string) $translation ) );
+        $mo->export_to_db( $lang_obj );
+
+        return $this->ok(
+            [
+                'label'       => $resolved['label'],
+                'original'    => $original,
+                'language'    => $language,
+                'translation' => $translation,
+                'updated'     => true,
+            ],
+            [ 'target_type' => 'pll_string', 'target_id' => $resolved['label'] . '/' . $language ]
         );
     }
 
@@ -297,26 +540,46 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
     }
 
     public function handle_term_link_translation( array $args, array $key_record, bool $dry_run ): array {
-        $term_id_1 = $this->require_int( $args, 'term_id_1' );
-        $term_id_2 = $this->require_int( $args, 'term_id_2' );
-        $lang_1    = sanitize_key( $args['lang_1'] ?? '' );
-        $lang_2    = sanitize_key( $args['lang_2'] ?? '' );
+        $translations = $args['translations'] ?? null;
 
-        if ( ! $term_id_1 || ! $term_id_2 || ! $lang_1 || ! $lang_2 ) {
-            return $this->err( 'MISSING_PARAM', 'Parameters term_id_1, term_id_2, lang_1, lang_2 are required', 'validation_failed' );
+        if ( ! is_array( $translations ) || empty( $translations ) ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter translations must be an object mapping language slugs to term IDs.', 'validation_failed' );
+        }
+
+        $new_map = [];
+        foreach ( $translations as $lang => $term_id ) {
+            $lang    = sanitize_key( $lang );
+            $term_id = (int) $term_id;
+            if ( ! $lang || ! $term_id ) {
+                return $this->err( 'INVALID_PARAM', "Invalid entry in translations: lang=$lang term_id=$term_id", 'validation_failed' );
+            }
+            $new_map[ $lang ] = $term_id;
         }
 
         if ( $dry_run ) {
-            return $this->ok( [ 'dry_run' => true, 'would_link_terms' => [ $term_id_1, $term_id_2 ] ] );
+            return $this->ok( [ 'dry_run' => true, 'would_link' => $new_map ] );
+        }
+
+        // Merge with existing groups so we never drop languages not mentioned
+        $merged = $new_map;
+        if ( function_exists( 'pll_get_term_translations' ) ) {
+            foreach ( $new_map as $term_id ) {
+                $existing = pll_get_term_translations( $term_id );
+                foreach ( $existing as $existing_lang => $existing_id ) {
+                    if ( ! isset( $merged[ $existing_lang ] ) ) {
+                        $merged[ $existing_lang ] = $existing_id;
+                    }
+                }
+            }
         }
 
         if ( function_exists( 'pll_save_term_translations' ) ) {
-            pll_save_term_translations( [ $lang_1 => $term_id_1, $lang_2 => $term_id_2 ] );
+            pll_save_term_translations( $merged );
         }
 
         return $this->ok(
-            [ 'linked' => true, 'terms' => [ $term_id_1, $term_id_2 ] ],
-            [ 'target_type' => 'pll_term_translation', 'target_id' => "$term_id_1-$term_id_2" ]
+            [ 'linked' => true, 'group' => $merged ],
+            [ 'target_type' => 'pll_term_translation', 'target_id' => implode( '-', array_values( $merged ) ) ]
         );
     }
 }

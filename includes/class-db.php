@@ -65,9 +65,10 @@ class AICOM_DB {
                 'wpops_mcp_backups'  => 'acl_backups',
             ];
             foreach ( $map as $old => $new ) {
-                $old_table = $wpdb->prefix . $old;
-                if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_table'" ) === $old_table ) {
-                    $wpdb->query( "RENAME TABLE `$old_table` TO `{$wpdb->prefix}$new`" );
+                $old_full = $wpdb->prefix . $old;
+                $new_full = $wpdb->prefix . $new;
+                if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $old_full ) ) ) === $old_full ) {
+                    $wpdb->query( 'RENAME TABLE `' . esc_sql( $old_full ) . '` TO `' . esc_sql( $new_full ) . '`' );
                 }
             }
 
@@ -84,9 +85,10 @@ class AICOM_DB {
                 'acl_backups'  => 'aicom_backups',
             ];
             foreach ( $map as $old => $new ) {
-                $old_table = $wpdb->prefix . $old;
-                if ( $wpdb->get_var( "SHOW TABLES LIKE '$old_table'" ) === $old_table ) {
-                    $wpdb->query( "RENAME TABLE `$old_table` TO `{$wpdb->prefix}$new`" );
+                $old_full = $wpdb->prefix . $old;
+                $new_full = $wpdb->prefix . $new;
+                if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $old_full ) ) ) === $old_full ) {
+                    $wpdb->query( 'RENAME TABLE `' . esc_sql( $old_full ) . '` TO `' . esc_sql( $new_full ) . '`' );
                 }
             }
 

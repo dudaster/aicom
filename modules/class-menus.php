@@ -71,6 +71,7 @@ class AICOM_Module_Menus extends AICOM_Module_Base {
             'description'      => 'Delete a nav menu and all its items (requires confirm=true).',
             'input_schema'     => [
                 'menu_id' => [ 'type' => 'integer', 'required' => true ],
+                'confirm' => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
             ],
             'handler'          => [ $this, 'handle_delete' ],
         ] );
@@ -86,7 +87,7 @@ class AICOM_Module_Menus extends AICOM_Module_Base {
                 'object'          => [ 'type' => 'string',  'description' => 'Post type slug or taxonomy slug' ],
                 'object_id'       => [ 'type' => 'integer', 'description' => 'Post ID or term ID (not needed for custom type)' ],
                 'title'           => [ 'type' => 'string',  'description' => 'Override label (optional for post_type/taxonomy)' ],
-                'url'             => [ 'type' => 'string',  'description' => 'URL (required for custom type)' ],
+                'url'             => [ 'type' => 'string',  'description' => 'URL for custom type (optional — omit or leave empty for label-only items)' ],
                 'parent_item_id'  => [ 'type' => 'integer', 'description' => 'Parent nav_menu_item post ID (0 = top level)' ],
                 'position'        => [ 'type' => 'integer', 'description' => 'Menu order position (0 = append)' ],
                 'target'          => [ 'type' => 'string',  'description' => '_blank or empty' ],
@@ -122,6 +123,7 @@ class AICOM_Module_Menus extends AICOM_Module_Base {
             'description'      => 'Remove an item from a nav menu (requires confirm=true).',
             'input_schema'     => [
                 'item_id' => [ 'type' => 'integer', 'required' => true, 'description' => 'nav_menu_item post ID' ],
+                'confirm' => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
             ],
             'handler'          => [ $this, 'handle_items_remove' ],
         ] );
@@ -279,9 +281,7 @@ class AICOM_Module_Menus extends AICOM_Module_Base {
         if ( $type !== 'custom' && empty( $args['object_id'] ) ) {
             return $this->err( 'MISSING_PARAM', 'Parameter object_id is required for post_type and taxonomy items', 'validation_failed' );
         }
-        if ( $type === 'custom' && empty( $args['url'] ) ) {
-            return $this->err( 'MISSING_PARAM', 'Parameter url is required for custom items', 'validation_failed' );
-        }
+        // custom type: url is optional — WP supports label-only items with empty url
 
         if ( $dry_run ) {
             return $this->ok( [ 'dry_run' => true, 'would_add_item_to_menu' => $menu_id, 'type' => $type ] );
@@ -454,7 +454,7 @@ class AICOM_Module_Menus extends AICOM_Module_Base {
      * Resolve menu from args: accepts menu_id (int) or slug (string).
      * Returns WP_Term or an err() array.
      */
-    private function resolve_menu( array $args ): WP_Term|array {
+    private function resolve_menu( array $args ) {
         $menu_id = $this->require_int( $args, 'menu_id' );
         $slug    = sanitize_text_field( $args['slug'] ?? '' );
 

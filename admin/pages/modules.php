@@ -1,6 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
+( function () {
 $module_status = AICOM_Module_Detector::get_module_status_map();
 $active_modules = AICOM_Module_Detector::get_active_modules();
 
@@ -121,3 +122,5 @@ $module_info = [
         </table>
     </div>
 </div>
+<?php
+} )();

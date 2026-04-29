@@ -110,14 +110,6 @@ class AICOM_Tool_Router {
         $key_id    = (int) $key_record['id'];
         $key_label = $key_record['label'];
 
-        // Set WordPress current user context so hooks like Elementor's
-        // update_option_blogname can call current_user_can() successfully.
-        // Use the key's creator if available, otherwise fall back to admin (1).
-        $gateway_user_id = ! empty( $key_record['created_by_user_id'] )
-            ? (int) $key_record['created_by_user_id']
-            : 1;
-        wp_set_current_user( $gateway_user_id );
-
         // ── Step 4: Tool exists ───────────────────────────────────────────
         if ( $tool_meta === null ) {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'TOOL_NOT_FOUND', "Tool not found: $tool_name", 'error', 404, $arguments, $start, $rpc_id );
@@ -127,12 +119,15 @@ class AICOM_Tool_Router {
         $dependency = $tool_meta['dependency'];
 
         if ( $dependency !== null ) {
-            $dep_active = match ( $dependency ) {
-                'woocommerce' => AICOM_Module_Detector::is_woocommerce_active(),
-                'elementor'   => AICOM_Module_Detector::is_elementor_active(),
-                'polylang'    => AICOM_Module_Detector::is_polylang_active(),
-                default       => false,
-            };
+            if ( $dependency === 'woocommerce' ) {
+                $dep_active = AICOM_Module_Detector::is_woocommerce_active();
+            } elseif ( $dependency === 'elementor' ) {
+                $dep_active = AICOM_Module_Detector::is_elementor_active();
+            } elseif ( $dependency === 'polylang' ) {
+                $dep_active = AICOM_Module_Detector::is_polylang_active();
+            } else {
+                $dep_active = false;
+            }
 
             if ( ! $dep_active ) {
                 return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DEPENDENCY_MISSING', "Required plugin not active: $dependency", 'dependency_missing', 422, $arguments, $start, $rpc_id );
@@ -161,10 +156,21 @@ class AICOM_Tool_Router {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'HANDLER_MISSING', 'Tool handler not callable', 'error', 500, $arguments, $start, $rpc_id );
         }
 
+        // Grant capabilities only for the duration of tool execution. Using a filter
+        // instead of wp_set_current_user() avoids impersonating any WordPress user account.
+        add_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
+
+        $exec_exception = null;
         try {
             $result = call_user_func( $handler, $arguments, $key_record, $is_dry_run );
         } catch ( Throwable $e ) {
-            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'EXECUTION_ERROR', $e->getMessage(), 'error', 500, $arguments, $start, $rpc_id );
+            $exec_exception = $e;
+        } finally {
+            remove_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
+        }
+
+        if ( $exec_exception !== null ) {
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'EXECUTION_ERROR', $exec_exception->getMessage(), 'error', 500, $arguments, $start, $rpc_id );
         }
 
         // ── Step 11: Touch key ────────────────────────────────────────────
@@ -218,7 +224,7 @@ class AICOM_Tool_Router {
         float  $start,
         int    $key_id = 0,
         string $key_label = '',
-        mixed  $rpc_id = null
+        $rpc_id = null
     ): array {
         AICOM_Audit_Logger::log( [
             'request_id'    => $request_id,
@@ -253,7 +259,7 @@ class AICOM_Tool_Router {
         int    $http_status,
         array  $arguments,
         float  $start,
-        mixed  $rpc_id = null
+        $rpc_id = null
     ): array {
         AICOM_Audit_Logger::log( [
             'request_id'    => $request_id,
@@ -273,7 +279,7 @@ class AICOM_Tool_Router {
         return self::mcp_error( $error_code, $message, $request_id, $rpc_id );
     }
 
-    private static function mcp_error( string $code, string $message, string $request_id, mixed $rpc_id = null ): array {
+    private static function mcp_error( string $code, string $message, string $request_id, $rpc_id = null ): array {
         $response = [
             'error'      => [ 'code' => $code, 'message' => $message ],
             'request_id' => $request_id,
@@ -286,7 +292,7 @@ class AICOM_Tool_Router {
      * For error responses, error stays at top level per JSON-RPC spec.
      * For success responses, payload moves into result key.
      */
-    private static function jsonrpc_wrap( array $response, mixed $rpc_id ): array {
+    private static function jsonrpc_wrap( array $response, $rpc_id ): array {
         if ( $rpc_id === null ) {
             return $response; // legacy / shorthand format — no wrapping
         }
@@ -320,14 +326,40 @@ class AICOM_Tool_Router {
         return wp_json_encode( $sanitized ) ?: '{}';
     }
 
+    /**
+     * Temporary user_has_cap filter: grant capabilities needed for API tool execution.
+     * Applied only during step 10 (Execute) of the dispatch pipeline and always removed
+     * immediately after via try/finally — whether the handler succeeds or throws.
+     *
+     * @param array $allcaps Existing capability map for the current user.
+     * @return array Augmented capability map.
+     */
+    public static function grant_api_request_caps( array $allcaps ): array {
+        $allcaps['manage_options']         = true;
+        $allcaps['edit_posts']             = true;
+        $allcaps['edit_others_posts']      = true;
+        $allcaps['edit_published_posts']   = true;
+        $allcaps['delete_posts']           = true;
+        $allcaps['delete_others_posts']    = true;
+        $allcaps['delete_published_posts'] = true;
+        $allcaps['publish_posts']          = true;
+        $allcaps['upload_files']           = true;
+        $allcaps['manage_categories']      = true;
+        $allcaps['list_users']             = true;
+        $allcaps['edit_users']             = true;
+        $allcaps['promote_users']          = true;
+        $allcaps['create_users']           = true;
+        $allcaps['delete_users']           = true;
+        $allcaps['manage_woocommerce']     = true;
+        return $allcaps;
+    }
+
     public static function remote_ip(): string {
         // Respect X-Forwarded-For only if trusted (simplified — production should validate proxy).
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-        $forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) : '';
+        $forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
         if ( $forwarded ) {
             return sanitize_text_field( trim( explode( ',', $forwarded )[0] ) );
         }
-        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
         return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
     }
 }

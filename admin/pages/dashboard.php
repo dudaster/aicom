@@ -1,22 +1,26 @@
 <?php
-// Ensure only called from within WordPress admin.
 defined( 'ABSPATH' ) || exit;
 
+( function () {
 $lock_state = AICOM_Lock_Manager::get_state();
 $stats      = AICOM_Audit_Logger::get_stats_today();
 $mcp_url    = get_site_url() . '/wp-json/aicom/v1/mcp';
 $fallback    = get_site_url() . '/?aicom=1';
 
-$badge_class = match ( $lock_state['effective_lock'] ) {
-    'hard_locked' => 'aicom-badge-danger',
-    'soft_locked' => 'aicom-badge-warning',
-    default       => 'aicom-badge-success',
-};
-$badge_label = match ( $lock_state['effective_lock'] ) {
-    'hard_locked' => 'Hard Lock Active',
-    'soft_locked' => 'Soft Lock Active',
-    default       => 'Unlocked',
-};
+if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+    $badge_class = 'aicom-badge-danger';
+} elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+    $badge_class = 'aicom-badge-warning';
+} else {
+    $badge_class = 'aicom-badge-success';
+}
+if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+    $badge_label = 'Hard Lock Active';
+} elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+    $badge_label = 'Soft Lock Active';
+} else {
+    $badge_label = 'Unlocked';
+}
 ?>
 <div class="wrap aicom-wrap">
     <h1>AICOM - AI Commander for WordPress</h1>
@@ -115,3 +119,5 @@ $badge_label = match ( $lock_state['effective_lock'] ) {
     </div>
 
 </div><!-- .aicom-wrap -->
+<?php
+} )();
