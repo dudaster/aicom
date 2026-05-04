@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,13 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.1.1 =
+* Fix: wp.posts.create now accepts post_name (URL slug) and post_excerpt directly — no more 2-step create+update workaround.
+* Fix: wp.posts.update now applies post_name and post_author — previously these were silently ignored despite returning updated:true.
+* Fix: wp.posts.create defaults post_author to the user associated with the API key — prevents author=0 on REST-context requests.
+* Fix: wp.posts.get now includes a terms map in the response, grouped by taxonomy (category, post_tag, custom taxonomies).
+* New: wp.meta.set_many — set multiple post meta keys in one call. Accepts a meta object of key→value pairs; allowlist enforced per key.
 
 = 2.1.0 =
 * New: Ele Custom Skin (ECS) module — 26 tools for reading and writing ECS Color Schemes, Font Schemes, Custom Looks, Custom CSS, Alt Logos, and Dynamic Repeater Builder (DRB) presets and bindings. Works with both ele-custom-skin (free) and ele-custom-skin-pro. Activate a color scheme site-wide in one call via ecs.color_schemes.activate_global.

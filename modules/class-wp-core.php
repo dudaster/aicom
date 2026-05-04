@@ -114,13 +114,15 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'class'            => 'write',
             'required_scopes'  => [ 'write.wp.posts' ],
             'supports_dry_run' => true,
-            'description'      => 'Create a new post.',
+            'description'      => 'Create a new post. post_author defaults to the user associated with the API key.',
             'input_schema'     => [
                 'post_type'    => [ 'type' => 'string',  'default' => 'post' ],
                 'post_title'   => [ 'type' => 'string',  'required' => true ],
                 'post_content' => [ 'type' => 'string' ],
+                'post_excerpt' => [ 'type' => 'string' ],
                 'post_status'  => [ 'type' => 'string',  'default' => 'draft' ],
-                'post_author'  => [ 'type' => 'integer' ],
+                'post_name'    => [ 'type' => 'string',  'description' => 'URL slug. For drafts WordPress leaves the slug empty unless explicitly set here.' ],
+                'post_author'  => [ 'type' => 'integer', 'description' => 'Author user ID. Defaults to the user who created the API key.' ],
                 'post_date'    => [ 'type' => 'string',  'description' => 'Publish date in YYYY-MM-DD HH:MM:SS or ISO 8601 format. Uses site timezone.' ],
             ],
             'handler'          => [ $this, 'handle_posts_create' ],
@@ -137,6 +139,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'post_content' => [ 'type' => 'string' ],
                 'post_status'  => [ 'type' => 'string' ],
                 'post_excerpt' => [ 'type' => 'string' ],
+                'post_name'    => [ 'type' => 'string',  'description' => 'URL slug.' ],
+                'post_author'  => [ 'type' => 'integer' ],
                 'post_date'    => [ 'type' => 'string',  'description' => 'Publish date in YYYY-MM-DD HH:MM:SS or ISO 8601 format. Uses site timezone.' ],
             ],
             'handler'          => [ $this, 'handle_posts_update' ],
@@ -205,6 +209,17 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'meta_value' => [ 'description' => 'Value to store (string, number, array).' ],
             ],
             'handler'         => [ $this, 'handle_meta_set' ],
+        ] );
+
+        $this->register( 'wp.meta.set_many', [
+            'class'           => 'write',
+            'required_scopes' => [ 'manage.meta' ],
+            'description'     => 'Set multiple post meta values in one call (allowlist enforced per key).',
+            'input_schema'    => [
+                'post_id' => [ 'type' => 'integer', 'required' => true ],
+                'meta'    => [ 'required' => true, 'description' => 'Object of meta_key → meta_value pairs. E.g. {"_yoast_title": "...", "_acf_field": "..."}' ],
+            ],
+            'handler'         => [ $this, 'handle_meta_set_many' ],
         ] );
 
         $this->register( 'wp.options.set', [
@@ -435,20 +450,34 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'DENIED_ALLOWLIST', 'Post type not in allowlist', 'denied_allowlist', 403 );
         }
 
+        $taxonomies = get_object_taxonomies( $post->post_type );
+        $terms_map  = [];
+        foreach ( $taxonomies as $tax ) {
+            $tax_terms = get_the_terms( $post->ID, $tax );
+            if ( $tax_terms && ! is_wp_error( $tax_terms ) ) {
+                $terms_map[ $tax ] = array_values( array_map( fn( $t ) => [
+                    'id'   => $t->term_id,
+                    'name' => $t->name,
+                    'slug' => $t->slug,
+                ], $tax_terms ) );
+            }
+        }
+
         return $this->ok( [
-            'id'           => $post->ID,
-            'title'        => $post->post_title,
-            'content'      => $post->post_content,
-            'excerpt'      => $post->post_excerpt,
-            'status'       => $post->post_status,
-            'post_type'    => $post->post_type,
-            'slug'         => $post->post_name,
-            'date'         => $post->post_date,
-            'modified'     => $post->post_modified,
-            'author'       => (int) $post->post_author,
-            'parent'       => (int) $post->post_parent,
-            'menu_order'   => (int) $post->menu_order,
+            'id'             => $post->ID,
+            'title'          => $post->post_title,
+            'content'        => $post->post_content,
+            'excerpt'        => $post->post_excerpt,
+            'status'         => $post->post_status,
+            'post_type'      => $post->post_type,
+            'slug'           => $post->post_name,
+            'date'           => $post->post_date,
+            'modified'       => $post->post_modified,
+            'author'         => (int) $post->post_author,
+            'parent'         => (int) $post->post_parent,
+            'menu_order'     => (int) $post->menu_order,
             'comment_status' => $post->comment_status,
+            'terms'          => $terms_map,
         ], [ 'target_type' => 'post', 'target_id' => $id ] );
     }
 
@@ -477,9 +506,16 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'post_type'    => $post_type,
         ];
 
-        if ( isset( $args['post_author'] ) ) {
-            $data['post_author'] = (int) $args['post_author'];
+        if ( isset( $args['post_excerpt'] ) ) {
+            $data['post_excerpt'] = sanitize_text_field( $args['post_excerpt'] );
         }
+        if ( isset( $args['post_name'] ) ) {
+            $data['post_name'] = sanitize_title( $args['post_name'] );
+        }
+        // Default author to the user who owns the API key; avoids author=0 on REST requests
+        $data['post_author'] = isset( $args['post_author'] )
+            ? (int) $args['post_author']
+            : (int) ( $key_record['created_by_user_id'] ?? 0 );
 
         if ( isset( $args['post_date'] ) ) {
             $date = $this->normalize_post_date( $args['post_date'] );
@@ -525,6 +561,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         if ( isset( $args['post_content'] ) )  $data['post_content'] = wp_kses_post( $args['post_content'] );
         if ( isset( $args['post_status'] ) )   $data['post_status']  = sanitize_key( $args['post_status'] );
         if ( isset( $args['post_excerpt'] ) )  $data['post_excerpt'] = sanitize_text_field( $args['post_excerpt'] );
+        if ( isset( $args['post_name'] ) )     $data['post_name']    = sanitize_title( $args['post_name'] );
+        if ( isset( $args['post_author'] ) )   $data['post_author']  = (int) $args['post_author'];
 
         if ( isset( $args['post_date'] ) ) {
             $date = $this->normalize_post_date( $args['post_date'] );
@@ -844,6 +882,41 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
         return $this->ok(
             [ 'post_id' => $post_id, 'meta_key' => $meta_key, 'updated' => true ],
+            [ 'target_type' => 'post_meta', 'target_id' => $post_id ]
+        );
+    }
+
+    public function handle_meta_set_many( array $args, array $key_record, bool $dry_run ): array {
+        $post_id = $this->require_int( $args, 'post_id' );
+        $meta    = $args['meta'] ?? null;
+
+        if ( ! $post_id ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter post_id is required', 'validation_failed' );
+        }
+        if ( ! is_array( $meta ) || empty( $meta ) ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter meta must be a non-empty object of key→value pairs', 'validation_failed' );
+        }
+
+        $denied = [];
+        foreach ( array_keys( $meta ) as $key ) {
+            if ( ! AICOM_Policy_Engine::check_meta_key_allowlist( $key_record, $key ) ) {
+                $denied[] = $key;
+            }
+        }
+        if ( $denied ) {
+            return $this->err( 'DENIED_ALLOWLIST', 'Meta keys not in allowlist: ' . implode( ', ', $denied ), 'denied_allowlist', 403 );
+        }
+
+        if ( $dry_run ) {
+            return $this->ok( [ 'dry_run' => true, 'would_set' => array_keys( $meta ) ] );
+        }
+
+        foreach ( $meta as $key => $value ) {
+            update_post_meta( $post_id, $key, is_string( $value ) ? wp_slash( $value ) : $value );
+        }
+
+        return $this->ok(
+            [ 'post_id' => $post_id, 'updated' => array_keys( $meta ) ],
             [ 'target_type' => 'post_meta', 'target_id' => $post_id ]
         );
     }
