@@ -125,6 +125,10 @@ class AICOM_Tool_Router {
                 $dep_active = AICOM_Module_Detector::is_elementor_active();
             } elseif ( $dependency === 'polylang' ) {
                 $dep_active = AICOM_Module_Detector::is_polylang_active();
+            } elseif ( $dependency === 'ecs' ) {
+                $dep_active = AICOM_Module_Detector::is_ecs_active();
+            } elseif ( $dependency === 'ecs_pro' ) {
+                $dep_active = AICOM_Module_Detector::is_ecs_pro_active();
             } else {
                 $dep_active = false;
             }

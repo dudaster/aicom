@@ -28,6 +28,15 @@ class AICOM_Module_Detector {
         return defined( 'POLYLANG_VERSION' );
     }
 
+    public static function is_ecs_active(): bool {
+        return defined( 'ECS_VERSION' );
+    }
+
+    public static function is_ecs_pro_active(): bool {
+        // ELECSP_VER is defined by ele-custom-skin-pro; requires ECS free to also be active.
+        return defined( 'ELECSP_VER' ) && self::is_ecs_active();
+    }
+
     /**
      * Returns list of active module slugs (used in Tool Registry filtering).
      */
@@ -42,6 +51,12 @@ class AICOM_Module_Detector {
         }
         if ( self::is_polylang_active() ) {
             $modules[] = 'polylang';
+        }
+        if ( self::is_ecs_active() ) {
+            $modules[] = 'ecs';
+        }
+        if ( self::is_ecs_pro_active() ) {
+            $modules[] = 'ecs_pro';
         }
 
         return $modules;
@@ -59,6 +74,7 @@ class AICOM_Module_Detector {
             'woocommerce' => self::is_woocommerce_active() ? 'active' : 'inactive',
             'elementor'   => self::is_elementor_active()   ? 'active' : 'inactive',
             'polylang'    => self::is_polylang_installed() ? ( self::is_polylang_active() ? 'active' : 'installed_no_languages' ) : 'inactive',
+            'ecs'         => self::is_ecs_pro_active() ? 'active_pro' : ( self::is_ecs_active() ? 'active_free' : 'inactive' ),
         ];
     }
 }
