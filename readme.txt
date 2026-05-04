@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.0.12
+Stable tag: 2.1.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -160,7 +160,7 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 
 == Changelog ==
 
-= 2.0.12 =
+= 2.1.0 =
 * New: Ele Custom Skin (ECS) module — 26 tools for reading and writing ECS Color Schemes, Font Schemes, Custom Looks, Custom CSS, Alt Logos, and Dynamic Repeater Builder (DRB) presets and bindings. Works with both ele-custom-skin (free) and ele-custom-skin-pro. Activate a color scheme site-wide in one call via ecs.color_schemes.activate_global.
 
 = 2.0.11 =

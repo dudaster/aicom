@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Let AI agents control your site via MCP. API key auth, scope control, safety locks, audit logging and 87 tools for WP, WooCommerce, Elementor.
- * Version:           2.0.12
+ * Version:           2.1.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '2.0.12' );
+define( 'AICOM_VERSION', '2.1.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
