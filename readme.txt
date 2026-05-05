@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.1.1
+Stable tag: 2.2.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.2.0 =
+* New: Clautron module — 11 tools for blueprint and capability management (catalog.list/install, primitives.list, blueprint.examples/list/validate/create/compile/smoke_test, capability.meta.get/set). Requires Clautron plugin.
+* New: Yoast SEO module — 9 tools for reading and writing Yoast SEO meta (yoast.post.get/set, yoast.post.social.get/set, yoast.posts.bulk_get for audits, yoast.term.get/set, yoast.site.get). Supports free and premium. Requires Yoast SEO plugin.
 
 = 2.1.1 =
 * Fix: wp.posts.create now accepts post_name (URL slug) and post_excerpt directly — no more 2-step create+update workaround.
