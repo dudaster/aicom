@@ -23,6 +23,7 @@ $all_scopes = [
     'manage.elementor'                 => 'Manage Elementor',
     'manage.polylang'                  => 'Manage Polylang',
     'manage.clautron'                  => 'Manage Clautron (blueprints, capabilities)',
+    'manage.yoast'                     => 'Manage Yoast SEO (post meta, terms, social)',
     'manage.woocommerce.products'      => 'WooCommerce Products',
     'manage.woocommerce.settings'      => 'WooCommerce Settings',
     'manage.media'                     => 'Media Library',

@@ -41,6 +41,14 @@ class AICOM_Module_Detector {
         return defined( 'CLAUTRON_VERSION' );
     }
 
+    public static function is_yoast_active(): bool {
+        return class_exists( 'WPSEO_Meta' );
+    }
+
+    public static function is_yoast_premium_active(): bool {
+        return class_exists( 'WPSEO_Premium' );
+    }
+
     /**
      * Returns list of active module slugs (used in Tool Registry filtering).
      */
@@ -65,6 +73,9 @@ class AICOM_Module_Detector {
         if ( self::is_clautron_active() ) {
             $modules[] = 'clautron';
         }
+        if ( self::is_yoast_active() ) {
+            $modules[] = 'yoast';
+        }
 
         return $modules;
     }
@@ -83,6 +94,7 @@ class AICOM_Module_Detector {
             'polylang'    => self::is_polylang_installed() ? ( self::is_polylang_active() ? 'active' : 'installed_no_languages' ) : 'inactive',
             'ecs'         => self::is_ecs_pro_active() ? 'active_pro' : ( self::is_ecs_active() ? 'active_free' : 'inactive' ),
             'clautron'    => self::is_clautron_active() ? 'active' : 'inactive',
+            'yoast'       => self::is_yoast_premium_active() ? 'active_premium' : ( self::is_yoast_active() ? 'active_free' : 'inactive' ),
         ];
     }
 }

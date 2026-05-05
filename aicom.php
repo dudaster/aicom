@@ -95,6 +95,9 @@ function aicom_boot(): void {
     if ( AICOM_Module_Detector::is_clautron_active() ) {
         $modules[] = new AICOM_Module_Clautron();
     }
+    if ( AICOM_Module_Detector::is_yoast_active() ) {
+        $modules[] = new AICOM_Module_Yoast();
+    }
 
     foreach ( $modules as $module ) {
         $module->register_tools();

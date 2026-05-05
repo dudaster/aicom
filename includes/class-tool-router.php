@@ -131,6 +131,8 @@ class AICOM_Tool_Router {
                 $dep_active = AICOM_Module_Detector::is_ecs_pro_active();
             } elseif ( $dependency === 'clautron' ) {
                 $dep_active = AICOM_Module_Detector::is_clautron_active();
+            } elseif ( $dependency === 'yoast' ) {
+                $dep_active = AICOM_Module_Detector::is_yoast_active();
             } else {
                 $dep_active = false;
             }
