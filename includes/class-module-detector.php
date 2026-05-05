@@ -37,6 +37,10 @@ class AICOM_Module_Detector {
         return defined( 'ELECSP_VER' ) && self::is_ecs_active();
     }
 
+    public static function is_clautron_active(): bool {
+        return defined( 'CLAUTRON_VERSION' );
+    }
+
     /**
      * Returns list of active module slugs (used in Tool Registry filtering).
      */
@@ -58,6 +62,9 @@ class AICOM_Module_Detector {
         if ( self::is_ecs_pro_active() ) {
             $modules[] = 'ecs_pro';
         }
+        if ( self::is_clautron_active() ) {
+            $modules[] = 'clautron';
+        }
 
         return $modules;
     }
@@ -75,6 +82,7 @@ class AICOM_Module_Detector {
             'elementor'   => self::is_elementor_active()   ? 'active' : 'inactive',
             'polylang'    => self::is_polylang_installed() ? ( self::is_polylang_active() ? 'active' : 'installed_no_languages' ) : 'inactive',
             'ecs'         => self::is_ecs_pro_active() ? 'active_pro' : ( self::is_ecs_active() ? 'active_free' : 'inactive' ),
+            'clautron'    => self::is_clautron_active() ? 'active' : 'inactive',
         ];
     }
 }

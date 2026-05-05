@@ -22,6 +22,7 @@ $all_scopes = [
     'manage.meta'                      => 'Manage Post Meta',
     'manage.elementor'                 => 'Manage Elementor',
     'manage.polylang'                  => 'Manage Polylang',
+    'manage.clautron'                  => 'Manage Clautron (blueprints, capabilities)',
     'manage.woocommerce.products'      => 'WooCommerce Products',
     'manage.woocommerce.settings'      => 'WooCommerce Settings',
     'manage.media'                     => 'Media Library',

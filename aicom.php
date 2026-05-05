@@ -92,6 +92,9 @@ function aicom_boot(): void {
     if ( AICOM_Module_Detector::is_ecs_active() ) {
         $modules[] = new AICOM_Module_ECS();
     }
+    if ( AICOM_Module_Detector::is_clautron_active() ) {
+        $modules[] = new AICOM_Module_Clautron();
+    }
 
     foreach ( $modules as $module ) {
         $module->register_tools();
