@@ -146,6 +146,16 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'handler'          => [ $this, 'handle_posts_update' ],
         ] );
 
+        $this->register( 'wp.posts.preview_url', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp' ],
+            'description'     => 'Get a preview URL for any post or page (works for drafts, private, and published). Returns the WordPress preview link and the admin edit URL.',
+            'input_schema'    => [
+                'post_id' => [ 'type' => 'integer', 'required' => true ],
+            ],
+            'handler'         => [ $this, 'handle_posts_preview_url' ],
+        ] );
+
         $this->register( 'wp.terms.create', [
             'class'           => 'write',
             'required_scopes' => [ 'manage.taxonomies' ],
@@ -582,6 +592,28 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             [ 'id' => $id, 'updated' => true ],
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => array_keys( $data ) ]
         );
+    }
+
+    public function handle_posts_preview_url( array $args, array $key_record, bool $dry_run ): array {
+        $post_id = $this->require_int( $args, 'post_id' );
+        if ( ! $post_id ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter post_id is required', 'validation_failed' );
+        }
+
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return $this->err( 'NOT_FOUND', "Post $post_id not found", 'error', 404 );
+        }
+
+        $is_published = $post->post_status === 'publish';
+        $preview_url  = $is_published ? get_permalink( $post_id ) : get_preview_post_link( $post_id );
+
+        return $this->ok( [
+            'post_id'        => $post_id,
+            'post_status'    => $post->post_status,
+            'preview_url'    => $preview_url,
+            'admin_edit_url' => admin_url( "post.php?post=$post_id&action=edit" ),
+        ], [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     public function handle_posts_trash( array $args, array $key_record, bool $dry_run ): array {

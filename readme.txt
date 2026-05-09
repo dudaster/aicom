@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.2.0
+Stable tag: 2.3.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.3.0 =
+* New: elementor.page.create_from_template — create a new page by cloning Elementor data from a source page or template. Copies _elementor_data, _elementor_edit_mode, and _wp_page_template in one call. Supports dry_run and returns preview URL + admin edit URL.
+* New: wp.posts.preview_url — get a preview URL for any post or page. Returns get_preview_post_link() for drafts/private, get_permalink() for published. Also includes admin_edit_url.
 
 = 2.2.0 =
 * New: Clautron module — 11 tools for blueprint and capability management (catalog.list/install, primitives.list, blueprint.examples/list/validate/create/compile/smoke_test, capability.meta.get/set). Requires Clautron plugin.

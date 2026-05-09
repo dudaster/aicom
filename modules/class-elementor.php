@@ -109,6 +109,21 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
             'handler'         => [ $this, 'handle_regenerate_assets' ],
         ] );
 
+        $this->register( 'elementor.page.create_from_template', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'manage.elementor', 'write.wp.posts' ],
+            'dependency'       => $dep,
+            'supports_dry_run' => true,
+            'description'      => 'Create a new page by copying the Elementor data from a source page or template. Sets _elementor_data, _elementor_edit_mode, and _wp_page_template in one call. Returns new post ID, slug, preview URL, and admin edit URL.',
+            'input_schema'     => [
+                'source_post_id' => [ 'type' => 'integer', 'required' => true, 'description' => 'ID of the page or template to copy Elementor data from.' ],
+                'title'          => [ 'type' => 'string',  'required' => true ],
+                'slug'           => [ 'type' => 'string',  'description' => 'URL slug. Defaults to sanitized title if omitted.' ],
+                'status'         => [ 'type' => 'string',  'default' => 'draft', 'description' => 'Post status: draft (default), publish, private.' ],
+            ],
+            'handler'          => [ $this, 'handle_create_from_template' ],
+        ] );
+
         $this->register( 'elementor.template.set_conditions', [
             'class'            => 'write',
             'required_scopes'  => [ 'manage.elementor' ],
@@ -351,6 +366,76 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
         return $this->ok(
             [ 'post_id' => $post_id, 'regenerated' => true ],
             [ 'target_type' => 'elementor_page', 'target_id' => $post_id ]
+        );
+    }
+
+    public function handle_create_from_template( array $args, array $key_record, bool $dry_run ): array {
+        $source_id = $this->require_int( $args, 'source_post_id' );
+        $title     = $this->require_string( $args, 'title' );
+
+        if ( ! $source_id ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter source_post_id is required', 'validation_failed' );
+        }
+        if ( ! $title ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter title is required', 'validation_failed' );
+        }
+
+        if ( ! get_post( $source_id ) ) {
+            return $this->err( 'NOT_FOUND', "Source post $source_id not found", 'error', 404 );
+        }
+
+        $elementor_data = get_post_meta( $source_id, '_elementor_data', true );
+        if ( ! $elementor_data ) {
+            return $this->err( 'INVALID_PARAM', "Source post $source_id has no Elementor data (_elementor_data is empty)", 'validation_failed' );
+        }
+
+        $edit_mode     = get_post_meta( $source_id, '_elementor_edit_mode', true ) ?: 'builder';
+        $page_template = get_post_meta( $source_id, '_wp_page_template', true ) ?: 'default';
+        $element_count = count( json_decode( $elementor_data, true ) ?: [] );
+
+        if ( $dry_run ) {
+            return $this->ok( [
+                'dry_run'        => true,
+                'source_post_id' => $source_id,
+                'would_create'   => [ 'title' => $title, 'status' => $args['status'] ?? 'draft' ],
+                'element_count'  => $element_count,
+            ] );
+        }
+
+        $post_data = [
+            'post_title'  => sanitize_text_field( $title ),
+            'post_status' => sanitize_key( $args['status'] ?? 'draft' ),
+            'post_type'   => 'page',
+            'post_author' => (int) ( $key_record['created_by_user_id'] ?? 0 ),
+        ];
+        if ( ! empty( $args['slug'] ) ) {
+            $post_data['post_name'] = sanitize_title( $args['slug'] );
+        }
+
+        $new_id = wp_insert_post( $post_data, true );
+        if ( is_wp_error( $new_id ) ) {
+            return $this->err( 'WP_ERROR', $new_id->get_error_message(), 'error', 500 );
+        }
+
+        update_post_meta( $new_id, '_elementor_data', $elementor_data );
+        update_post_meta( $new_id, '_elementor_edit_mode', $edit_mode );
+        update_post_meta( $new_id, '_wp_page_template', $page_template );
+        delete_post_meta( $new_id, '_elementor_css' ); // force fresh CSS generation
+
+        $new_post = get_post( $new_id );
+
+        return $this->ok(
+            [
+                'id'            => $new_id,
+                'title'         => $new_post->post_title,
+                'slug'          => $new_post->post_name,
+                'status'        => $new_post->post_status,
+                'preview_url'   => get_preview_post_link( $new_id ),
+                'edit_url'      => admin_url( "post.php?post=$new_id&action=elementor" ),
+                'source_id'     => $source_id,
+                'element_count' => $element_count,
+            ],
+            [ 'target_type' => 'post', 'target_id' => $new_id, 'summary' => [ 'created' => true ] ]
         );
     }
 
