@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.3.0
+Stable tag: 2.4.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 2.4.0 =
+* New: AICOM Keys menu in the WordPress admin bar — lists all active and suspended API keys with one-click suspend/unsuspend via AJAX (no page reload). Shows a green badge with the count of active keys. Last item links to the full API Keys management page. Works in both wp-admin and frontend toolbar.
 
 = 2.3.0 =
 * New: elementor.page.create_from_template — create a new page by cloning Elementor data from a source page or template. Copies _elementor_data, _elementor_edit_mode, and _wp_page_template in one call. Supports dry_run and returns preview URL + admin edit URL.
