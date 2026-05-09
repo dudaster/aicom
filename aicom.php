@@ -108,6 +108,22 @@ function aicom_boot(): void {
         new AICOM_Admin();
     }
 
+    // ── Admin Bar (fires on both admin and frontend for logged-in admins) ──
+    add_action( 'admin_bar_menu',               [ 'AICOM_Admin', 'register_admin_bar' ], 100 );
+    add_action( 'wp_ajax_aicom_toolbar_toggle', [ 'AICOM_Admin', 'ajax_toolbar_toggle' ] );
+
+    // Enqueue toolbar JS/CSS on frontend too (admin_enqueue_scripts only fires in /wp-admin)
+    add_action( 'wp_enqueue_scripts', function (): void {
+        if ( ! is_admin_bar_showing() || ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+        wp_enqueue_style( 'aicom-admin', AICOM_URL . 'assets/admin.css', [], AICOM_VERSION );
+        wp_enqueue_script( 'aicom-admin', AICOM_URL . 'assets/admin.js', [ 'jquery' ], AICOM_VERSION, true );
+        wp_localize_script( 'aicom-admin', 'AICOM_MCP', [
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+        ] );
+    } );
+
     // ── REST Endpoint ──────────────────────────────────────────────────────
     add_action( 'rest_api_init', function (): void {
         register_rest_route( 'aicom/v1', '/mcp', [

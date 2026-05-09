@@ -175,3 +175,71 @@
 /* Policy matrix cells */
 .aicom-cell-yes { color: #28a745; font-weight: 700; text-align: center; }
 .aicom-cell-no  { color: #dc3545; font-weight: 700; text-align: center; }
+
+/* ── AICOM Admin Bar Toolbar ──────────────────────────────────────────── */
+#wpadminbar #wp-admin-bar-aicom-toolbar > .ab-item {
+    padding: 0 10px;
+}
+#wpadminbar .aicom-tb-key > .ab-item {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px !important;
+    min-width: 240px;
+}
+#wpadminbar .aicom-tb-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 160px;
+}
+#wpadminbar .aicom-tb-dot {
+    font-size: 10px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+#wpadminbar .aicom-tb-btn {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 1.6;
+    flex-shrink: 0;
+}
+#wpadminbar .aicom-tb-btn-suspend {
+    background: rgba(255,193,7,.3);
+    color: #f0ad4e;
+}
+#wpadminbar .aicom-tb-btn-suspend:hover {
+    background: rgba(255,193,7,.6);
+}
+#wpadminbar .aicom-tb-btn-unsuspend {
+    background: rgba(40,167,69,.3);
+    color: #5cb85c;
+}
+#wpadminbar .aicom-tb-btn-unsuspend:hover {
+    background: rgba(40,167,69,.6);
+}
+#wpadminbar .aicom-tb-manage > .ab-item {
+    border-top: 1px solid rgba(255,255,255,.1) !important;
+    font-style: italic;
+    opacity: .8;
+}
+#wpadminbar .aicom-tb-count {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #28a745;
+    color: #fff;
+    margin-left: 5px;
+    vertical-align: middle;
+    text-align: center;
+}

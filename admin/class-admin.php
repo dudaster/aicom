@@ -47,14 +47,11 @@ class AICOM_Admin {
     // ── Asset Enqueuing ───────────────────────────────────────────────────
 
     public function enqueue_assets( string $hook ): void {
-        // Only enqueue on our own pages
-        if ( strpos( $hook, 'aicom' ) === false ) {
-            return;
-        }
-
         $plugin_url = AICOM_URL;
         $version    = AICOM_VERSION;
+        $on_aicom   = strpos( $hook, 'aicom' ) !== false;
 
+        // CSS enqueued on every admin page (admin bar styles needed everywhere)
         wp_enqueue_style(
             'aicom-admin',
             $plugin_url . 'assets/admin.css',
@@ -62,6 +59,7 @@ class AICOM_Admin {
             $version
         );
 
+        // JS only needed on AICOM pages OR when admin bar is showing (toolbar toggle)
         wp_enqueue_script(
             'aicom-admin',
             $plugin_url . 'assets/admin.js',
@@ -244,6 +242,110 @@ class AICOM_Admin {
         }
         wp_safe_redirect( admin_url( 'admin.php?page=aicom-backups&deleted=' . $id ) );
         exit;
+    }
+
+    // ── Admin Bar ─────────────────────────────────────────────────────────
+
+    public static function register_admin_bar( WP_Admin_Bar $bar ): void {
+        if ( ! current_user_can( self::CAPABILITY ) ) {
+            return;
+        }
+
+        global $wpdb;
+        $keys = $wpdb->get_results(
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            "SELECT id, label, status FROM {$wpdb->prefix}aicom_api_keys
+             WHERE status IN ('active','suspended')
+             ORDER BY created_at DESC LIMIT 20",
+            ARRAY_A
+        );
+
+        $manage_url   = admin_url( 'admin.php?page=aicom-api-keys' );
+        $active_count = count( array_filter( $keys, fn( $k ) => $k['status'] === 'active' ) );
+        $count_html   = $active_count > 0
+            ? ' <span class="aicom-tb-count">' . $active_count . '</span>'
+            : '';
+
+        $bar->add_node( [
+            'id'    => 'aicom-toolbar',
+            'title' => '<span class="ab-icon dashicons dashicons-rest-api"></span>'
+                     . '<span class="ab-label">AICOM Keys</span>'
+                     . $count_html,
+            'href'  => $manage_url,
+            'meta'  => [ 'class' => 'aicom-tb-parent' ],
+        ] );
+
+        foreach ( $keys as $key ) {
+            $is_active  = $key['status'] === 'active';
+            $dot        = $is_active ? '🟢' : '🟡';
+            $action     = $is_active ? 'suspend_key' : 'unsuspend_key';
+            $btn_label  = $is_active ? 'Suspend' : 'Unsuspend';
+            $btn_class  = $is_active ? 'aicom-tb-btn-suspend' : 'aicom-tb-btn-unsuspend';
+
+            $bar->add_node( [
+                'id'     => 'aicom-key-' . (int) $key['id'],
+                'parent' => 'aicom-toolbar',
+                'title'  => '<span class="aicom-tb-dot">' . $dot . '</span>'
+                          . '<span class="aicom-tb-label">' . esc_html( $key['label'] ) . '</span>'
+                          . '<button class="aicom-tb-btn ' . esc_attr( $btn_class ) . '"'
+                          . ' data-key-id="' . (int) $key['id'] . '"'
+                          . ' data-action="' . esc_attr( $action ) . '"'
+                          . ' data-nonce="' . esc_attr( wp_create_nonce( 'aicom_toolbar_' . (int) $key['id'] ) ) . '">'
+                          . esc_html( $btn_label )
+                          . '</button>',
+                'href'   => false,
+                'meta'   => [ 'class' => 'aicom-tb-key' ],
+            ] );
+        }
+
+        $bar->add_node( [
+            'id'     => 'aicom-toolbar-manage',
+            'parent' => 'aicom-toolbar',
+            'title'  => 'Manage API Keys',
+            'href'   => $manage_url,
+            'meta'   => [ 'class' => 'aicom-tb-manage' ],
+        ] );
+    }
+
+    public static function ajax_toolbar_toggle(): void {
+        $key_id = absint( $_POST['key_id'] ?? 0 );
+        $action = sanitize_key( wp_unslash( $_POST['aicom_action'] ?? '' ) );
+
+        if ( ! $key_id || ! in_array( $action, [ 'suspend_key', 'unsuspend_key' ], true ) ) {
+            wp_send_json_error( 'invalid_params', 400 );
+        }
+
+        if ( ! check_ajax_referer( 'aicom_toolbar_' . $key_id, 'nonce', false ) ) {
+            wp_send_json_error( 'bad_nonce', 403 );
+        }
+
+        if ( ! current_user_can( self::CAPABILITY ) ) {
+            wp_send_json_error( 'unauthorized', 403 );
+        }
+
+        $ok = $action === 'suspend_key'
+            ? AICOM_Auth::suspend_key( $key_id )
+            : AICOM_Auth::unsuspend_key( $key_id );
+
+        if ( ! $ok ) {
+            wp_send_json_error( 'no_change', 409 );
+        }
+
+        $new_status    = $action === 'suspend_key' ? 'suspended' : 'active';
+        $new_dot       = $new_status === 'active' ? '🟢' : '🟡';
+        $new_action    = $new_status === 'active' ? 'suspend_key' : 'unsuspend_key';
+        $new_btn_label = $new_status === 'active' ? 'Suspend' : 'Unsuspend';
+        $new_btn_class = $new_status === 'active' ? 'aicom-tb-btn-suspend' : 'aicom-tb-btn-unsuspend';
+        $new_nonce     = wp_create_nonce( 'aicom_toolbar_' . $key_id );
+
+        wp_send_json_success( [
+            'new_status'    => $new_status,
+            'new_dot'       => $new_dot,
+            'new_action'    => $new_action,
+            'new_btn_label' => $new_btn_label,
+            'new_btn_class' => $new_btn_class,
+            'new_nonce'     => $new_nonce,
+        ] );
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────

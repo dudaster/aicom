@@ -82,4 +82,57 @@
 
     });
 
+    // ── Admin bar: suspend / unsuspend (outside DOM-ready, works on toolbar) ──
+    $(document).on('click', '.aicom-tb-btn', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $btn = $(this);
+        if ($btn.data('loading')) { return; }
+
+        var keyId  = $btn.data('key-id');
+        var action = $btn.data('action');
+        var nonce  = $btn.data('nonce');
+        var ajaxUrl = (typeof AICOM_MCP !== 'undefined' && AICOM_MCP.ajaxUrl) || ajaxurl;
+
+        $btn.data('loading', true).text('...');
+
+        $.post(ajaxUrl, {
+            action:       'aicom_toolbar_toggle',
+            key_id:       keyId,
+            aicom_action: action,
+            nonce:        nonce
+        }, function (resp) {
+            if (resp.success) {
+                var d    = resp.data;
+                var $li  = $('#wp-admin-bar-aicom-key-' + keyId);
+                var $cnt = $('#wp-admin-bar-aicom-toolbar .aicom-tb-count');
+
+                $li.find('.aicom-tb-dot').text(d.new_dot);
+                $btn
+                    .text(d.new_btn_label)
+                    .removeClass('aicom-tb-btn-suspend aicom-tb-btn-unsuspend')
+                    .addClass(d.new_btn_class)
+                    .data('action', d.new_action)
+                    .data('nonce',  d.new_nonce);
+
+                // Actualizează badge-ul verde din titlu
+                var delta = (action === 'suspend_key') ? -1 : 1;
+                var cur   = parseInt($cnt.text(), 10) || 0;
+                var next  = cur + delta;
+                if (next <= 0) {
+                    $cnt.remove();
+                } else {
+                    if ($cnt.length) {
+                        $cnt.text(next);
+                    } else {
+                        $('#wp-admin-bar-aicom-toolbar > .ab-item > .ab-label')
+                            .after('<span class="aicom-tb-count">' + next + '</span>');
+                    }
+                }
+            }
+            $btn.data('loading', false);
+        });
+    });
+
 }(jQuery));
