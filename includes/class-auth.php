@@ -34,7 +34,7 @@ class AICOM_Auth {
     /**
      * Insert a new API key row. Returns ['id', 'plain_key', 'key_prefix'].
      */
-    public static function create_key( string $label, array $scopes, array $restrictions = [] ): array {
+    public static function create_key( string $label, array $scopes, array $restrictions = [], ?string $expires_at = null ): array {
         global $wpdb;
 
         $key_data = self::generate_key();
@@ -52,6 +52,7 @@ class AICOM_Auth {
                 'created_at'         => $now,
                 'updated_at'         => $now,
                 'created_by_user_id' => get_current_user_id() ?: null,
+                'expires_at'         => $expires_at ?: null,
             ]
         );
 
@@ -76,8 +77,11 @@ class AICOM_Auth {
 
         $row = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}aicom_api_keys WHERE key_prefix = %s AND status = 'active'",
-                $prefix
+                "SELECT * FROM {$wpdb->prefix}aicom_api_keys
+                 WHERE key_prefix = %s AND status = 'active'
+                 AND (expires_at IS NULL OR expires_at > %s)",
+                $prefix,
+                current_time( 'mysql', true )
             ),
             ARRAY_A
         );
@@ -101,7 +105,10 @@ class AICOM_Auth {
         global $wpdb;
 
         $exists = $wpdb->get_var(
-            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $key_id )
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d AND status NOT IN ('revoked','archived')",
+                $key_id
+            )
         );
 
         if ( ! $exists ) {
@@ -176,6 +183,76 @@ class AICOM_Auth {
         );
 
         return $rows !== false && $rows > 0;
+    }
+
+    /**
+     * Update scopes, restrictions, and expiry on an existing key.
+     * Returns diff: ['old_scopes', 'new_scopes', 'added', 'removed'].
+     */
+    public static function update_key( int $id, array $scopes, array $restrictions, ?string $expires_at ): array {
+        global $wpdb;
+
+        $old_scopes = json_decode(
+            $wpdb->get_var( $wpdb->prepare( "SELECT scopes_json FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $id ) ) ?? '[]',
+            true
+        ) ?: [];
+
+        $wpdb->update(
+            $wpdb->prefix . 'aicom_api_keys',
+            [
+                'scopes_json'       => wp_json_encode( array_values( $scopes ) ),
+                'restrictions_json' => ! empty( $restrictions ) ? wp_json_encode( $restrictions ) : null,
+                'expires_at'        => $expires_at ?: null,
+                'updated_at'        => current_time( 'mysql', true ),
+            ],
+            [ 'id' => $id ]
+        );
+
+        return [
+            'old_scopes' => $old_scopes,
+            'new_scopes' => $scopes,
+            'added'      => array_values( array_diff( $scopes, $old_scopes ) ),
+            'removed'    => array_values( array_diff( $old_scopes, $scopes ) ),
+        ];
+    }
+
+    /**
+     * Archive a key (hidden from main list, kept for audit). Reversible via unarchive_key().
+     */
+    public static function archive_key( int $id ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update(
+            $wpdb->prefix . 'aicom_api_keys',
+            [ 'status' => 'archived', 'updated_at' => current_time( 'mysql', true ) ],
+            [ 'id' => $id ]
+        );
+    }
+
+    /**
+     * Unarchive a key — restores to 'suspended' status.
+     */
+    public static function unarchive_key( int $id ): bool {
+        global $wpdb;
+        return (bool) $wpdb->update(
+            $wpdb->prefix . 'aicom_api_keys',
+            [ 'status' => 'suspended', 'updated_at' => current_time( 'mysql', true ) ],
+            [ 'id' => $id, 'status' => 'archived' ]
+        );
+    }
+
+    /**
+     * Mark active keys as 'expired' when their expires_at is in the past. Called by cron hourly.
+     */
+    public static function expire_overdue_keys(): void {
+        global $wpdb;
+        $now = current_time( 'mysql', true );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$wpdb->prefix}aicom_api_keys
+             SET status = 'expired', updated_at = %s
+             WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at <= %s",
+            $now, $now
+        ) );
     }
 
     /**

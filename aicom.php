@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Let AI agents control your site via MCP. API key auth, scope control, safety locks, audit logging and 87 tools for WP, WooCommerce, Elementor.
- * Version:           2.4.0
+ * Version:           3.2.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '2.4.0' );
+define( 'AICOM_VERSION', '3.2.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -62,21 +62,54 @@ spl_autoload_register( function ( string $class ): void {
 // ── Activation Hook ────────────────────────────────────────────────────────
 register_activation_hook( __FILE__, function (): void {
     AICOM_DB::install();
-    // Flush rewrite rules so REST route is immediately accessible
     flush_rewrite_rules();
+    if ( ! wp_next_scheduled( 'aicom_expire_keys' ) ) {
+        wp_schedule_event( time(), 'hourly', 'aicom_expire_keys' );
+    }
+    if ( ! wp_next_scheduled( 'aicom_cleanup_backups' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_cleanup_backups' );
+    }
 } );
 
+// ── Deactivation Hook ──────────────────────────────────────────────────────
+register_deactivation_hook( __FILE__, function (): void {
+    wp_clear_scheduled_hook( 'aicom_expire_keys' );
+    wp_clear_scheduled_hook( 'aicom_cleanup_backups' );
+} );
+
+// ── Auto-migrate on version mismatch (e.g. plugin update without deactivate/activate) ─
+add_action( 'plugins_loaded', function (): void {
+    if ( get_option( AICOM_DB::VERSION_OPT ) !== AICOM_DB::DB_VERSION ) {
+        AICOM_DB::install();
+    }
+}, 1 );
+
 // ── Boot on init ───────────────────────────────────────────────────────────
+add_action( 'plugins_loaded', function (): void {
+    load_plugin_textdomain( 'aicom', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+}, 1 );
+
 add_action( 'plugins_loaded', 'aicom_boot', 5 );
 
 function aicom_boot(): void {
+    // Fallback: schedule cron if plugin was already active before this version
+    if ( ! wp_next_scheduled( 'aicom_expire_keys' ) ) {
+        wp_schedule_event( time(), 'hourly', 'aicom_expire_keys' );
+    }
+    if ( ! wp_next_scheduled( 'aicom_cleanup_backups' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_cleanup_backups' );
+    }
+    add_action( 'aicom_expire_keys',     function() { AICOM_Sessions::close_stale( 2 ); } );
+    add_action( 'aicom_cleanup_backups', [ 'AICOM_Admin', 'run_backup_cleanup' ] );
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
+        new AICOM_Module_Session(),
         new AICOM_Module_WP_Core(),
         new AICOM_Module_Menus(),
         new AICOM_Module_Media(),
         new AICOM_Module_Users(),
         new AICOM_Module_Backup(),
+        new AICOM_Module_A11y(),
     ];
 
     // Conditional modules (only instantiate if dependency is active)
@@ -111,6 +144,11 @@ function aicom_boot(): void {
     // ── Admin Bar (fires on both admin and frontend for logged-in admins) ──
     add_action( 'admin_bar_menu',               [ 'AICOM_Admin', 'register_admin_bar' ], 100 );
     add_action( 'wp_ajax_aicom_toolbar_toggle', [ 'AICOM_Admin', 'ajax_toolbar_toggle' ] );
+    add_action( 'wp_ajax_aicom_toolbar_lock',   [ 'AICOM_Admin', 'ajax_toolbar_lock' ] );
+    add_action( 'wp_ajax_aicom_save_preset',      [ 'AICOM_Admin', 'ajax_save_preset' ] );
+    add_action( 'wp_ajax_aicom_delete_preset',    [ 'AICOM_Admin', 'ajax_delete_preset' ] );
+    add_action( 'wp_ajax_aicom_rename_preset',    [ 'AICOM_Admin', 'ajax_rename_preset' ] );
+    add_action( 'wp_ajax_aicom_duplicate_preset', [ 'AICOM_Admin', 'ajax_duplicate_preset' ] );
 
     // Enqueue toolbar JS/CSS on frontend too (admin_enqueue_scripts only fires in /wp-admin)
     add_action( 'wp_enqueue_scripts', function (): void {

@@ -195,6 +195,7 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
 
         $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
             'created_at'   => current_time( 'mysql', true ),
+            'session_id'   => AICOM_Tool_Router::$current_session_id ?: null,
             'api_key_id'   => (int) $key_record['id'],
             'tool_name'    => 'backup.post.create',
             'target_type'  => 'post',
@@ -291,6 +292,7 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
 
         $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
             'created_at'   => current_time( 'mysql', true ),
+            'session_id'   => AICOM_Tool_Router::$current_session_id ?: null,
             'api_key_id'   => (int) $key_record['id'],
             'tool_name'    => 'backup.term.create',
             'target_type'  => 'term',

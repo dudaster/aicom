@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 2.4.0
+Stable tag: 3.2.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -159,6 +159,63 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
 
 == Changelog ==
+
+= 3.2.0 =
+* New: Accessibility module — a11y.images_missing_alt, a11y.audit_post, a11y.set_image_alt, a11y.site_report tools for AI-driven WCAG remediation.
+
+= 3.1.0 =
+* New: Working Hours Schedule — automatically apply Soft or Hard Lock outside configured working hours and days.
+* The manual lock always takes precedence; the schedule only adds additional restrictions.
+
+= 3.0.0 =
+* New: Resource Boundaries UI — configure post type, taxonomy, meta key, WP option, file path, and language restrictions per API key directly from the edit/create form.
+* New: Preset Rename — rename any custom preset in-place via a prompt dialog.
+* New: Preset Duplicate — clone any custom preset; the copy appears instantly in the preset grid.
+
+= 2.9.2 =
+* Fix: Toolbar lock buttons (Unlock / Soft Lock / Hard Lock) now work on frontend pages, not only in wp-admin.
+
+= 2.9.1 =
+* Improvement: Session description now shown inside the expanded session card in Audit Logs (hidden when collapsed).
+* Improvement: tools/list response now includes an instructions field telling the agent whether a session is active, and prompting it to call session.open with both name and description before making changes.
+* Improvement: session.open tool description updated to explicitly request a meaningful name and description from the agent.
+
+= 2.9.0 =
+* New: Backups page redesigned into 3 tabs — Dashboard (total count, storage used, activity by period, auto-cleanup status), Cleanup Settings, and Backup Snapshots.
+* New: Backup Snapshots table now shows Class badge (colour-coded by tool class) and Session column with a direct link to the corresponding session in Audit Logs, including scroll-to + highlight on arrival.
+* New: Toolbar lock controls — Unlock / Soft Lock / Hard Lock buttons in the AICOM Keys dropdown; toolbar badge turns red on Hard Lock and amber on Soft Lock.
+* New: Stacked bar chart in Audit Logs Sessions tab — each bar segment is colour-coded by tool class (read/write/destructive/admin_sensitive); legend shown below graph.
+* New: Clicking a graph bar navigates to that day's sessions via server-side filtering (log_date).
+* New: Class column added to session log tables in Audit Logs.
+* New: Session filter added to Audit Logs Filters tab.
+* Improvement: Cleanup Settings form redesigned — each field on its own row with description on the right; fields separated by dividers.
+* Improvement: Tab navigation on Backups and Audit Logs pages now uses consistent aicom-tab-bar / aicom-tab-btn styles matching API Keys page.
+* Fix: Graph bars no longer show tool classes from orphaned logs (sessions that were deleted); uses INNER JOIN to exclude them.
+* Fix: DB v4.4 — added tool_class column to wp_aicom_logs with backfill migration.
+
+= 2.8.0 =
+* New: Named sessions — agents must call session.open(name: "...") before making any changes; all write operations blocked until a session is opened; sessions auto-close after 2h of inactivity.
+* New: Session restore — Audit Logs → Sessions tab shows all sessions with a 30-day activity graph; click Restore to undo all backups from a session in reverse chronological order.
+* New: Backup cleanup — set a max age (days) and/or max size (MB) for automatic backup pruning; runs daily via cron.
+* Improvement: Audit Logs split into Logs / Sessions / Filters tabs for easier navigation.
+* Fix: session_id now correctly populated in backup rows.
+
+= 2.7.0 =
+* New: API Key Lifecycle — optional expiry date (TTL) on any key; keys expire automatically via hourly cron; expired/archived status badges in the key table.
+* New: Archive/Unarchive — hide inactive keys from the main list without deleting them; restore with one click (unarchived keys come back as suspended).
+* New: Edit scopes — repurpose an existing key without revoking it; update scopes, IP allowlist, dry-run flag, and expiry date from a dedicated edit view.
+* New: Rotate secret inside the edit form — optionally generate a fresh API key string as part of a scope-edit, with live diff preview of permission changes.
+* New: Scope diff preview — while editing, the UI shows which scopes were added (+) and removed (−) compared to the original key, in real time.
+* New: Full i18n — all admin strings wrapped for translation; POT template generated at languages/aicom.pot.
+
+= 2.6.0 =
+* New: Save custom presets — name and save any scope selection as a reusable preset that appears alongside the system presets. Custom presets are stored in the database and can be deleted with one click.
+
+= 2.5.0 =
+* New: Preset picker for key creation — 6 system presets (Read-only, Content Assistant, Elementor Editor, WooCommerce Catalog, Site Maintenance, Full Admin) plus Custom mode to auto-select common scope bundles with one click.
+* New: Scope tree UI — scopes now grouped into 5 categories (WordPress Core, Media & Files, Users & Roles, Site Configuration, Integrations) with LOW/MED/HIGH/CRITICAL risk labels on every scope.
+* New: Live search filter for scopes in the key creation form.
+* New: Collapsible scope groups — click a group header to expand/collapse.
 
 = 2.4.0 =
 * New: AICOM Keys menu in the WordPress admin bar — lists all active and suspended API keys with one-click suspend/unsuspend via AJAX (no page reload). Shows a green badge with the count of active keys. Last item links to the full API Keys management page. Works in both wp-admin and frontend toolbar.

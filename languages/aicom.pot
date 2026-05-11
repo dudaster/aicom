@@ -1,0 +1,1035 @@
+# Copyright (C) 2026 dudaster
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: AICOM - AI Commander 2.6.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/aicom\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-05-09T10:46:01+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: aicom\n"
+
+#. Plugin Name of the plugin
+#: aicom.php
+msgid "AICOM - AI Commander"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: aicom.php
+msgid "https://wordpress.org/plugins/aicom/"
+msgstr ""
+
+#. Description of the plugin
+#: aicom.php
+msgid "Let AI agents control your site via MCP. API key auth, scope control, safety locks, audit logging and 87 tools for WP, WooCommerce, Elementor."
+msgstr ""
+
+#. Author of the plugin
+#: aicom.php
+msgid "dudaster"
+msgstr ""
+
+#. Author URI of the plugin
+#: aicom.php
+msgid "https://profiles.wordpress.org/dudaster/"
+msgstr ""
+
+#: admin/class-admin.php:30
+#: admin/class-admin.php:31
+msgid "AICOM"
+msgstr ""
+
+#: admin/class-admin.php:39
+#: admin/pages/dashboard.php:28
+#: admin/partials/layout-top.php:7
+msgid "Dashboard"
+msgstr ""
+
+#: admin/class-admin.php:40
+#: admin/pages/api-keys.php:108
+#: admin/partials/layout-top.php:8
+msgid "API Keys"
+msgstr ""
+
+#: admin/class-admin.php:41
+#: admin/pages/audit-logs.php:75
+#: admin/partials/layout-top.php:9
+msgid "Audit Logs"
+msgstr ""
+
+#: admin/class-admin.php:42
+#: admin/partials/layout-top.php:10
+msgid "Safety"
+msgstr ""
+
+#: admin/class-admin.php:43
+#: admin/pages/modules.php:31
+#: admin/partials/layout-top.php:11
+msgid "Modules"
+msgstr ""
+
+#: admin/class-admin.php:44
+#: admin/pages/backups.php:45
+#: admin/partials/layout-top.php:12
+msgid "Backups"
+msgstr ""
+
+#: admin/class-admin.php:113
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: admin/class-admin.php:414
+msgid "You do not have permission to access this page."
+msgstr ""
+
+#: admin/pages/api-keys.php:17
+#: admin/pages/modules.php:16
+msgid "WordPress Core"
+msgstr ""
+
+#: admin/pages/api-keys.php:18
+msgid "Read posts, terms, meta, settings"
+msgstr ""
+
+#: admin/pages/api-keys.php:19
+msgid "Create & edit posts/pages"
+msgstr ""
+
+#: admin/pages/api-keys.php:20
+msgid "Trash & delete posts"
+msgstr ""
+
+#: admin/pages/api-keys.php:21
+msgid "Post meta read/write"
+msgstr ""
+
+#: admin/pages/api-keys.php:22
+msgid "Categories, tags, taxonomies"
+msgstr ""
+
+#: admin/pages/api-keys.php:23
+msgid "Navigation menus"
+msgstr ""
+
+#: admin/pages/api-keys.php:25
+#: admin/pages/modules.php:17
+msgid "Media & Files"
+msgstr ""
+
+#: admin/pages/api-keys.php:26
+msgid "Upload & manage media library"
+msgstr ""
+
+#: admin/pages/api-keys.php:27
+msgid "Direct file system access"
+msgstr ""
+
+#: admin/pages/api-keys.php:29
+#: admin/pages/modules.php:18
+msgid "Users & Roles"
+msgstr ""
+
+#: admin/pages/api-keys.php:30
+msgid "List & read user profiles"
+msgstr ""
+
+#: admin/pages/api-keys.php:31
+msgid "Create & update users"
+msgstr ""
+
+#: admin/pages/api-keys.php:32
+msgid "Delete users"
+msgstr ""
+
+#: admin/pages/api-keys.php:33
+msgid "Manage roles & capabilities"
+msgstr ""
+
+#: admin/pages/api-keys.php:35
+msgid "Site Configuration"
+msgstr ""
+
+#: admin/pages/api-keys.php:36
+msgid "WordPress options/settings"
+msgstr ""
+
+#: admin/pages/api-keys.php:37
+msgid "Plugin management & updates"
+msgstr ""
+
+#: admin/pages/api-keys.php:38
+msgid "Backup & restore data"
+msgstr ""
+
+#: admin/pages/api-keys.php:40
+msgid "Integrations"
+msgstr ""
+
+#: admin/pages/api-keys.php:41
+msgid "WooCommerce products"
+msgstr ""
+
+#: admin/pages/api-keys.php:42
+msgid "WooCommerce settings"
+msgstr ""
+
+#: admin/pages/api-keys.php:43
+msgid "Elementor pages & widgets"
+msgstr ""
+
+#: admin/pages/api-keys.php:44
+msgid "Polylang translations"
+msgstr ""
+
+#: admin/pages/api-keys.php:45
+msgid "Yoast SEO fields"
+msgstr ""
+
+#: admin/pages/api-keys.php:46
+msgid "Clautron blueprints"
+msgstr ""
+
+#: admin/pages/api-keys.php:55
+msgid "Read-only"
+msgstr ""
+
+#: admin/pages/api-keys.php:58
+msgid "Safe browsing only"
+msgstr ""
+
+#: admin/pages/api-keys.php:61
+msgid "Content Assistant"
+msgstr ""
+
+#: admin/pages/api-keys.php:64
+msgid "Write & publish content"
+msgstr ""
+
+#: admin/pages/api-keys.php:67
+msgid "Elementor Editor"
+msgstr ""
+
+#: admin/pages/api-keys.php:70
+msgid "Build Elementor pages"
+msgstr ""
+
+#: admin/pages/api-keys.php:73
+msgid "WooCommerce Catalog"
+msgstr ""
+
+#: admin/pages/api-keys.php:76
+msgid "Manage products"
+msgstr ""
+
+#: admin/pages/api-keys.php:79
+msgid "Site Maintenance"
+msgstr ""
+
+#: admin/pages/api-keys.php:82
+msgid "Updates, backups, settings"
+msgstr ""
+
+#: admin/pages/api-keys.php:85
+msgid "Full Admin"
+msgstr ""
+
+#: admin/pages/api-keys.php:88
+msgid "All permissions"
+msgstr ""
+
+#: admin/pages/api-keys.php:109
+msgid "Generate and manage API keys that grant AI agents access to your site via MCP."
+msgstr ""
+
+#: admin/pages/api-keys.php:118
+#, php-format
+msgid ""
+"Connect to my WordPress site via MCP:\n"
+"\n"
+"Endpoint: %1$s\n"
+"Fallback: %2$s\n"
+"Authorization: Bearer %3$s\n"
+"\n"
+"Use the endpoint and the Authorization header for every request."
+msgstr ""
+
+#: admin/pages/api-keys.php:123
+msgid "Key created — copy it now, it won't be shown again"
+msgstr ""
+
+#: admin/pages/api-keys.php:123
+msgid "Key rotated — copy it now, it won't be shown again"
+msgstr ""
+
+#: admin/pages/api-keys.php:124
+msgid "API Key"
+msgstr ""
+
+#: admin/pages/api-keys.php:127
+msgid "Copy Key"
+msgstr ""
+
+#: admin/pages/api-keys.php:129
+msgid "Agent connect prompt"
+msgstr ""
+
+#: admin/pages/api-keys.php:129
+msgid "paste into OpenClaw or any MCP client:"
+msgstr ""
+
+#: admin/pages/api-keys.php:132
+#: admin/pages/api-keys.php:327
+#: admin/pages/api-keys.php:332
+#: admin/pages/api-keys.php:341
+#: admin/pages/dashboard.php:138
+#: admin/pages/dashboard.php:146
+msgid "Copy"
+msgstr ""
+
+#: admin/pages/api-keys.php:138
+msgid "Key revoked."
+msgstr ""
+
+#: admin/pages/api-keys.php:141
+msgid "Key suspended — access blocked until unsuspended."
+msgstr ""
+
+#: admin/pages/api-keys.php:144
+msgid "Key unsuspended — access restored."
+msgstr ""
+
+#: admin/pages/api-keys.php:156
+msgid "Generate New Key"
+msgstr ""
+
+#: admin/pages/api-keys.php:157
+#: admin/pages/api-keys.php:316
+msgid "Connection Info"
+msgstr ""
+
+#: admin/pages/api-keys.php:159
+#: admin/pages/api-keys.php:351
+msgid "Existing Keys"
+msgstr ""
+
+#: admin/pages/api-keys.php:177
+#: admin/pages/api-keys.php:363
+msgid "Label"
+msgstr ""
+
+#: admin/pages/api-keys.php:178
+msgid "Display name for logs"
+msgstr ""
+
+#: admin/pages/api-keys.php:182
+msgid "e.g. OpenClaw Production"
+msgstr ""
+
+#: admin/pages/api-keys.php:189
+msgid "Preset"
+msgstr ""
+
+#: admin/pages/api-keys.php:190
+msgid "Start from a template"
+msgstr ""
+
+#: admin/pages/api-keys.php:201
+#: admin/pages/api-keys.php:215
+#: admin/pages/api-keys.php:392
+#, php-format
+msgid "%d scope"
+msgid_plural "%d scopes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/pages/api-keys.php:216
+#: admin/pages/api-keys.php:226
+msgid "Custom"
+msgstr ""
+
+#: admin/pages/api-keys.php:219
+msgid "Delete preset"
+msgstr ""
+
+#: admin/pages/api-keys.php:227
+msgid "Pick scopes manually"
+msgstr ""
+
+#: admin/pages/api-keys.php:236
+#: admin/pages/api-keys.php:366
+msgid "Scopes"
+msgstr ""
+
+#: admin/pages/api-keys.php:237
+msgid "Permissions for this key"
+msgstr ""
+
+#: admin/pages/api-keys.php:241
+msgid "Search scopes…"
+msgstr ""
+
+#: admin/pages/api-keys.php:267
+msgid "+ Save as preset"
+msgstr ""
+
+#: admin/pages/api-keys.php:269
+msgid "Preset name…"
+msgstr ""
+
+#: admin/pages/api-keys.php:270
+msgid "Save"
+msgstr ""
+
+#: admin/pages/api-keys.php:271
+msgid "Cancel"
+msgstr ""
+
+#: admin/pages/api-keys.php:280
+msgid "IP Allowlist"
+msgstr ""
+
+#: admin/pages/api-keys.php:281
+msgid "Optional"
+msgstr ""
+
+#: admin/pages/api-keys.php:286
+msgid "One IP or CIDR per line. Leave empty to allow all."
+msgstr ""
+
+#: admin/pages/api-keys.php:287
+msgid "e.g. 203.0.113.5 or 192.168.1.0/24"
+msgstr ""
+
+#: admin/pages/api-keys.php:293
+msgid "Dry-Run Only"
+msgstr ""
+
+#: admin/pages/api-keys.php:297
+msgid "Force all write operations to dry-run mode for this key"
+msgstr ""
+
+#: admin/pages/api-keys.php:305
+msgid "Generate Key"
+msgstr ""
+
+#: admin/pages/api-keys.php:325
+#: admin/pages/dashboard.php:135
+msgid "Primary Endpoint"
+msgstr ""
+
+#: admin/pages/api-keys.php:330
+#: admin/pages/dashboard.php:143
+msgid "Fallback Endpoint"
+msgstr ""
+
+#: admin/pages/api-keys.php:335
+msgid "Authentication"
+msgstr ""
+
+#: admin/pages/api-keys.php:339
+msgid "Apache Note"
+msgstr ""
+
+#: admin/pages/api-keys.php:353
+#, php-format
+msgid "%d key"
+msgid_plural "%d keys"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/pages/api-keys.php:358
+msgid "No API keys yet. Generate your first key on the Generate tab."
+msgstr ""
+
+#: admin/pages/api-keys.php:364
+msgid "Prefix"
+msgstr ""
+
+#: admin/pages/api-keys.php:365
+#: admin/pages/audit-logs.php:152
+msgid "Status"
+msgstr ""
+
+#: admin/pages/api-keys.php:367
+msgid "Last Used"
+msgstr ""
+
+#: admin/pages/api-keys.php:368
+msgid "Created"
+msgstr ""
+
+#: admin/pages/api-keys.php:389
+msgid "none"
+msgstr ""
+
+#: admin/pages/api-keys.php:404
+msgid "Actions"
+msgstr ""
+
+#: admin/pages/api-keys.php:413
+msgid "Rotate this key? The old key stops working immediately."
+msgstr ""
+
+#: admin/pages/api-keys.php:414
+msgid "Rotate key"
+msgstr ""
+
+#: admin/pages/api-keys.php:424
+msgid "Suspend"
+msgstr ""
+
+#: admin/pages/api-keys.php:433
+#: admin/pages/api-keys.php:454
+msgid "Revoke this key? This cannot be undone."
+msgstr ""
+
+#: admin/pages/api-keys.php:434
+#: admin/pages/api-keys.php:455
+msgid "Revoke"
+msgstr ""
+
+#: admin/pages/api-keys.php:444
+msgid "Unsuspend"
+msgstr ""
+
+#: admin/pages/audit-logs.php:61
+msgid "Today"
+msgstr ""
+
+#: admin/pages/audit-logs.php:62
+msgid "Last 7 Days"
+msgstr ""
+
+#: admin/pages/audit-logs.php:63
+msgid "Last 30 Days"
+msgstr ""
+
+#: admin/pages/audit-logs.php:64
+msgid "This Year"
+msgstr ""
+
+#: admin/pages/audit-logs.php:65
+msgid "Custom Range"
+msgstr ""
+
+#: admin/pages/audit-logs.php:66
+msgid "All Time"
+msgstr ""
+
+#: admin/pages/audit-logs.php:76
+#: admin/pages/backups.php:46
+#: admin/pages/backups.php:82
+msgid "total"
+msgstr ""
+
+#: admin/pages/audit-logs.php:78
+msgid "Every MCP request logged with key, tool, result, and duration."
+msgstr ""
+
+#: admin/pages/audit-logs.php:84
+#: admin/pages/backups.php:58
+msgid "Filters"
+msgstr ""
+
+#: admin/pages/audit-logs.php:86
+msgid "Reset filters"
+msgstr ""
+
+#: admin/pages/audit-logs.php:93
+msgid "Tool name…"
+msgstr ""
+
+#: admin/pages/audit-logs.php:98
+msgid "All Statuses"
+msgstr ""
+
+#: admin/pages/audit-logs.php:104
+msgid "All Keys"
+msgstr ""
+
+#: admin/pages/audit-logs.php:112
+msgid "IP address…"
+msgstr ""
+
+#: admin/pages/audit-logs.php:122
+msgid "to"
+msgstr ""
+
+#: admin/pages/audit-logs.php:126
+#: admin/pages/backups.php:72
+msgid "Filter"
+msgstr ""
+
+#: admin/pages/audit-logs.php:135
+msgid "Log Entries"
+msgstr ""
+
+#. translators: %s: formatted number
+#: admin/pages/audit-logs.php:139
+#, php-format
+msgid "%s result"
+msgid_plural "%s results"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/pages/audit-logs.php:145
+msgid "No log entries found for the selected filters."
+msgstr ""
+
+#: admin/pages/audit-logs.php:150
+msgid "Time"
+msgstr ""
+
+#: admin/pages/audit-logs.php:151
+#: admin/pages/backups.php:103
+msgid "Tool"
+msgstr ""
+
+#: admin/pages/audit-logs.php:153
+msgid "Duration"
+msgstr ""
+
+#: admin/pages/audit-logs.php:154
+msgid "Key"
+msgstr ""
+
+#: admin/pages/audit-logs.php:155
+msgid "IP"
+msgstr ""
+
+#: admin/pages/audit-logs.php:156
+#: admin/pages/backups.php:102
+msgid "Target"
+msgstr ""
+
+#: admin/pages/backups.php:35
+msgid "All Types"
+msgstr ""
+
+#: admin/pages/backups.php:36
+msgid "Post"
+msgstr ""
+
+#: admin/pages/backups.php:37
+msgid "Term"
+msgstr ""
+
+#: admin/pages/backups.php:38
+msgid "Elementor Page"
+msgstr ""
+
+#: admin/pages/backups.php:48
+msgid "Snapshots of posts and terms created before AI agent edits."
+msgstr ""
+
+#: admin/pages/backups.php:52
+msgid "Backup deleted."
+msgstr ""
+
+#: admin/pages/backups.php:60
+msgid "Reset"
+msgstr ""
+
+#: admin/pages/backups.php:81
+msgid "Backup Snapshots"
+msgstr ""
+
+#: admin/pages/backups.php:89
+msgid "No backups found for the selected type."
+msgstr ""
+
+#: admin/pages/backups.php:91
+msgid "No backups found."
+msgstr ""
+
+#: admin/pages/backups.php:99
+msgid "ID"
+msgstr ""
+
+#: admin/pages/backups.php:100
+msgid "Date"
+msgstr ""
+
+#: admin/pages/backups.php:101
+msgid "Type"
+msgstr ""
+
+#: admin/pages/backups.php:104
+msgid "Manifest"
+msgstr ""
+
+#: admin/pages/backups.php:121
+msgid "View"
+msgstr ""
+
+#: admin/pages/backups.php:133
+msgid "Delete this backup? This cannot be undone."
+msgstr ""
+
+#: admin/pages/backups.php:133
+msgid "Delete"
+msgstr ""
+
+#: admin/pages/dashboard.php:12
+#: admin/pages/safety.php:8
+msgid "Hard Lock Active"
+msgstr ""
+
+#: admin/pages/dashboard.php:15
+#: admin/pages/safety.php:12
+msgid "Soft Lock Active"
+msgstr ""
+
+#: admin/pages/dashboard.php:18
+#: admin/pages/safety.php:16
+#: admin/pages/safety.php:115
+msgid "Unlocked"
+msgstr ""
+
+#: admin/pages/dashboard.php:38
+msgid "Today's Activity"
+msgstr ""
+
+#: admin/pages/dashboard.php:39
+msgid "View log →"
+msgstr ""
+
+#: admin/pages/dashboard.php:45
+msgid "Total"
+msgstr ""
+
+#: admin/pages/dashboard.php:49
+msgid "Success"
+msgstr ""
+
+#: admin/pages/dashboard.php:53
+msgid "Errors"
+msgstr ""
+
+#: admin/pages/dashboard.php:57
+msgid "Blocked"
+msgstr ""
+
+#: admin/pages/dashboard.php:66
+msgid "Server Status"
+msgstr ""
+
+#: admin/pages/dashboard.php:72
+msgid "WordPress"
+msgstr ""
+
+#: admin/pages/dashboard.php:76
+msgid "AICOM Plugin"
+msgstr ""
+
+#: admin/pages/dashboard.php:80
+msgid "PHP"
+msgstr ""
+
+#: admin/pages/dashboard.php:90
+#: admin/pages/safety.php:46
+msgid "Lock Controls"
+msgstr ""
+
+#: admin/pages/dashboard.php:91
+msgid "Details →"
+msgstr ""
+
+#: admin/pages/dashboard.php:103
+#: admin/pages/dashboard.php:119
+#: admin/pages/safety.php:60
+#: admin/pages/safety.php:116
+msgid "Soft Lock"
+msgstr ""
+
+#: admin/pages/dashboard.php:104
+msgid "(blocks write/destructive)"
+msgstr ""
+
+#: admin/pages/dashboard.php:109
+#: admin/pages/dashboard.php:120
+#: admin/pages/safety.php:77
+#: admin/pages/safety.php:117
+msgid "Hard Lock"
+msgstr ""
+
+#: admin/pages/dashboard.php:110
+msgid "(allows only server.status)"
+msgstr ""
+
+#: admin/pages/dashboard.php:113
+msgid "Hard Lock overrides Soft Lock."
+msgstr ""
+
+#: admin/pages/dashboard.php:116
+msgid "Apply"
+msgstr ""
+
+#: admin/pages/dashboard.php:119
+msgid "blocks all write and delete tools — agents can only read."
+msgstr ""
+
+#: admin/pages/dashboard.php:120
+msgid "stops everything, except"
+msgstr ""
+
+#: admin/pages/dashboard.php:130
+msgid "MCP Endpoint"
+msgstr ""
+
+#: admin/pages/dashboard.php:151
+msgid "Auth Header"
+msgstr ""
+
+#: admin/pages/dashboard.php:163
+msgid "Active Modules"
+msgstr ""
+
+#. translators: %d: number of active modules
+#: admin/pages/dashboard.php:168
+#: admin/pages/modules.php:42
+#, php-format
+msgid "%d active"
+msgid_plural "%d active"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/pages/modules.php:16
+msgid "Posts, pages, custom post types, taxonomies, meta, options."
+msgstr ""
+
+#: admin/pages/modules.php:17
+msgid "WordPress media library, file upload/list/delete (with allowlist)."
+msgstr ""
+
+#: admin/pages/modules.php:18
+msgid "User management, role assignment, capabilities. Anti-lockout guards included."
+msgstr ""
+
+#: admin/pages/modules.php:19
+msgid "Backup & Restore"
+msgstr ""
+
+#: admin/pages/modules.php:19
+msgid "Post/term/Elementor backups stored in database. Per-request restore."
+msgstr ""
+
+#: admin/pages/modules.php:20
+msgid "WooCommerce"
+msgstr ""
+
+#: admin/pages/modules.php:20
+msgid "Products, categories, attributes, stock, price, settings."
+msgstr ""
+
+#: admin/pages/modules.php:20
+msgid "WooCommerce plugin"
+msgstr ""
+
+#: admin/pages/modules.php:21
+msgid "Elementor"
+msgstr ""
+
+#: admin/pages/modules.php:21
+msgid "Programmatic widget editing via _elementor_data. Batch text update, backup/restore."
+msgstr ""
+
+#: admin/pages/modules.php:21
+msgid "Elementor plugin"
+msgstr ""
+
+#: admin/pages/modules.php:22
+msgid "Polylang"
+msgstr ""
+
+#: admin/pages/modules.php:22
+msgid "Language assignment, translation linking for posts and terms."
+msgstr ""
+
+#: admin/pages/modules.php:22
+msgid "Polylang plugin"
+msgstr ""
+
+#: admin/pages/modules.php:23
+msgid "ECS"
+msgstr ""
+
+#: admin/pages/modules.php:23
+msgid "Ele Custom Skin — loop skins, color schemes, container layouts for Elementor."
+msgstr ""
+
+#: admin/pages/modules.php:23
+msgid "ECS plugin"
+msgstr ""
+
+#: admin/pages/modules.php:24
+msgid "Yoast SEO"
+msgstr ""
+
+#: admin/pages/modules.php:24
+msgid "SEO meta, Open Graph, Twitter Card, sitemap, breadcrumbs per post and term."
+msgstr ""
+
+#: admin/pages/modules.php:24
+msgid "Yoast SEO plugin"
+msgstr ""
+
+#: admin/pages/modules.php:25
+msgid "Clautron"
+msgstr ""
+
+#: admin/pages/modules.php:25
+msgid "Blueprint and capability management — catalog, primitives, compile, smoke test."
+msgstr ""
+
+#: admin/pages/modules.php:25
+msgid "Clautron plugin"
+msgstr ""
+
+#: admin/pages/modules.php:32
+msgid "Active modules and all registered MCP tools with their scopes and classes."
+msgstr ""
+
+#: admin/pages/modules.php:38
+msgid "Installed Modules"
+msgstr ""
+
+#: admin/pages/modules.php:56
+msgid "(Free)"
+msgstr ""
+
+#: admin/pages/modules.php:57
+msgid "(Pro)"
+msgstr ""
+
+#: admin/pages/modules.php:58
+msgid "(Premium)"
+msgstr ""
+
+#: admin/pages/modules.php:59
+msgid "Installed — no languages"
+msgstr ""
+
+#. translators: %s: plugin name
+#: admin/pages/modules.php:78
+#, php-format
+msgid "⚠ Requires: %s"
+msgstr ""
+
+#: admin/pages/modules.php:83
+msgid "Always active"
+msgstr ""
+
+#. translators: %d: number of tools
+#: admin/pages/modules.php:88
+#: admin/pages/modules.php:105
+#, php-format
+msgid "%d tool"
+msgid_plural "%d tools"
+msgstr[0] ""
+msgstr[1] ""
+
+#: admin/pages/modules.php:101
+msgid "Registered Tools"
+msgstr ""
+
+#: admin/pages/modules.php:113
+msgid "Tool Name"
+msgstr ""
+
+#: admin/pages/modules.php:114
+msgid "Module"
+msgstr ""
+
+#: admin/pages/modules.php:115
+msgid "Class"
+msgstr ""
+
+#: admin/pages/modules.php:116
+msgid "Required Scopes"
+msgstr ""
+
+#: admin/pages/modules.php:117
+msgid "Flags"
+msgstr ""
+
+#: admin/pages/safety.php:10
+msgid "Only <code>server.status</code> is allowed. All other tools are blocked."
+msgstr ""
+
+#: admin/pages/safety.php:14
+msgid "Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted."
+msgstr ""
+
+#: admin/pages/safety.php:18
+msgid "All tools permitted (subject to scope and allowlist checks)."
+msgstr ""
+
+#: admin/pages/safety.php:24
+msgid "Safety Controls"
+msgstr ""
+
+#: admin/pages/safety.php:25
+msgid "Control lock mode to restrict what AI agents can do site-wide."
+msgstr ""
+
+#: admin/pages/safety.php:29
+msgid "Lock settings updated."
+msgstr ""
+
+#: admin/pages/safety.php:35
+msgid "Current Lock Status"
+msgstr ""
+
+#: admin/pages/safety.php:49
+msgid "Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests."
+msgstr ""
+
+#: admin/pages/safety.php:61
+msgid "Read-only mode"
+msgstr ""
+
+#: admin/pages/safety.php:69
+msgid "Enable Soft Lock"
+msgstr ""
+
+#: admin/pages/safety.php:71
+msgid "Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only. Blocks write, destructive, admin_sensitive."
+msgstr ""
+
+#: admin/pages/safety.php:78
+msgid "Emergency freeze"
+msgstr ""
+
+#: admin/pages/safety.php:85
+msgid "Enable Hard Lock"
+msgstr ""
+
+#: admin/pages/safety.php:87
+msgid "Permits <em>public</em> tools only (<code>server.status</code>). <strong>Hard Lock overrides Soft Lock.</strong>"
+msgstr ""
+
+#: admin/pages/safety.php:94
+msgid "<strong>Hard Lock is active.</strong> Soft Lock is disabled and ignored."
+msgstr ""
+
+#: admin/pages/safety.php:98
+msgid "Apply Lock Settings"
+msgstr ""
+
+#: admin/pages/safety.php:107
+msgid "Lock Permission Matrix"
+msgstr ""
+
+#: admin/pages/safety.php:113
+msgid "Tool Class"
+msgstr ""
+
+#: admin/pages/safety.php:114
+msgid "Examples"
+msgstr ""

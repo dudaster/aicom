@@ -5,128 +5,271 @@ defined( 'ABSPATH' ) || exit;
 $lock_state = AICOM_Lock_Manager::get_state();
 
 if ( $lock_state['effective_lock'] === 'hard_locked' ) {
-    $badge_label = 'Hard Lock Active';
-} elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
-    $badge_label = 'Soft Lock Active';
-} else {
-    $badge_label = 'Unlocked';
-}
-if ( $lock_state['effective_lock'] === 'hard_locked' ) {
+    $badge_label = __( 'Hard Lock Active', 'aicom' );
     $badge_class = 'aicom-badge-danger';
+    $lock_desc   = __( 'Only <code>server.status</code> is allowed. All other tools are blocked.', 'aicom' );
 } elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
+    $badge_label = __( 'Soft Lock Active', 'aicom' );
     $badge_class = 'aicom-badge-warning';
+    $lock_desc   = __( 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.', 'aicom' );
 } else {
+    $badge_label = __( 'Unlocked', 'aicom' );
     $badge_class = 'aicom-badge-success';
+    $lock_desc   = __( 'All tools permitted (subject to scope and allowlist checks).', 'aicom' );
 }
 ?>
-<div class="wrap aicom-wrap">
-    <h1>Safety Controls</h1>
+<?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
+
+    <div class="aicom-page-header">
+        <h1><?php esc_html_e( 'Safety Controls', 'aicom' ); ?></h1>
+        <p class="aicom-page-desc"><?php esc_html_e( 'Control lock mode to restrict what AI agents can do site-wide.', 'aicom' ); ?></p>
+    </div>
 
     <?php if ( isset( $_GET['updated'] ) ) : ?>
-    <div class="notice notice-success is-dismissible"><p>Lock settings updated.</p></div>
+    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Lock settings updated.', 'aicom' ); ?></p></div>
     <?php endif; ?>
 
     <!-- Current Status -->
     <div class="aicom-card">
-        <h2>Current Lock Status</h2>
-        <p class="aicom-badge <?php echo esc_attr( $badge_class ); ?>" style="font-size:1.1em"><?php echo esc_html( $badge_label ); ?></p>
-        <p class="description">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Current Lock Status', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
+        </div>
+        <div class="aicom-card-body">
+            <p style="margin:0;color:var(--aicom-text-sm);font-size:0.88em"><?php echo wp_kses( $lock_desc, [ 'code' => [], 'strong' => [], 'em' => [] ] ); ?></p>
             <?php
-            if ( $lock_state['effective_lock'] === 'hard_locked' ) {
-                $lock_desc = 'Only <code>server.status</code> is allowed. All other tools are blocked.';
-            } elseif ( $lock_state['effective_lock'] === 'soft_locked' ) {
-                $lock_desc = 'Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted.';
-            } else {
-                $lock_desc = 'All tools permitted (subject to scope and allowlist checks).';
-            }
-            echo wp_kses( $lock_desc, [ 'code' => [] ] );
+            $sched = AICOM_Lock_Manager::get_schedule();
+            if ( ! empty( $sched['enabled'] ) ) :
+                $sched_lock     = AICOM_Lock_Manager::get_schedule_lock();
+                $override_until = $lock_state['schedule_override_until'] ?? 0;
+                $is_override    = $override_until > time();
+                $in_hours       = $sched_lock === 'unlocked';
             ?>
-        </p>
+            <p style="margin:8px 0 0;font-size:0.82em;color:var(--aicom-text-sm)">
+                <?php if ( $is_override ) : ?>
+                    &#128275; <?php printf(
+                        esc_html__( 'Schedule: overridden until %s (next working period).', 'aicom' ),
+                        esc_html( wp_date( 'D H:i', $override_until ) )
+                    ); ?>
+                <?php elseif ( $in_hours ) : ?>
+                    &#128336; <?php esc_html_e( 'Schedule: within working hours — no additional lock.', 'aicom' ); ?>
+                <?php else : ?>
+                    &#128274; <?php printf(
+                        esc_html__( 'Schedule: outside working hours — %s enforced.', 'aicom' ),
+                        $sched_lock === 'hard_locked'
+                            ? esc_html__( 'Hard Lock', 'aicom' )
+                            : esc_html__( 'Soft Lock', 'aicom' )
+                    ); ?>
+                <?php endif; ?>
+            </p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <!-- Lock Controls -->
     <div class="aicom-card">
-        <h2>Lock Controls</h2>
-        <p class="description">Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests.</p>
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Lock Controls', 'aicom' ); ?></h2>
+        </div>
+        <div class="aicom-card-body">
+            <p style="margin:0 0 20px;font-size:0.85em;color:var(--aicom-text-sm)"><?php esc_html_e( 'Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests.', 'aicom' ); ?></p>
 
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <input type="hidden" name="action" value="aicom_save" />
-            <input type="hidden" name="aicom_action" value="set_lock" />
-            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action" value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="set_lock" />
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
 
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th>Soft Lock</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="soft_lock" value="1"
-                                <?php checked( $lock_state['soft_lock'] ); ?>
-                                <?php disabled( $lock_state['hard_lock'] ); ?>
-                                id="aicom-soft-lock"
-                            />
-                            Enable Soft Lock
+                <div class="aicom-form">
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label" for="aicom-soft-lock">
+                            <?php esc_html_e( 'Soft Lock', 'aicom' ); ?>
+                            <small><?php esc_html_e( 'Read-only mode', 'aicom' ); ?></small>
                         </label>
-                        <p class="description">Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only.<br>Blocks: write, destructive, admin_sensitive.</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Hard Lock</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="hard_lock" value="1"
-                                <?php checked( $lock_state['hard_lock'] ); ?>
-                                id="aicom-hard-lock"
-                            />
-                            Enable Hard Lock
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="soft_lock" value="1"
+                                    id="aicom-soft-lock"
+                                    <?php checked( $lock_state['soft_lock'] ); ?>
+                                    <?php disabled( $lock_state['hard_lock'] ); ?> />
+                                <?php esc_html_e( 'Enable Soft Lock', 'aicom' ); ?>
+                            </label>
+                            <p class="aicom-field-desc"><?php echo wp_kses( __( 'Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only. Blocks write, destructive, admin_sensitive.', 'aicom' ), [ 'em' => [] ] ); ?></p>
+                        </div>
+                    </div>
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label" for="aicom-hard-lock">
+                            <?php esc_html_e( 'Hard Lock', 'aicom' ); ?>
+                            <small><?php esc_html_e( 'Emergency freeze', 'aicom' ); ?></small>
                         </label>
-                        <p class="description">Permits <em>public</em> tools only (<code>server.status</code>).<br><strong>Hard Lock overrides Soft Lock.</strong></p>
-                    </td>
-                </tr>
-            </table>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="hard_lock" value="1"
+                                    id="aicom-hard-lock"
+                                    <?php checked( $lock_state['hard_lock'] ); ?> />
+                                <?php esc_html_e( 'Enable Hard Lock', 'aicom' ); ?>
+                            </label>
+                            <p class="aicom-field-desc"><?php echo wp_kses( __( 'Permits <em>public</em> tools only (<code>server.status</code>). <strong>Hard Lock overrides Soft Lock.</strong>', 'aicom' ), [ 'em' => [], 'code' => [], 'strong' => [] ] ); ?></p>
+                        </div>
+                    </div>
 
-            <?php if ( $lock_state['hard_lock'] ) : ?>
-            <div class="notice notice-warning inline"><p><strong>Hard Lock is active.</strong> Soft Lock is disabled and ignored.</p></div>
-            <?php endif; ?>
+                </div>
 
-            <?php submit_button( 'Apply Lock Settings', 'primary', 'submit', false ); ?>
-        </form>
+                <?php if ( $lock_state['hard_lock'] ) : ?>
+                <div class="notice notice-warning inline" style="margin:0 0 16px"><p><?php echo wp_kses( __( '<strong>Hard Lock is active.</strong> Soft Lock is disabled and ignored.', 'aicom' ), [ 'strong' => [] ] ); ?></p></div>
+                <?php endif; ?>
+
+                <div class="aicom-form-footer">
+                    <?php submit_button( __( 'Apply Lock Settings', 'aicom' ), 'primary', 'submit', false ); ?>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <!-- Lock Behavior Reference -->
+    <!-- Working Hours Schedule -->
+    <?php
+    $sched        = AICOM_Lock_Manager::get_schedule();
+    $s_enabled    = ! empty( $sched['enabled'] );
+    $s_days       = array_map( 'intval', $sched['days'] ?? [ 1, 2, 3, 4, 5 ] );
+    $s_start      = $sched['start']     ?? '09:00';
+    $s_end        = $sched['end']       ?? '18:00';
+    $s_lock_type  = $sched['lock_type'] ?? 'soft_locked';
+    $day_labels   = [ 0 => 'Sun', 1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat' ];
+    ?>
+
+    <?php if ( isset( $_GET['schedule_saved'] ) ) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Schedule saved.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+
     <div class="aicom-card">
-        <h2>Lock Permission Matrix</h2>
-        <table class="wp-list-table widefat fixed">
-            <thead>
-                <tr>
-                    <th>Tool Class</th>
-                    <th>Examples</th>
-                    <th>Unlocked</th>
-                    <th>Soft Lock</th>
-                    <th>Hard Lock</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php
-                $matrix = [
-                    [ 'public',          'server.status',              '✓', '✓', '✓' ],
-                    [ 'discovery',       'tools/list, wp.post_types.list', '✓', '✓', '✗' ],
-                    [ 'read',            'wp.posts.list, wp.posts.get', '✓', '✓', '✗' ],
-                    [ 'write',           'wp.posts.create, wp.posts.update', '✓', '✗', '✗' ],
-                    [ 'destructive',     'wp.posts.delete, wp.terms.delete', '✓', '✗', '✗' ],
-                    [ 'admin_sensitive', 'wp.options.set, wp.users.create', '✓', '✗', '✗' ],
-                ];
-                foreach ( $matrix as [ $class, $examples, $unlocked, $soft, $hard ] ) : ?>
-                <tr>
-                    <td><code><?php echo esc_html( $class ); ?></code></td>
-                    <td><?php echo esc_html( $examples ); ?></td>
-                    <td class="aicom-cell-<?php echo esc_attr( $unlocked === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $unlocked ); ?></td>
-                    <td class="aicom-cell-<?php echo esc_attr( $soft === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $soft ); ?></td>
-                    <td class="aicom-cell-<?php echo esc_attr( $hard === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $hard ); ?></td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Working Hours Schedule', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo $s_enabled ? 'aicom-badge-success' : 'aicom-badge-neutral'; ?>">
+                <?php echo $s_enabled ? esc_html__( 'Enabled', 'aicom' ) : esc_html__( 'Disabled', 'aicom' ); ?>
+            </span>
+        </div>
+        <div class="aicom-card-body">
+            <p style="margin:0 0 16px;color:var(--aicom-text-sm);font-size:0.88em">
+                <?php esc_html_e( 'Outside working hours, all MCP requests are automatically locked at the configured level. Manual locks always take precedence.', 'aicom' ); ?>
+            </p>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                <input type="hidden" name="action"       value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="save_schedule" />
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+
+                <div class="aicom-form">
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Enable Schedule', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="schedule_enabled" value="1" <?php checked( $s_enabled ); ?> />
+                                <?php esc_html_e( 'Lock site outside working hours', 'aicom' ); ?>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Working Days', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                            <?php foreach ( $day_labels as $d_num => $d_label ) : ?>
+                                <label style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer">
+                                    <span style="font-size:0.72em;font-weight:600;color:var(--aicom-text-xs)"><?php echo esc_html( $d_label ); ?></span>
+                                    <input type="checkbox" name="schedule_days[]" value="<?php echo (int) $d_num; ?>"
+                                           <?php checked( in_array( $d_num, $s_days, true ) ); ?>
+                                           style="width:18px;height:18px;cursor:pointer" />
+                                </label>
+                            <?php endforeach; ?>
+                            </div>
+                            <p class="aicom-field-desc"><?php esc_html_e( 'Checked days are treated as working days.', 'aicom' ); ?></p>
+                        </div>
+                    </div>
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Working Hours', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <input type="time" name="schedule_start" value="<?php echo esc_attr( $s_start ); ?>"
+                                       style="font-size:0.88em;padding:5px 8px;border:1px solid var(--aicom-border);border-radius:4px" />
+                                <span style="color:var(--aicom-text-xs);font-size:0.85em"><?php esc_html_e( 'to', 'aicom' ); ?></span>
+                                <input type="time" name="schedule_end" value="<?php echo esc_attr( $s_end ); ?>"
+                                       style="font-size:0.88em;padding:5px 8px;border:1px solid var(--aicom-border);border-radius:4px" />
+                            </div>
+                            <p class="aicom-field-desc">
+                                <?php printf(
+                                    esc_html__( 'Site timezone: %s', 'aicom' ),
+                                    esc_html( wp_timezone_string() )
+                                ); ?>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Outside Hours Lock', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label" style="margin-bottom:8px">
+                                <input type="radio" name="schedule_lock_type" value="soft_locked"
+                                       <?php checked( $s_lock_type, 'soft_locked' ); ?> />
+                                <?php esc_html_e( 'Soft Lock — read-only mode (discovery & read tools still work)', 'aicom' ); ?>
+                            </label>
+                            <label class="aicom-toggle-label">
+                                <input type="radio" name="schedule_lock_type" value="hard_locked"
+                                       <?php checked( $s_lock_type, 'hard_locked' ); ?> />
+                                <?php esc_html_e( 'Hard Lock — full block (only public tools work)', 'aicom' ); ?>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="aicom-form-footer">
+                    <?php submit_button( __( 'Save Schedule', 'aicom' ), 'primary', 'submit', false ); ?>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
+
+    <!-- Lock Permission Matrix -->
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Lock Permission Matrix', 'aicom' ); ?></h2>
+        </div>
+        <div class="aicom-card-body" style="padding:0">
+            <table class="aicom-keys-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Tool Class', 'aicom' ); ?></th>
+                        <th><?php esc_html_e( 'Examples', 'aicom' ); ?></th>
+                        <th style="text-align:center"><?php esc_html_e( 'Unlocked', 'aicom' ); ?></th>
+                        <th style="text-align:center"><?php esc_html_e( 'Soft Lock', 'aicom' ); ?></th>
+                        <th style="text-align:center"><?php esc_html_e( 'Hard Lock', 'aicom' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $matrix = [
+                        [ 'public',          'server.status',                    '✓', '✓', '✓' ],
+                        [ 'discovery',       'tools/list, wp.post_types.list',   '✓', '✓', '✗' ],
+                        [ 'read',            'wp.posts.list, wp.posts.get',      '✓', '✓', '✗' ],
+                        [ 'write',           'wp.posts.create, wp.posts.update', '✓', '✗', '✗' ],
+                        [ 'destructive',     'wp.posts.delete, wp.terms.delete', '✓', '✗', '✗' ],
+                        [ 'admin_sensitive', 'wp.options.set, wp.users.create',  '✓', '✗', '✗' ],
+                    ];
+                    foreach ( $matrix as [ $class, $examples, $unlocked, $soft, $hard ] ) : ?>
+                    <tr>
+                        <td><span class="aicom-class-badge aicom-class-<?php echo esc_attr( $class ); ?>"><?php echo esc_html( $class ); ?></span></td>
+                        <td style="font-size:0.82em;color:var(--aicom-text-sm)"><?php echo esc_html( $examples ); ?></td>
+                        <td class="aicom-cell-<?php echo esc_attr( $unlocked === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $unlocked ); ?></td>
+                        <td class="aicom-cell-<?php echo esc_attr( $soft === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $soft ); ?></td>
+                        <td class="aicom-cell-<?php echo esc_attr( $hard === '✓' ? 'yes' : 'no' ); ?>"><?php echo esc_html( $hard ); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<?php include AICOM_DIR . 'admin/partials/layout-bottom.php'; ?>
 <?php
 } )();

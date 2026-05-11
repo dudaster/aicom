@@ -4,274 +4,811 @@ defined( 'ABSPATH' ) || exit;
 ( function () {
 global $wpdb;
 
-// Check for one-time display of a newly created/rotated key
-$created  = isset( $_GET['created'] ) ? absint( wp_unslash( $_GET['created'] ) ) : 0;
-$rotated  = isset( $_GET['rotated'] ) ? absint( wp_unslash( $_GET['rotated'] ) ) : 0;
-$new_key_id = $created ?: $rotated;
-$plain_key   = $new_key_id ? get_transient( 'aicom_new_key_' . $new_key_id ) : null;
-if ( $plain_key ) {
-    delete_transient( 'aicom_new_key_' . $new_key_id );
+$created    = isset( $_GET['created'] )    ? absint( wp_unslash( $_GET['created'] ) )    : 0;
+$rotated    = isset( $_GET['rotated'] )    ? absint( wp_unslash( $_GET['rotated'] ) )    : 0;
+$edited     = isset( $_GET['edited'] )     ? absint( wp_unslash( $_GET['edited'] ) )     : 0;
+$archived   = isset( $_GET['archived'] )   ? absint( wp_unslash( $_GET['archived'] ) )   : 0;
+$unarchived = isset( $_GET['unarchived'] ) ? absint( wp_unslash( $_GET['unarchived'] ) ) : 0;
+$edit_diff = null;
+if ( $edited ) {
+    $edit_diff_json = get_transient( 'aicom_edit_result_' . $edited );
+    delete_transient( 'aicom_edit_result_' . $edited );
+    $edit_diff = $edit_diff_json ? json_decode( $edit_diff_json, true ) : [];
 }
 
-// All available scopes from spec
-$all_scopes = [
-    'read.wp'                         => 'Read WP (posts, terms, meta)',
-    'write.wp.posts'                   => 'Write WP Posts',
-    'delete.wp.posts'                  => 'Delete WP Posts',
-    'manage.taxonomies'                => 'Manage Taxonomies',
-    'manage.meta'                      => 'Manage Post Meta',
-    'manage.elementor'                 => 'Manage Elementor',
-    'manage.polylang'                  => 'Manage Polylang',
-    'manage.clautron'                  => 'Manage Clautron (blueprints, capabilities)',
-    'manage.yoast'                     => 'Manage Yoast SEO (post meta, terms, social)',
-    'manage.woocommerce.products'      => 'WooCommerce Products',
-    'manage.woocommerce.settings'      => 'WooCommerce Settings',
-    'manage.media'                     => 'Media Library',
-    'manage.files'                     => 'File System (restricted)',
-    'read.users'                       => 'Read Users',
-    'manage.users'                     => 'Manage Users',
-    'delete.users'                     => 'Delete Users',
-    'manage.roles'                     => 'Manage Roles',
-    'manage.menus'                     => 'Nav Menus',
-    'manage.plugins'                   => 'Plugins (list & update)',
-    'manage.backups'                   => 'Backup & Restore',
-    'manage.wordpress.settings'        => 'WP Options/Settings',
+// ── Scope tree ─────────────────────────────────────────────────────────────
+$scope_tree = [
+    __( 'WordPress Core', 'aicom' ) => [
+        'read.wp'           => [ __( 'Read posts, terms, meta, settings', 'aicom' ), 'low' ],
+        'write.wp.posts'    => [ __( 'Create & edit posts/pages',          'aicom' ), 'med' ],
+        'delete.wp.posts'   => [ __( 'Trash & delete posts',               'aicom' ), 'med' ],
+        'manage.meta'       => [ __( 'Post meta read/write',               'aicom' ), 'med' ],
+        'manage.taxonomies' => [ __( 'Categories, tags, taxonomies',       'aicom' ), 'med' ],
+        'manage.menus'      => [ __( 'Navigation menus',                   'aicom' ), 'med' ],
+    ],
+    __( 'Media & Files', 'aicom' ) => [
+        'manage.media' => [ __( 'Upload & manage media library',          'aicom' ), 'med' ],
+        'manage.files' => [ __( 'Direct file system access',              'aicom' ), 'high' ],
+        'manage.a11y'  => [ __( 'Accessibility audits & alt text fixes',  'aicom' ), 'med' ],
+    ],
+    __( 'Users & Roles', 'aicom' ) => [
+        'read.users'   => [ __( 'List & read user profiles',   'aicom' ), 'med' ],
+        'manage.users' => [ __( 'Create & update users',       'aicom' ), 'high' ],
+        'delete.users' => [ __( 'Delete users',                'aicom' ), 'high' ],
+        'manage.roles' => [ __( 'Manage roles & capabilities', 'aicom' ), 'high' ],
+    ],
+    __( 'Site Configuration', 'aicom' ) => [
+        'manage.wordpress.settings' => [ __( 'WordPress options/settings',  'aicom' ), 'critical' ],
+        'manage.plugins'            => [ __( 'Plugin management & updates',  'aicom' ), 'critical' ],
+        'manage.backups'            => [ __( 'Backup & restore data',        'aicom' ), 'high' ],
+    ],
+    __( 'Integrations', 'aicom' ) => [
+        'manage.woocommerce.products' => [ __( 'WooCommerce products',     'aicom' ), 'med' ],
+        'manage.woocommerce.settings' => [ __( 'WooCommerce settings',     'aicom' ), 'high' ],
+        'manage.elementor'            => [ __( 'Elementor pages & widgets', 'aicom' ), 'med' ],
+        'manage.polylang'             => [ __( 'Polylang translations',     'aicom' ), 'med' ],
+        'manage.yoast'                => [ __( 'Yoast SEO fields',         'aicom' ), 'med' ],
+        'manage.clautron'             => [ __( 'Clautron blueprints',      'aicom' ), 'med' ],
+    ],
+];
+$scope_tree_flat = array_merge( ...array_values( $scope_tree ) );
+$all_scope_keys  = array_keys( $scope_tree_flat );
+
+// ── System presets ─────────────────────────────────────────────────────────
+$presets = [
+    'read-only' => [
+        'name'   => __( 'Read-only', 'aicom' ),
+        'scopes' => [ 'read.wp', 'read.users' ],
+        'risk'   => 'low',
+        'desc'   => __( 'Safe browsing only', 'aicom' ),
+    ],
+    'content-assistant' => [
+        'name'   => __( 'Content Assistant', 'aicom' ),
+        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies' ],
+        'risk'   => 'med',
+        'desc'   => __( 'Write & publish content', 'aicom' ),
+    ],
+    'elementor-editor' => [
+        'name'   => __( 'Elementor Editor', 'aicom' ),
+        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media' ],
+        'risk'   => 'med',
+        'desc'   => __( 'Build Elementor pages', 'aicom' ),
+    ],
+    'woocommerce-catalog' => [
+        'name'   => __( 'WooCommerce Catalog', 'aicom' ),
+        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products' ],
+        'risk'   => 'med',
+        'desc'   => __( 'Manage products', 'aicom' ),
+    ],
+    'site-maintenance' => [
+        'name'   => __( 'Site Maintenance', 'aicom' ),
+        'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings' ],
+        'risk'   => 'high',
+        'desc'   => __( 'Updates, backups, settings', 'aicom' ),
+    ],
+    'full-admin' => [
+        'name'   => __( 'Full Admin', 'aicom' ),
+        'scopes' => $all_scope_keys,
+        'risk'   => 'critical',
+        'desc'   => __( 'All permissions', 'aicom' ),
+    ],
 ];
 
-$keys = $wpdb->get_results( "SELECT id, label, key_prefix, scopes_json, status, last_used_at, created_at FROM {$wpdb->prefix}aicom_api_keys ORDER BY created_at DESC", ARRAY_A );
+// ── Custom presets from DB ─────────────────────────────────────────────────
+$custom_presets = $wpdb->get_results(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    "SELECT id, name, scopes_json FROM {$wpdb->prefix}aicom_presets ORDER BY created_at ASC",
+    ARRAY_A
+) ?: [];
+
+// ── Edit mode ─────────────────────────────────────────────────────────────
+$edit_key_id = ( isset( $_GET['action'], $_GET['key_id'] ) && $_GET['action'] === 'edit_key' )
+    ? absint( wp_unslash( $_GET['key_id'] ) ) : 0;
+$edit_key = $edit_key_id
+    ? $wpdb->get_row( $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $edit_key_id
+    ), ARRAY_A )
+    : null;
+
+$show_archived = ! empty( $_GET['show_archived'] );
+$archived_sql  = $show_archived ? '' : "AND status != 'archived'";
+
+// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$keys = $wpdb->get_results(
+    "SELECT id, label, key_prefix, scopes_json, restrictions_json, status, last_used_at, created_at, expires_at FROM {$wpdb->prefix}aicom_api_keys WHERE 1=1 $archived_sql ORDER BY created_at DESC",
+    ARRAY_A
+);
 ?>
-<div class="wrap aicom-wrap">
-    <h1>API Keys</h1>
+<?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
 
-    <?php if ( $plain_key ) :
-        $mcp_url      = get_site_url() . '/wp-json/aicom/v1/mcp';
-        $fallback_url = get_site_url() . '/?aicom=1';
-        $agent_text   = "Connect to my WordPress site via MCP:\n\nEndpoint: {$mcp_url}\nFallback: {$fallback_url}\nAuthorization: Bearer {$plain_key}\n\nUse the endpoint and the Authorization header for every request.";
+    <!-- Page header -->
+    <div class="aicom-page-header">
+        <h1><?php esc_html_e( 'API Keys', 'aicom' ); ?></h1>
+        <p class="aicom-page-desc"><?php esc_html_e( 'Generate and manage API keys that grant AI agents access to your site via MCP.', 'aicom' ); ?></p>
+    </div>
+
+    <?php if ( $edit_key ) : ?>
+    <?php
+    // ══════════════════════════════════════════════════════════════════════
+    // EDIT KEY VIEW
+    // ══════════════════════════════════════════════════════════════════════
+    $edit_scopes       = json_decode( $edit_key['scopes_json'] ?? '[]', true ) ?: [];
+    $edit_restrictions = json_decode( $edit_key['restrictions_json'] ?? '{}', true ) ?: [];
+    $edit_expires      = $edit_key['expires_at'] ? gmdate( 'Y-m-d', strtotime( $edit_key['expires_at'] ) ) : '';
+    $edit_ip           = implode( "\n", $edit_restrictions['ip_allowlist'] ?? [] );
+    $edit_dry_run      = ! empty( $edit_restrictions['dry_run_only'] );
+    $edit_post_types   = implode( "\n", $edit_restrictions['post_types'] ?? [] );
+    $edit_taxonomies   = implode( "\n", $edit_restrictions['taxonomies'] ?? [] );
+    $edit_meta_keys    = implode( "\n", $edit_restrictions['meta_keys']  ?? [] );
+    $edit_res_options  = implode( "\n", $edit_restrictions['options']    ?? [] );
+    $edit_file_paths   = implode( "\n", $edit_restrictions['file_paths'] ?? [] );
+    $edit_languages    = implode( "\n", $edit_restrictions['languages']  ?? [] );
     ?>
-    <div class="notice notice-success aicom-notice-key">
-        <h3>✓ Key <?php echo esc_html( $created ? 'created' : 'rotated' ); ?> — copy now, will not be shown again</h3>
-
-        <p><strong>API Key</strong></p>
-        <div class="aicom-copy-row">
-            <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>" class="large-text aicom-copy-input" id="aicom-plain-key" />
-            <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>">Copy Key</button>
-        </div>
-
-        <p style="margin-top:16px"><strong>Ready-to-use prompt for your AI agent</strong> — paste this directly into OpenClaw or any MCP client:</p>
-        <div class="aicom-copy-row" style="align-items:flex-start">
-            <textarea readonly rows="6" class="large-text aicom-copy-input" style="font-family:monospace;font-size:12px"><?php echo esc_textarea( $agent_text ); ?></textarea>
-            <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $agent_text ); ?>" style="align-self:flex-start">Copy</button>
-        </div>
-    </div>
-    <?php endif; ?>
-
-    <?php if ( isset( $_GET['revoked'] ) ) : ?>
-    <div class="notice notice-warning is-dismissible"><p>Key revoked.</p></div>
-    <?php endif; ?>
-
-    <?php if ( isset( $_GET['suspended'] ) ) : ?>
-    <div class="notice notice-warning is-dismissible"><p>Key suspended — access blocked until unsuspended.</p></div>
-    <?php endif; ?>
-
-    <?php if ( isset( $_GET['unsuspended'] ) ) : ?>
-    <div class="notice notice-success is-dismissible"><p>Key unsuspended — access restored.</p></div>
-    <?php endif; ?>
-
-    <!-- Connection Info -->
     <div class="aicom-card">
-        <h2>Connection Info</h2>
-        <table class="form-table" role="presentation">
-            <tr>
-                <th>Primary Endpoint</th>
-                <td>
-                    <div class="aicom-copy-row">
-                        <input type="text" readonly value="<?php echo esc_attr( get_site_url() . '/wp-json/aicom/v1/mcp' ); ?>" class="large-text aicom-copy-input" />
-                        <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( get_site_url() . '/wp-json/aicom/v1/mcp' ); ?>">Copy</button>
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <th>Fallback Endpoint</th>
-                <td>
-                    <div class="aicom-copy-row">
-                        <input type="text" readonly value="<?php echo esc_attr( get_site_url() . '/?aicom=1' ); ?>" class="large-text aicom-copy-input" />
-                        <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( get_site_url() . '/?aicom=1' ); ?>">Copy</button>
-                    </div>
-                    <p class="description">Use this if the primary endpoint returns 404 (no mod_rewrite required).</p>
-                </td>
-            </tr>
-            <tr>
-                <th>Authentication</th>
-                <td>
-                    <code>Authorization: Bearer &lt;your-api-key&gt;</code>
-                    <p class="description">Or alternatively: <code>X-API-Key: &lt;your-api-key&gt;</code></p>
-                </td>
-            </tr>
-            <tr>
-                <th>Apache Note</th>
-                <td>
-                    <p class="description">If the Authorization header is stripped by your server, add this to <code>.htaccess</code>:</p>
-                    <div class="aicom-copy-row">
-                        <input type="text" readonly value="SetEnvIf Authorization &quot;(.*)&quot; HTTP_AUTHORIZATION=$1" class="large-text aicom-copy-input" />
-                        <button class="button aicom-copy-btn" data-target='SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1'>Copy</button>
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title">
+                <?php esc_html_e( 'Edit Key:', 'aicom' ); ?> <em><?php echo esc_html( $edit_key['label'] ); ?></em>
+            </h2>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ); ?>" class="aicom-card-link"><?php esc_html_e( '← Back to keys', 'aicom' ); ?></a>
+        </div>
+        <div class="aicom-card-body">
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+                  id="aicom-edit-key-form"
+                  data-original-scopes="<?php echo esc_attr( wp_json_encode( $edit_scopes ) ); ?>">
+                <input type="hidden" name="action"      value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="edit_key" />
+                <input type="hidden" name="key_id"       value="<?php echo (int) $edit_key['id']; ?>" />
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
 
-    <!-- Create New Key -->
-    <div class="aicom-card">
-        <h2>Generate New API Key</h2>
-        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-            <input type="hidden" name="action" value="aicom_save" />
-            <input type="hidden" name="aicom_action" value="create_key" />
-            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <div class="aicom-form">
 
-            <table class="form-table" role="presentation">
-                <tr>
-                    <th><label for="aicom-key-label">Label</label></th>
-                    <td>
-                        <input type="text" name="label" id="aicom-key-label" class="regular-text" required placeholder="e.g. OpenClaw Production" />
-                    </td>
-                </tr>
-                <tr>
-                    <th>Scopes</th>
-                    <td>
-                        <label class="aicom-check-all-label">
-                            <input type="checkbox" id="aicom-scope-check-all" />
-                            <strong>Check all</strong>
+                    <!-- Scopes -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label">
+                            <?php esc_html_e( 'Scopes', 'aicom' ); ?>
+                            <small><?php esc_html_e( 'Permissions for this key', 'aicom' ); ?></small>
                         </label>
-                        <div class="aicom-scope-grid">
-                        <?php foreach ( $all_scopes as $scope_key => $scope_label ) : ?>
-                            <label class="aicom-scope-label">
-                                <input type="checkbox" name="scopes[]" value="<?php echo esc_attr( $scope_key ); ?>" class="aicom-scope-cb" />
-                                <span><?php echo esc_html( $scope_label ); ?></span>
-                                <code class="aicom-scope-code"><?php echo esc_html( $scope_key ); ?></code>
-                            </label>
-                        <?php endforeach; ?>
+                        <div class="aicom-field-control">
+                            <input type="text" id="aicom-scope-search-edit" class="regular-text aicom-scope-search"
+                                   placeholder="<?php esc_attr_e( 'Search scopes…', 'aicom' ); ?>" autocomplete="off" />
+                            <div id="aicom-scope-tree-edit">
+                            <?php foreach ( $scope_tree as $group_name => $scopes ) : ?>
+                                <div class="aicom-tree-group" data-group="<?php echo esc_attr( sanitize_title( $group_name ) ); ?>">
+                                    <div class="aicom-tree-group-header">
+                                        <span class="aicom-tree-chevron">&#9660;</span>
+                                        <strong><?php echo esc_html( $group_name ); ?></strong>
+                                        <span class="aicom-tree-group-count"></span>
+                                    </div>
+                                    <div class="aicom-tree-group-body">
+                                    <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
+                                        <label class="aicom-tree-scope-row" data-scope="<?php echo esc_attr( $scope_key ); ?>">
+                                            <input type="checkbox" name="scopes[]"
+                                                   value="<?php echo esc_attr( $scope_key ); ?>"
+                                                   class="aicom-scope-cb"
+                                                   <?php checked( in_array( $scope_key, $edit_scopes, true ) ); ?> />
+                                            <span class="aicom-tree-scope-label"><?php echo esc_html( $scope_label ); ?></span>
+                                            <code class="aicom-tree-scope-code"><?php echo esc_html( $scope_key ); ?></code>
+                                            <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $scope_risk ); ?>"><?php echo esc_html( strtoupper( $scope_risk ) ); ?></span>
+                                        </label>
+                                    <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                            </div>
+                            <div id="aicom-scope-diff" style="display:none;margin-top:8px;font-size:0.82em;font-family:monospace"></div>
                         </div>
-                    </td>
-                </tr>
-                <tr>
-                    <th>IP Allowlist</th>
-                    <td>
-                        <textarea name="ip_allowlist" class="large-text" rows="3" placeholder="One IP or CIDR per line. Leave empty to allow all."></textarea>
-                        <p class="description">e.g. 203.0.113.5 or 192.168.1.0/24</p>
-                    </td>
-                </tr>
-                <tr>
-                    <th>Dry-Run Only</th>
-                    <td>
-                        <label>
-                            <input type="checkbox" name="dry_run_only" value="1" />
-                            Force all write operations to dry-run mode for this key
+                    </div>
+
+                    <!-- Expiry Date -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label" for="aicom-edit-expires">
+                            <?php esc_html_e( 'Expiry Date', 'aicom' ); ?>
+                            <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
                         </label>
-                    </td>
-                </tr>
-            </table>
-            <?php submit_button( 'Generate Key', 'primary', 'submit', false ); ?>
-        </form>
+                        <div class="aicom-field-control">
+                            <input type="date" name="expires_at" id="aicom-edit-expires"
+                                   value="<?php echo esc_attr( $edit_expires ); ?>"
+                                   min="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( '+1 day' ) ) ); ?>" />
+                            <p class="aicom-field-desc"><?php esc_html_e( 'Leave empty to remove expiry.', 'aicom' ); ?></p>
+                        </div>
+                    </div>
+
+                    <!-- IP Allowlist -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label" for="aicom-edit-ip">
+                            <?php esc_html_e( 'IP Allowlist', 'aicom' ); ?>
+                            <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
+                        </label>
+                        <div class="aicom-field-control">
+                            <textarea name="ip_allowlist" id="aicom-edit-ip" rows="3"
+                                      style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
+                                      placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"><?php echo esc_textarea( $edit_ip ); ?></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Resource Restrictions -->
+                    <?php
+                    $res_active = count( array_filter( [ $edit_post_types, $edit_taxonomies, $edit_meta_keys, $edit_res_options, $edit_file_paths, $edit_languages ] ) );
+                    ?>
+                    <div class="aicom-res-section <?php echo $res_active ? 'is-open' : ''; ?>">
+                        <div class="aicom-res-header">
+                            <span class="aicom-res-icon">&#128274;</span>
+                            <span class="aicom-res-title"><?php esc_html_e( 'Resource Restrictions', 'aicom' ); ?></span>
+                            <?php if ( $res_active ) : ?>
+                                <span class="aicom-res-badge"><?php echo (int) $res_active; ?> active</span>
+                            <?php endif; ?>
+                            <span class="aicom-res-chevron">&#9654;</span>
+                        </div>
+                        <div class="aicom-res-body">
+                            <p class="aicom-res-intro"><?php esc_html_e( 'Limit which WordPress resources this key can access. Restrictions are enforced per-call — leave a field empty to allow all values of that type.', 'aicom' ); ?></p>
+                            <div class="aicom-res-grid">
+                                <div class="aicom-res-field <?php echo $edit_post_types ? 'has-value' : ''; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'Post Types', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_post_types ? 'is-set' : 'is-unset'; ?>"><?php echo $edit_post_types ? esc_html__( 'Active', 'aicom' ) : esc_html__( 'Inactive', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_post_types" rows="3" placeholder="post&#10;page&#10;product"><?php echo esc_textarea( $edit_post_types ); ?></textarea>
+                                    <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                </div>
+                                <div class="aicom-res-field <?php echo $edit_taxonomies ? 'has-value' : ''; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'Taxonomies', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_taxonomies ? 'is-set' : 'is-unset'; ?>"><?php echo $edit_taxonomies ? esc_html__( 'Active', 'aicom' ) : esc_html__( 'Inactive', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_taxonomies" rows="3" placeholder="category&#10;post_tag"><?php echo esc_textarea( $edit_taxonomies ); ?></textarea>
+                                    <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                </div>
+                                <div class="aicom-res-field <?php echo $edit_meta_keys ? 'has-value' : ''; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'Meta Keys', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_meta_keys ? 'is-set' : 'is-unset'; ?>"><?php echo $edit_meta_keys ? esc_html__( 'Active', 'aicom' ) : esc_html__( 'Inactive', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_meta_keys" rows="3" placeholder="_price&#10;custom_field"><?php echo esc_textarea( $edit_meta_keys ); ?></textarea>
+                                    <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                </div>
+                                <div class="aicom-res-field <?php echo $edit_res_options ? 'has-value' : ''; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'WP Options', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_res_options ? 'is-set' : 'is-unset'; ?>"><?php echo $edit_res_options ? esc_html__( 'Active', 'aicom' ) : esc_html__( 'Inactive', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_options" rows="3" placeholder="blogname&#10;siteurl"><?php echo esc_textarea( $edit_res_options ); ?></textarea>
+                                    <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                </div>
+                                <div class="aicom-res-field is-full <?php echo $edit_file_paths ? 'has-value' : 'is-warn-empty'; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'File Paths', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_file_paths ? 'is-set' : 'is-blocked'; ?>"><?php echo $edit_file_paths ? esc_html__( 'Paths set', 'aicom' ) : esc_html__( 'All blocked', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_file_paths" rows="2" placeholder="/var/www/html/wp-content/uploads/"><?php echo esc_textarea( $edit_file_paths ); ?></textarea>
+                                    <p class="aicom-res-hint is-warn"><?php esc_html_e( 'Empty = BLOCK all file operations. Add allowed directory prefixes, one per line.', 'aicom' ); ?></p>
+                                </div>
+                                <?php if ( AICOM_Module_Detector::is_polylang_active() ) : ?>
+                                <div class="aicom-res-field is-full <?php echo $edit_languages ? 'has-value' : ''; ?>">
+                                    <label class="aicom-res-label">
+                                        <?php esc_html_e( 'Languages', 'aicom' ); ?>
+                                        <span class="aicom-res-status <?php echo $edit_languages ? 'is-set' : 'is-unset'; ?>"><?php echo $edit_languages ? esc_html__( 'Active', 'aicom' ) : esc_html__( 'Inactive', 'aicom' ); ?></span>
+                                    </label>
+                                    <textarea name="res_languages" rows="2" placeholder="en&#10;fr"><?php echo esc_textarea( $edit_languages ); ?></textarea>
+                                    <p class="aicom-res-hint"><?php esc_html_e( 'One language code per line · empty = allow all', 'aicom' ); ?></p>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dry-run -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Dry-Run Only', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="dry_run_only" value="1" <?php checked( $edit_dry_run ); ?> />
+                                <?php esc_html_e( 'Force all write operations to dry-run mode for this key', 'aicom' ); ?>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Rotate secret -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Rotate Secret', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="rotate_secret" value="1" />
+                                <?php esc_html_e( 'Generate a new API key secret (old key stops working immediately)', 'aicom' ); ?>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="aicom-form-footer">
+                    <?php submit_button( __( 'Save Changes', 'aicom' ), 'primary', 'submit', false ); ?>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php
+    include AICOM_DIR . 'admin/partials/layout-bottom.php';
+    return;
+    endif;
+    ?>
+
+    <!-- ── Notices ───────────────────────────────────────────────────────── -->
+    <?php if ( isset( $_GET['revoked'] ) ) : ?>
+    <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Key revoked.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+    <?php if ( isset( $_GET['suspended'] ) ) : ?>
+    <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Key suspended — access blocked until unsuspended.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+    <?php if ( isset( $_GET['unsuspended'] ) ) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Key unsuspended — access restored.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+    <?php if ( $edited && is_array( $edit_diff ) ) : ?>
+    <div class="notice notice-success is-dismissible">
+        <p><strong><?php esc_html_e( 'Key updated.', 'aicom' ); ?></strong>
+        <?php if ( ! empty( $edit_diff['added'] ) ) : ?>
+            <?php /* translators: %s: list of scope names */ ?>
+            <?php printf( ' ' . esc_html__( 'Added: %s.', 'aicom' ), esc_html( implode( ', ', $edit_diff['added'] ) ) ); ?>
+        <?php endif; ?>
+        <?php if ( ! empty( $edit_diff['removed'] ) ) : ?>
+            <?php /* translators: %s: list of scope names */ ?>
+            <?php printf( ' ' . esc_html__( 'Removed: %s.', 'aicom' ), esc_html( implode( ', ', $edit_diff['removed'] ) ) ); ?>
+        <?php endif; ?>
+        <?php if ( ! empty( $edit_diff['rotated'] ) ) : ?>
+            <?php esc_html_e( ' Secret rotated — see new key above.', 'aicom' ); ?>
+        <?php endif; ?>
+        </p>
+    </div>
+    <?php endif; ?>
+    <?php if ( $archived ) : ?>
+    <div class="notice notice-warning is-dismissible"><p><?php esc_html_e( 'Key archived.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+    <?php if ( $unarchived ) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Key unarchived — now suspended.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+
+    <!-- ── Tab bar ────────────────────────────────────────────────────────── -->
+    <?php
+    $default_tab = 'generate';
+    if ( $created || $rotated || isset( $_GET['revoked'] ) || isset( $_GET['suspended'] ) || isset( $_GET['unsuspended'] ) || $edited || $archived || $unarchived ) {
+        $default_tab = 'keys';
+    }
+    $key_count = count( $keys ?: [] );
+    ?>
+    <div class="aicom-tab-bar" id="aicom-tab-bar" data-default="<?php echo esc_attr( $default_tab ); ?>">
+        <button type="button" class="aicom-tab-btn" data-tab="generate"><?php esc_html_e( 'Generate New Key', 'aicom' ); ?></button>
+        <button type="button" class="aicom-tab-btn" data-tab="connection"><?php esc_html_e( 'Connection Info', 'aicom' ); ?></button>
+        <button type="button" class="aicom-tab-btn" data-tab="keys">
+            <?php esc_html_e( 'Existing Keys', 'aicom' ); ?><?php if ( $key_count ) : ?><span class="aicom-tab-badge"><?php echo $key_count; ?></span><?php endif; ?>
+        </button>
     </div>
 
-    <!-- Existing Keys Table -->
-    <div class="aicom-card">
-        <h2>Existing Keys</h2>
-        <?php if ( empty( $keys ) ) : ?>
-        <p>No API keys yet.</p>
-        <?php else : ?>
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>Label</th>
-                    <th>Prefix</th>
-                    <th>Status</th>
-                    <th>Scopes</th>
-                    <th>Last Used</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            <?php foreach ( $keys as $key ) :
-                $scopes = json_decode( $key['scopes_json'], true ) ?: [];
-                if ( $key['status'] === 'active' ) {
-                    $status_class = 'aicom-status-active';
-                } elseif ( $key['status'] === 'suspended' ) {
-                    $status_class = 'aicom-status-suspended';
-                } else {
-                    $status_class = 'aicom-status-revoked';
-                }
-            ?>
-                <tr>
-                    <td><strong><?php echo esc_html( $key['label'] ); ?></strong></td>
-                    <td><code><?php echo esc_html( $key['key_prefix'] ); ?>...</code></td>
-                    <td><span class="aicom-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span></td>
-                    <td>
-                        <?php if ( empty( $scopes ) ) : ?>
-                        <em>none</em>
-                        <?php else : ?>
-                        <details>
-                            <summary><?php echo count( $scopes ); ?> scope(s)</summary>
-                            <?php foreach ( $scopes as $s ) : ?><code><?php echo esc_html( $s ); ?></code><br/><?php endforeach; ?>
-                        </details>
-                        <?php endif; ?>
-                    </td>
-                    <td><?php echo $key['last_used_at'] ? esc_html( $key['last_used_at'] ) : '—'; ?></td>
-                    <td><?php echo esc_html( $key['created_at'] ); ?></td>
-                    <td>
-                        <?php if ( $key['status'] === 'active' ) : ?>
-                        <!-- Rotate -->
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="aicom_save" />
-                            <input type="hidden" name="aicom_action" value="rotate_key" />
-                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small" onclick="return confirm('Rotate this key? The old key will stop working immediately.')">Rotate</button>
-                        </form>
-                        <!-- Suspend -->
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="aicom_save" />
-                            <input type="hidden" name="aicom_action" value="suspend_key" />
-                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small aicom-btn-warning">Suspend</button>
-                        </form>
-                        <!-- Revoke -->
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="aicom_save" />
-                            <input type="hidden" name="aicom_action" value="revoke_key" />
-                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small aicom-btn-danger" onclick="return confirm('Revoke this key? This cannot be undone.')">Revoke</button>
-                        </form>
-                        <?php elseif ( $key['status'] === 'suspended' ) : ?>
-                        <!-- Unsuspend -->
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="aicom_save" />
-                            <input type="hidden" name="aicom_action" value="unsuspend_key" />
-                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small aicom-btn-primary">Unsuspend</button>
-                        </form>
-                        <!-- Revoke while suspended -->
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                            <input type="hidden" name="action" value="aicom_save" />
-                            <input type="hidden" name="aicom_action" value="revoke_key" />
-                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
-                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
-                            <button type="submit" class="button button-small aicom-btn-danger" onclick="return confirm('Revoke this key? This cannot be undone.')">Revoke</button>
-                        </form>
-                        <?php else : ?>
-                        <em>—</em>
-                        <?php endif; ?>
-                    </td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <?php endif; ?>
-    </div>
-</div>
+    <!-- ══ Tab: Generate New Key ══════════════════════════════════════════ -->
+    <div class="aicom-tab-panel" id="aicom-tab-generate">
+        <div class="aicom-card">
+            <div class="aicom-card-body">
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="aicom_save" />
+                    <input type="hidden" name="aicom_action" value="create_key" />
+                    <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+
+                    <div class="aicom-form">
+
+                        <!-- Label -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label" for="aicom-key-label">
+                                <?php esc_html_e( 'Label', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Display name for logs', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <input type="text" name="label" id="aicom-key-label" class="regular-text"
+                                       required placeholder="<?php esc_attr_e( 'e.g. OpenClaw Production', 'aicom' ); ?>" style="max-width:320px" />
+                            </div>
+                        </div>
+
+                        <!-- Preset -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label">
+                                <?php esc_html_e( 'Preset', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Start from a template', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <div class="aicom-preset-grid" id="aicom-preset-grid">
+                                    <?php foreach ( $presets as $slug => $p ) : ?>
+                                    <button type="button"
+                                            class="aicom-preset-card aicom-preset-risk-<?php echo esc_attr( $p['risk'] ); ?>"
+                                            data-preset="<?php echo esc_attr( $slug ); ?>"
+                                            data-scopes="<?php echo esc_attr( wp_json_encode( $p['scopes'] ) ); ?>">
+                                        <span class="aicom-preset-name"><?php echo esc_html( $p['name'] ); ?></span>
+                                        <span class="aicom-preset-desc"><?php echo esc_html( $p['desc'] ); ?></span>
+                                        <span class="aicom-preset-count"><?php printf( esc_html( _n( '%d scope', '%d scopes', count( $p['scopes'] ), 'aicom' ) ), count( $p['scopes'] ) ); ?></span>
+                                        <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $p['risk'] ); ?>"><?php echo esc_html( strtoupper( $p['risk'] ) ); ?></span>
+                                    </button>
+                                    <?php endforeach; ?>
+
+                                    <?php foreach ( $custom_presets as $cp ) :
+                                        $cp_scopes = json_decode( $cp['scopes_json'], true ) ?: [];
+                                    ?>
+                                    <button type="button"
+                                            class="aicom-preset-card aicom-preset-user"
+                                            data-preset="user-<?php echo (int) $cp['id']; ?>"
+                                            data-scopes="<?php echo esc_attr( wp_json_encode( $cp_scopes ) ); ?>"
+                                            data-preset-id="<?php echo (int) $cp['id']; ?>">
+                                        <span class="aicom-preset-name"><?php echo esc_html( $cp['name'] ); ?></span>
+                                        <span class="aicom-preset-count"><?php printf( esc_html( _n( '%d scope', '%d scopes', count( $cp_scopes ), 'aicom' ) ), count( $cp_scopes ) ); ?></span>
+                                        <span class="aicom-preset-user-badge"><?php esc_html_e( 'Custom', 'aicom' ); ?></span>
+                                        <span class="aicom-preset-rename"
+                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                              title="<?php esc_attr_e( 'Rename preset', 'aicom' ); ?>" role="button" tabindex="0">&#9999;</span>
+                                        <span class="aicom-preset-duplicate"
+                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                              title="<?php esc_attr_e( 'Duplicate preset', 'aicom' ); ?>" role="button" tabindex="0">&#10064;</span>
+                                        <span class="aicom-preset-delete"
+                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                              title="<?php esc_attr_e( 'Delete preset', 'aicom' ); ?>" role="button" tabindex="0">&#10005;</span>
+                                    </button>
+                                    <?php endforeach; ?>
+
+                                    <button type="button"
+                                            class="aicom-preset-card aicom-preset-custom is-active"
+                                            data-preset="custom" data-scopes="[]">
+                                        <span class="aicom-preset-name"><?php esc_html_e( 'Custom', 'aicom' ); ?></span>
+                                        <span class="aicom-preset-desc"><?php esc_html_e( 'Pick scopes manually', 'aicom' ); ?></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scopes -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label">
+                                <?php esc_html_e( 'Scopes', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Permissions for this key', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <input type="text" id="aicom-scope-search" class="regular-text aicom-scope-search"
+                                       placeholder="<?php esc_attr_e( 'Search scopes…', 'aicom' ); ?>" autocomplete="off" />
+                                <div id="aicom-scope-tree">
+                                <?php foreach ( $scope_tree as $group_name => $scopes ) : ?>
+                                    <div class="aicom-tree-group" data-group="<?php echo esc_attr( sanitize_title( $group_name ) ); ?>">
+                                        <div class="aicom-tree-group-header">
+                                            <span class="aicom-tree-chevron">&#9660;</span>
+                                            <strong><?php echo esc_html( $group_name ); ?></strong>
+                                            <span class="aicom-tree-group-count"></span>
+                                        </div>
+                                        <div class="aicom-tree-group-body">
+                                        <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
+                                            <label class="aicom-tree-scope-row" data-scope="<?php echo esc_attr( $scope_key ); ?>">
+                                                <input type="checkbox" name="scopes[]"
+                                                       value="<?php echo esc_attr( $scope_key ); ?>"
+                                                       class="aicom-scope-cb" />
+                                                <span class="aicom-tree-scope-label"><?php echo esc_html( $scope_label ); ?></span>
+                                                <code class="aicom-tree-scope-code"><?php echo esc_html( $scope_key ); ?></code>
+                                                <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $scope_risk ); ?>"><?php echo esc_html( strtoupper( $scope_risk ) ); ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                                </div>
+
+                                <div class="aicom-save-preset-wrap">
+                                    <button type="button" id="aicom-save-preset-btn" class="button"><?php esc_html_e( '+ Save as preset', 'aicom' ); ?></button>
+                                    <span id="aicom-save-preset-form" style="display:none">
+                                        <input type="text" id="aicom-preset-name-input" placeholder="<?php esc_attr_e( 'Preset name…', 'aicom' ); ?>" class="regular-text" style="width:200px" maxlength="100" />
+                                        <button type="button" id="aicom-preset-save-confirm" class="button button-primary"><?php esc_html_e( 'Save', 'aicom' ); ?></button>
+                                        <button type="button" id="aicom-preset-save-cancel" class="button"><?php esc_html_e( 'Cancel', 'aicom' ); ?></button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- IP Allowlist -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label" for="aicom-ip-allowlist">
+                                <?php esc_html_e( 'IP Allowlist', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <textarea name="ip_allowlist" id="aicom-ip-allowlist" rows="3"
+                                          style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
+                                          placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"></textarea>
+                                <p class="aicom-field-desc"><?php esc_html_e( 'e.g. 203.0.113.5 or 192.168.1.0/24', 'aicom' ); ?></p>
+                            </div>
+                        </div>
+
+                        <!-- Resource Restrictions -->
+                        <div class="aicom-res-section">
+                            <div class="aicom-res-header">
+                                <span class="aicom-res-icon">&#128274;</span>
+                                <span class="aicom-res-title"><?php esc_html_e( 'Resource Restrictions', 'aicom' ); ?></span>
+                                <span class="aicom-res-chevron">&#9654;</span>
+                            </div>
+                            <div class="aicom-res-body">
+                                <p class="aicom-res-intro"><?php esc_html_e( 'Limit which WordPress resources this key can access. Restrictions are enforced per-call — leave a field empty to allow all values of that type.', 'aicom' ); ?></p>
+                                <div class="aicom-res-grid">
+                                    <div class="aicom-res-field">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'Post Types', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-unset"><?php esc_html_e( 'Inactive', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_post_types" rows="3" placeholder="post&#10;page&#10;product"></textarea>
+                                        <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                    </div>
+                                    <div class="aicom-res-field">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'Taxonomies', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-unset"><?php esc_html_e( 'Inactive', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_taxonomies" rows="3" placeholder="category&#10;post_tag"></textarea>
+                                        <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                    </div>
+                                    <div class="aicom-res-field">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'Meta Keys', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-unset"><?php esc_html_e( 'Inactive', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_meta_keys" rows="3" placeholder="_price&#10;custom_field"></textarea>
+                                        <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                    </div>
+                                    <div class="aicom-res-field">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'WP Options', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-unset"><?php esc_html_e( 'Inactive', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_options" rows="3" placeholder="blogname&#10;siteurl"></textarea>
+                                        <p class="aicom-res-hint"><?php esc_html_e( 'One per line · empty = allow all', 'aicom' ); ?></p>
+                                    </div>
+                                    <div class="aicom-res-field is-full is-warn-empty">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'File Paths', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-blocked"><?php esc_html_e( 'All blocked', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_file_paths" rows="2" placeholder="/var/www/html/wp-content/uploads/"></textarea>
+                                        <p class="aicom-res-hint is-warn"><?php esc_html_e( 'Empty = BLOCK all file operations. Add allowed directory prefixes, one per line.', 'aicom' ); ?></p>
+                                    </div>
+                                    <?php if ( AICOM_Module_Detector::is_polylang_active() ) : ?>
+                                    <div class="aicom-res-field is-full">
+                                        <label class="aicom-res-label">
+                                            <?php esc_html_e( 'Languages', 'aicom' ); ?>
+                                            <span class="aicom-res-status is-unset"><?php esc_html_e( 'Inactive', 'aicom' ); ?></span>
+                                        </label>
+                                        <textarea name="res_languages" rows="2" placeholder="en&#10;fr"></textarea>
+                                        <p class="aicom-res-hint"><?php esc_html_e( 'One language code per line · empty = allow all', 'aicom' ); ?></p>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dry-run -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label"><?php esc_html_e( 'Dry-Run Only', 'aicom' ); ?></label>
+                            <div class="aicom-field-control">
+                                <label class="aicom-toggle-label">
+                                    <input type="checkbox" name="dry_run_only" value="1" />
+                                    <?php esc_html_e( 'Force all write operations to dry-run mode for this key', 'aicom' ); ?>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Expiry Date -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label" for="aicom-expires-at">
+                                <?php esc_html_e( 'Expiry Date', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <input type="date" name="expires_at" id="aicom-expires-at"
+                                       min="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( '+1 day' ) ) ); ?>" />
+                                <p class="aicom-field-desc"><?php esc_html_e( 'Key stops working automatically on this date.', 'aicom' ); ?></p>
+                            </div>
+                        </div>
+
+                    </div><!-- /.aicom-form -->
+
+                    <div class="aicom-form-footer">
+                        <?php submit_button( __( 'Generate Key', 'aicom' ), 'primary', 'submit', false ); ?>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div><!-- #aicom-tab-generate -->
+
+    <!-- ══ Tab: Connection Info ═══════════════════════════════════════════ -->
+    <div class="aicom-tab-panel" id="aicom-tab-connection">
+        <div class="aicom-card">
+            <div class="aicom-card-head">
+                <h2 class="aicom-card-title"><?php esc_html_e( 'Connection Info', 'aicom' ); ?></h2>
+            </div>
+            <div class="aicom-card-body">
+                <?php
+                $mcp_endpoint  = get_site_url() . '/wp-json/aicom/v1/mcp';
+                $fallback_ep   = get_site_url() . '/?aicom=1';
+                $htaccess_line = 'SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1';
+                ?>
+                <div class="aicom-endpoint-item">
+                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Primary Endpoint', 'aicom' ); ?></span>
+                    <span class="aicom-endpoint-value"><?php echo esc_html( $mcp_endpoint ); ?></span>
+                    <button class="button button-small aicom-copy-btn" data-target="<?php echo esc_attr( $mcp_endpoint ); ?>"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
+                </div>
+                <div class="aicom-endpoint-item">
+                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Fallback Endpoint', 'aicom' ); ?></span>
+                    <span class="aicom-endpoint-value"><?php echo esc_html( $fallback_ep ); ?></span>
+                    <button class="button button-small aicom-copy-btn" data-target="<?php echo esc_attr( $fallback_ep ); ?>"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
+                </div>
+                <div class="aicom-endpoint-item">
+                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Authentication', 'aicom' ); ?></span>
+                    <code class="aicom-endpoint-value">Authorization: Bearer &lt;your-api-key&gt;</code>
+                </div>
+                <div class="aicom-endpoint-item">
+                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Apache Note', 'aicom' ); ?></span>
+                    <span class="aicom-endpoint-value"><?php echo esc_html( $htaccess_line ); ?></span>
+                    <button class="button button-small aicom-copy-btn" data-target="<?php echo esc_attr( $htaccess_line ); ?>"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
+                </div>
+            </div>
+        </div>
+    </div><!-- #aicom-tab-connection -->
+
+    <!-- ══ Tab: Existing Keys ═════════════════════════════════════════════ -->
+    <div class="aicom-tab-panel" id="aicom-tab-keys">
+        <div class="aicom-card">
+            <div class="aicom-card-head">
+                <h2 class="aicom-card-title"><?php esc_html_e( 'Existing Keys', 'aicom' ); ?></h2>
+                <?php if ( $key_count ) : ?>
+                <span style="font-size:0.8em;color:#6b7280"><?php printf( esc_html( _n( '%d key', '%d keys', $key_count, 'aicom' ) ), $key_count ); ?></span>
+                <?php endif; ?>
+                <span style="margin-left:auto">
+                    <?php if ( $show_archived ) : ?>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ); ?>" class="aicom-card-link"><?php esc_html_e( 'Hide archived', 'aicom' ); ?></a>
+                    <?php else : ?>
+                    <a href="<?php echo esc_url( add_query_arg( 'show_archived', '1', admin_url( 'admin.php?page=aicom-api-keys' ) ) ); ?>" class="aicom-card-link"><?php esc_html_e( 'Show archived', 'aicom' ); ?></a>
+                    <?php endif; ?>
+                </span>
+            </div>
+            <div class="aicom-card-body" style="padding:0">
+            <?php if ( empty( $keys ) ) : ?>
+                <p style="padding:24px;color:#6b7280;margin:0"><?php esc_html_e( 'No API keys yet. Generate your first key on the Generate tab.', 'aicom' ); ?></p>
+            <?php else : ?>
+                <table class="aicom-keys-table">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Label', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Prefix', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Status', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Scopes', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Expires', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Last Used', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Created', 'aicom' ); ?></th>
+                            <th style="width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ( $keys as $key ) :
+                        $scopes = json_decode( $key['scopes_json'], true ) ?: [];
+                        $status_class = match( $key['status'] ) {
+                            'active'    => 'aicom-status-active',
+                            'suspended' => 'aicom-status-suspended',
+                            'expired'   => 'aicom-status-expired',
+                            'archived'  => 'aicom-status-archived',
+                            default     => 'aicom-status-revoked',
+                        };
+                    ?>
+                        <tr>
+                            <td><span class="aicom-key-label"><?php echo esc_html( $key['label'] ); ?></span></td>
+                            <td><code class="aicom-key-prefix"><?php echo esc_html( $key['key_prefix'] ); ?>…</code></td>
+                            <td><span class="aicom-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span></td>
+                            <td class="aicom-key-scopes">
+                                <?php if ( empty( $scopes ) ) : ?>
+                                <em style="color:#9ca3af"><?php esc_html_e( 'none', 'aicom' ); ?></em>
+                                <?php else : ?>
+                                <details>
+                                    <summary><?php printf( esc_html( _n( '%d scope', '%d scopes', count( $scopes ), 'aicom' ) ), count( $scopes ) ); ?></summary>
+                                    <?php foreach ( $scopes as $s ) : ?><code><?php echo esc_html( $s ); ?></code><?php endforeach; ?>
+                                </details>
+                                <?php endif; ?>
+                            </td>
+                            <td class="aicom-key-date"><?php echo $key['expires_at'] ? esc_html( substr( $key['expires_at'], 0, 10 ) ) : '—'; ?></td>
+                            <td class="aicom-key-date"><?php echo $key['last_used_at'] ? esc_html( substr( $key['last_used_at'], 0, 16 ) ) : '—'; ?></td>
+                            <td class="aicom-key-date"><?php echo esc_html( substr( $key['created_at'], 0, 10 ) ); ?></td>
+                            <td>
+                            <?php if ( $key['status'] === 'revoked' ) : ?>
+                                <em style="color:#9ca3af">—</em>
+                            <?php else : ?>
+                                <div class="aicom-km">
+                                    <button type="button" class="aicom-km-trigger" title="<?php esc_attr_e( 'Actions', 'aicom' ); ?>">&#8942;</button>
+                                    <div class="aicom-km-dropdown">
+                                    <?php if ( $key['status'] === 'active' ) : ?>
+                                        <a href="<?php echo esc_url( add_query_arg( [ 'action' => 'edit_key', 'key_id' => $key['id'] ], admin_url( 'admin.php?page=aicom-api-keys' ) ) ); ?>"
+                                           class="aicom-km-item">
+                                            <span class="aicom-km-icon">✎</span> <?php esc_html_e( 'Edit scopes', 'aicom' ); ?>
+                                        </a>
+                                        <div class="aicom-km-sep"></div>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="rotate_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item"
+                                                    onclick="return confirm('<?php echo esc_js( __( 'Rotate this key? The old key stops working immediately.', 'aicom' ) ); ?>')">
+                                                <span class="aicom-km-icon">↻</span> <?php esc_html_e( 'Rotate key', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                        <div class="aicom-km-sep"></div>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="suspend_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item aicom-km-warn">
+                                                <span class="aicom-km-icon">⊘</span> <?php esc_html_e( 'Suspend', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="revoke_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item aicom-km-danger"
+                                                    onclick="return confirm('<?php echo esc_js( __( 'Revoke this key? This cannot be undone.', 'aicom' ) ); ?>')">
+                                                <span class="aicom-km-icon">✕</span> <?php esc_html_e( 'Revoke', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                    <?php elseif ( $key['status'] === 'suspended' || $key['status'] === 'expired' ) : ?>
+                                        <?php if ( $key['status'] === 'suspended' ) : ?>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="unsuspend_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item aicom-km-ok">
+                                                <span class="aicom-km-icon">✓</span> <?php esc_html_e( 'Unsuspend', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                        <div class="aicom-km-sep"></div>
+                                        <?php endif; ?>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="archive_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item">
+                                                <span class="aicom-km-icon">⌁</span> <?php esc_html_e( 'Archive', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="revoke_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item aicom-km-danger"
+                                                    onclick="return confirm('<?php echo esc_js( __( 'Revoke this key? This cannot be undone.', 'aicom' ) ); ?>')">
+                                                <span class="aicom-km-icon">✕</span> <?php esc_html_e( 'Revoke', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                    <?php elseif ( $key['status'] === 'archived' ) : ?>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="unarchive_key" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item aicom-km-ok">
+                                                <span class="aicom-km-icon">↩</span> <?php esc_html_e( 'Unarchive', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+            </div>
+        </div>
+    </div><!-- #aicom-tab-keys -->
+
+<?php include AICOM_DIR . 'admin/partials/layout-bottom.php'; ?>
 <?php
 } )();

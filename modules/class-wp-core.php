@@ -347,9 +347,25 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
     }
 
     public function handle_tools_list( array $args, array $key_record, bool $dry_run ): array {
-        $active = AICOM_Module_Detector::get_active_modules();
+        $active      = AICOM_Module_Detector::get_active_modules();
+        $lock_status = AICOM_Lock_Manager::get_effective_lock();
+        $active_session = AICOM_Sessions::get_active( (int) $key_record['id'] );
+
+        $session_note = $active_session
+            ? 'You have an active session: "' . $active_session['name'] . '" (ID ' . $active_session['id'] . '). You may proceed with write/destructive tools.'
+            : 'IMPORTANT: You do NOT have an active session. Before calling any write, destructive, or admin_sensitive tool you MUST first call session.open. Provide a clear name (e.g. "Update homepage hero text") and a description of what you plan to do and why (e.g. "Rewriting the hero headline and subtext to match the new brand guidelines"). This is required — not optional. Read-only and discovery tools work without a session.';
+
+        $lock_note = match ( $lock_status ) {
+            'hard_locked' => 'SAFETY: The site is HARD LOCKED — only public/discovery tools are allowed.',
+            'soft_locked' => 'SAFETY: The site is SOFT LOCKED — read and discovery tools only; all write operations are blocked.',
+            default       => '',
+        };
+
+        $instructions = trim( implode( "\n\n", array_filter( [ $session_note, $lock_note ] ) ) );
+
         return $this->ok( [
-            'tools' => AICOM_Tool_Registry::to_mcp_list( $active ),
+            'instructions' => $instructions,
+            'tools'        => AICOM_Tool_Registry::to_mcp_list( $active ),
         ] );
     }
 

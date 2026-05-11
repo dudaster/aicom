@@ -24,6 +24,9 @@
  */
 class AICOM_Tool_Router {
 
+    /** Session ID of the active session for the current request (0 = none). */
+    public static int $current_session_id = 0;
+
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
     public static function dispatch( string $raw_body ): array {
@@ -110,6 +113,29 @@ class AICOM_Tool_Router {
         $key_id    = (int) $key_record['id'];
         $key_label = $key_record['label'];
 
+        // ── Step 3.5: Session enforcement ─────────────────────────────────
+        // Write/destructive/admin_sensitive tools require an open named session.
+        // Exempt: session.open, session.close, tools/list, and read/discovery tools.
+        $session_exempt = in_array( $tool_name, [ 'session.open', 'session.close', 'tools/list' ], true )
+            || in_array( $tool_class, [ 'read', 'discovery', 'public' ], true )
+            || $tool_meta === null; // unknown tools → rejected at step 4
+
+        if ( $session_exempt ) {
+            self::$current_session_id = 0;
+        } else {
+            $active_session = AICOM_Sessions::get_active( $key_id );
+            if ( ! $active_session ) {
+                return self::keyed_error(
+                    $request_id, $remote_ip, $key_id, $key_label,
+                    $tool_name, $tool_module,
+                    'NO_ACTIVE_SESSION',
+                    'Open a session first: session.open(name: "Describe what you\'re about to do")',
+                    'validation_failed', 400, $arguments, $start, $rpc_id
+                );
+            }
+            self::$current_session_id = (int) $active_session['id'];
+        }
+
         // ── Step 4: Tool exists ───────────────────────────────────────────
         if ( $tool_meta === null ) {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'TOOL_NOT_FOUND', "Tool not found: $tool_name", 'error', 404, $arguments, $start, $rpc_id );
@@ -192,11 +218,13 @@ class AICOM_Tool_Router {
 
         AICOM_Audit_Logger::log( [
             'request_id'          => $request_id,
+            'session_id'          => self::$current_session_id ?: null,
             'remote_ip'           => $remote_ip,
             'api_key_id'          => $key_id,
             'api_key_label'       => $key_label,
             'tool_name'           => $tool_name,
             'module'              => $tool_module,
+            'tool_class'          => $tool_class,
             'status'              => $is_error ? ( $result['error']['status_code'] ?? 'error' ) : 'success',
             'http_status'         => $is_error ? ( $result['http_status'] ?? 500 ) : 200,
             'duration_ms'         => $duration,

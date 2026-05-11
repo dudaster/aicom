@@ -112,7 +112,27 @@ ok( 'includes category', in_array( 'category', $tax_slugs ) );
 ok( 'includes post_tag', in_array( 'post_tag', $tax_slugs ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. Posts — full CRUD + preview_url
+// 2. Sessions — enforcement + lifecycle
+// ═══════════════════════════════════════════════════════════════════════════
+
+section( 'session enforcement: write without session → error' );
+$r = tool( 'wp.posts.create', [ 'post_title' => 'Should fail', 'post_type' => 'post', 'post_status' => 'draft' ] );
+ok( 'returns NO_ACTIVE_SESSION error', ( $r['error']['code'] ?? '' ) === 'NO_ACTIVE_SESSION', json_encode( $r ) );
+
+section( 'session.open' );
+$r = tool( 'session.open', [ 'name' => 'Smoke Test Session', 'description' => 'Automated smoke tests' ] );
+ok( 'no error', ! is_err( $r ), json_encode( $r ) );
+ok( 'returns session_id', isset( $r['session_id'] ) && $r['session_id'] > 0, json_encode( $r ) );
+ok( 'returns name', ( $r['name'] ?? '' ) === 'Smoke Test Session' );
+ok( 'returns opened_at', ! empty( $r['opened_at'] ) );
+$smoke_session_id = $r['session_id'] ?? 0;
+
+section( 'session.open again → SESSION_ALREADY_OPEN' );
+$r = tool( 'session.open', [ 'name' => 'Duplicate session' ] );
+ok( 'returns SESSION_ALREADY_OPEN', ( $r['error']['code'] ?? '' ) === 'SESSION_ALREADY_OPEN', json_encode( $r ) );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3. Posts — full CRUD + preview_url
 // ═══════════════════════════════════════════════════════════════════════════
 
 section( 'wp.posts.create' );
@@ -423,6 +443,135 @@ ok( 'elementor.page.create_from_template in list', in_array( 'elementor.page.cre
 ok( 'yoast.post.get in list', in_array( 'yoast.post.get', $tool_names ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 12. API Key Lifecycle (v2.7.0)
+// ═══════════════════════════════════════════════════════════════════════════
+
+global $wpdb;
+$lifecycle_key_ids = [];
+
+section( 'create_key with expires_at' );
+$future = gmdate( 'Y-m-d 23:59:59', strtotime( '+30 days' ) );
+$lk1 = AICOM_Auth::create_key( 'Lifecycle-Future', [ 'read.wp' ], [], $future );
+$lifecycle_key_ids[] = $lk1['id'];
+$lk1_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk1['id'] ), ARRAY_A );
+ok( 'expires_at stored in DB', ! empty( $lk1_row['expires_at'] ), $lk1_row['expires_at'] ?? 'null' );
+ok( 'expires_at matches', substr( $lk1_row['expires_at'], 0, 10 ) === substr( $future, 0, 10 ) );
+ok( 'status is active', $lk1_row['status'] === 'active' );
+
+section( 'validate_key: future expiry → valid' );
+$validated = AICOM_Auth::validate_key( $lk1['plain_key'] );
+ok( 'valid key accepted', $validated !== null );
+ok( 'correct id returned', (int) ( $validated['id'] ?? 0 ) === $lk1['id'] );
+
+section( 'create_key with past expires_at → expired by cron' );
+$past = gmdate( 'Y-m-d 23:59:59', strtotime( '-1 day' ) );
+$lk2 = AICOM_Auth::create_key( 'Lifecycle-Past', [ 'read.wp' ], [], $past );
+$lifecycle_key_ids[] = $lk2['id'];
+// Manually force-set status back to active (create_key sets active, validate checks expiry inline).
+// validate_key should reject it because expires_at < NOW even though status=active.
+$validated_past = AICOM_Auth::validate_key( $lk2['plain_key'] );
+ok( 'expired key rejected by validate_key', $validated_past === null );
+
+section( 'expire_overdue_keys cron job' );
+// Reset lk2 to active to simulate the pre-cron state, then run cron.
+$wpdb->update( "{$wpdb->prefix}aicom_api_keys", [ 'status' => 'active' ], [ 'id' => $lk2['id'] ] );
+AICOM_Auth::expire_overdue_keys();
+$lk2_row = $wpdb->get_row( $wpdb->prepare( "SELECT status FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk2['id'] ), ARRAY_A );
+ok( 'past-expiry key marked expired', ( $lk2_row['status'] ?? '' ) === 'expired' );
+
+// Future key must NOT be expired by cron
+$lk1_row_after = $wpdb->get_row( $wpdb->prepare( "SELECT status FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk1['id'] ), ARRAY_A );
+ok( 'future key still active after cron', ( $lk1_row_after['status'] ?? '' ) === 'active' );
+
+section( 'create_key without expires_at → no expiry' );
+$lk3 = AICOM_Auth::create_key( 'Lifecycle-NoExpiry', [ 'read.wp' ] );
+$lifecycle_key_ids[] = $lk3['id'];
+$lk3_row = $wpdb->get_row( $wpdb->prepare( "SELECT expires_at, status FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk3['id'] ), ARRAY_A );
+ok( 'expires_at is NULL', $lk3_row['expires_at'] === null );
+$lk3_validated = AICOM_Auth::validate_key( $lk3['plain_key'] );
+ok( 'no-expiry key always valid', $lk3_validated !== null );
+
+section( 'archive_key / unarchive_key' );
+$lk_arch = AICOM_Auth::create_key( 'Lifecycle-Archive', [ 'read.wp' ] );
+$lifecycle_key_ids[] = $lk_arch['id'];
+
+// Suspend first so archive works from suspended state
+AICOM_Auth::suspend_key( $lk_arch['id'] );
+$arch_ok = AICOM_Auth::archive_key( $lk_arch['id'] );
+ok( 'archive_key returns true', $arch_ok );
+$arch_row = $wpdb->get_row( $wpdb->prepare( "SELECT status FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_arch['id'] ), ARRAY_A );
+ok( 'status → archived', ( $arch_row['status'] ?? '' ) === 'archived' );
+
+// Archived key must not validate
+$arch_validated = AICOM_Auth::validate_key( $lk_arch['plain_key'] );
+ok( 'archived key rejected', $arch_validated === null );
+
+$unarch_ok = AICOM_Auth::unarchive_key( $lk_arch['id'] );
+ok( 'unarchive_key returns true', $unarch_ok );
+$unarch_row = $wpdb->get_row( $wpdb->prepare( "SELECT status FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_arch['id'] ), ARRAY_A );
+ok( 'status → suspended after unarchive', ( $unarch_row['status'] ?? '' ) === 'suspended' );
+
+// unarchive_key on non-archived key must fail
+$double_unarch = AICOM_Auth::unarchive_key( $lk_arch['id'] ); // already suspended
+ok( 'unarchive non-archived key returns false', $double_unarch === false );
+
+// ── update_key (Repurpose Key) ─────────────────────────────────────────────
+
+section( 'update_key: scope diff' );
+$lk_edit = AICOM_Auth::create_key( 'Lifecycle-Edit', [ 'read.wp', 'write.wp.posts' ] );
+$lifecycle_key_ids[] = $lk_edit['id'];
+$new_scopes = [ 'read.wp', 'manage.meta', 'manage.taxonomies' ];
+$diff = AICOM_Auth::update_key( $lk_edit['id'], $new_scopes, [], null );
+ok( 'update_key returns diff array', is_array( $diff ) );
+ok( 'added contains manage.meta', in_array( 'manage.meta', $diff['added'] ?? [], true ) );
+ok( 'added contains manage.taxonomies', in_array( 'manage.taxonomies', $diff['added'] ?? [], true ) );
+ok( 'removed contains write.wp.posts', in_array( 'write.wp.posts', $diff['removed'] ?? [], true ) );
+ok( 'read.wp not in added or removed', ! in_array( 'read.wp', $diff['added'] ?? [], true ) && ! in_array( 'read.wp', $diff['removed'] ?? [], true ) );
+
+$edit_row = $wpdb->get_row( $wpdb->prepare( "SELECT scopes_json FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_edit['id'] ), ARRAY_A );
+$saved_scopes = json_decode( $edit_row['scopes_json'] ?? '[]', true );
+ok( 'new scopes saved in DB', $saved_scopes === $new_scopes );
+
+section( 'update_key: expiry' );
+$new_expiry = gmdate( 'Y-m-d 23:59:59', strtotime( '+7 days' ) );
+AICOM_Auth::update_key( $lk_edit['id'], $new_scopes, [], $new_expiry );
+$expiry_row = $wpdb->get_row( $wpdb->prepare( "SELECT expires_at FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_edit['id'] ), ARRAY_A );
+ok( 'expiry saved', ! empty( $expiry_row['expires_at'] ) );
+ok( 'expiry date correct', substr( $expiry_row['expires_at'], 0, 10 ) === substr( $new_expiry, 0, 10 ) );
+
+// Clear expiry
+AICOM_Auth::update_key( $lk_edit['id'], $new_scopes, [], null );
+$cleared_row = $wpdb->get_row( $wpdb->prepare( "SELECT expires_at FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_edit['id'] ), ARRAY_A );
+ok( 'expiry cleared to NULL', $cleared_row['expires_at'] === null );
+
+section( 'update_key: restrictions' );
+$restrictions = [ 'dry_run_only' => true, 'ip_allowlist' => [ '10.0.0.1', '192.168.1.0/24' ] ];
+AICOM_Auth::update_key( $lk_edit['id'], $new_scopes, $restrictions, null );
+$rest_row = $wpdb->get_row( $wpdb->prepare( "SELECT restrictions_json FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_edit['id'] ), ARRAY_A );
+$saved_rest = json_decode( $rest_row['restrictions_json'] ?? '{}', true );
+ok( 'dry_run_only saved', ! empty( $saved_rest['dry_run_only'] ) );
+ok( 'ip_allowlist saved', ( $saved_rest['ip_allowlist'] ?? [] ) === [ '10.0.0.1', '192.168.1.0/24' ] );
+
+section( 'rotate after update' );
+$old_prefix = $lk_edit['key_prefix'] ?? '';
+$new_plain = AICOM_Auth::rotate_key( $lk_edit['id'] );
+ok( 'rotate returns new plain key', ! empty( $new_plain ) );
+ok( 'new key starts with aicom_', strpos( $new_plain, 'aicom_' ) === 0 );
+$rotated_row = $wpdb->get_row( $wpdb->prepare( "SELECT key_prefix FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $lk_edit['id'] ), ARRAY_A );
+ok( 'prefix changed after rotate', ( $rotated_row['key_prefix'] ?? '' ) !== $old_prefix );
+ok( 'new plain key validates', AICOM_Auth::validate_key( $new_plain ) !== null );
+
+section( 'session.close' );
+$r = tool( 'session.close', [] );
+ok( 'no error', ! is_err( $r ), json_encode( $r ) );
+ok( 'closed = true', ( $r['closed'] ?? false ) === true );
+ok( 'session_id matches', (int) ( $r['session_id'] ?? 0 ) === $smoke_session_id );
+
+section( 'session.close again → NO_ACTIVE_SESSION' );
+$r = tool( 'session.close', [] );
+ok( 'returns NO_ACTIVE_SESSION', ( $r['error']['code'] ?? '' ) === 'NO_ACTIVE_SESSION', json_encode( $r ) );
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Cleanup
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -433,7 +582,14 @@ foreach ( $cleanup_terms as $t ) {
     wp_delete_term( $t['id'], $t['tax'] );
 }
 global $wpdb;
+if ( $smoke_session_id ?? 0 ) {
+    $wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'id' => $smoke_session_id ] );
+}
+$wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $key_id ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $key_id ] );
+foreach ( $lifecycle_key_ids as $lid ) {
+    $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $lid ] );
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Summary

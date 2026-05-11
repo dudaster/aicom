@@ -27,11 +27,13 @@ class AICOM_Audit_Logger {
         $defaults = [
             'created_at'          => current_time( 'mysql', true ),
             'request_id'          => wp_generate_uuid4(),
+            'session_id'          => null,
             'remote_ip'           => '0.0.0.0',
             'api_key_id'          => null,
             'api_key_label'       => null,
             'tool_name'           => 'unknown',
             'module'              => 'unknown',
+            'tool_class'          => null,
             'status'              => 'error',
             'http_status'         => null,
             'duration_ms'         => null,
@@ -80,6 +82,10 @@ class AICOM_Audit_Logger {
             $where[]  = 'remote_ip = %s';
             $params[] = $filters['remote_ip'];
         }
+        if ( ! empty( $filters['session_id'] ) ) {
+            $where[]  = 'session_id = %d';
+            $params[] = (int) $filters['session_id'];
+        }
         if ( ! empty( $filters['date_from'] ) ) {
             $where[]  = 'created_at >= %s';
             $params[] = $filters['date_from'];
@@ -115,6 +121,65 @@ class AICOM_Audit_Logger {
             'items' => $items ?: [],
             'total' => $total,
         ];
+    }
+
+    /**
+     * Log requests per day broken down by tool_class, including zero-count days.
+     * Returns [['date' => 'Y-m-d', 'total' => int, 'classes' => [class => count]], ...] ASC.
+     */
+    public static function get_daily_sessions( string $date_from, string $date_to ): array {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT DATE(l.created_at) AS date, l.tool_class, COUNT(*) AS cnt
+                 FROM {$wpdb->prefix}aicom_logs l
+                 INNER JOIN {$wpdb->prefix}aicom_sessions s ON s.id = l.session_id
+                 WHERE l.tool_class IS NOT NULL
+                   AND DATE(l.created_at) BETWEEN %s AND %s
+                 GROUP BY DATE(l.created_at), l.tool_class
+                 ORDER BY date ASC",
+                $date_from,
+                $date_to
+            ),
+            ARRAY_A
+        ) ?: [];
+
+        $by_date = [];
+        foreach ( $rows as $row ) {
+            $by_date[ $row['date'] ][ $row['tool_class'] ] = (int) $row['cnt'];
+        }
+
+        $result  = [];
+        $current = strtotime( $date_from );
+        $end     = strtotime( $date_to );
+        while ( $current <= $end ) {
+            $d       = gmdate( 'Y-m-d', $current );
+            $classes = $by_date[ $d ] ?? [];
+            $result[] = [
+                'date'    => $d,
+                'total'   => array_sum( $classes ),
+                'classes' => $classes,
+            ];
+            $current = strtotime( '+1 day', $current );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Whether any classified log entries exist before a given date (for graph back-navigation).
+     */
+    public static function has_logs_before( string $date ): bool {
+        global $wpdb;
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT 1 FROM {$wpdb->prefix}aicom_logs l
+                 INNER JOIN {$wpdb->prefix}aicom_sessions s ON s.id = l.session_id
+                 WHERE l.tool_class IS NOT NULL AND DATE(l.created_at) < %s LIMIT 1",
+                $date
+            )
+        );
     }
 
     /**

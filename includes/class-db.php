@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.0';
+    const DB_VERSION    = '4.4';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -75,6 +75,43 @@ class AICOM_DB {
             $wpdb->show_errors();
         }
 
+        // v4.1: add aicom_presets table for user-defined scope presets.
+        // dbDelta in create_tables() handles the actual CREATE; nothing to ALTER here.
+
+        // v4.2: add expires_at to api_keys for TTL / scheduled expiry.
+        if ( version_compare( $current, '4.2', '<' ) ) {
+            $wpdb->hide_errors();
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_api_keys
+                ADD COLUMN IF NOT EXISTS expires_at DATETIME NULL AFTER revoked_at" );
+            $wpdb->show_errors();
+        }
+
+        // v4.3: add sessions table + session_id to logs and backups.
+        if ( version_compare( $current, '4.3', '<' ) ) {
+            $wpdb->hide_errors();
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_logs ADD COLUMN IF NOT EXISTS session_id BIGINT UNSIGNED NULL AFTER request_id" );
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_logs ADD INDEX IF NOT EXISTS idx_session_id (session_id)" );
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_backups ADD COLUMN IF NOT EXISTS session_id BIGINT UNSIGNED NULL AFTER request_id" );
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_backups ADD INDEX IF NOT EXISTS idx_session_id (session_id)" );
+            $wpdb->show_errors();
+        }
+
+        // v4.4: add tool_class to logs for graph color breakdown.
+        if ( version_compare( $current, '4.4', '<' ) ) {
+            $wpdb->hide_errors();
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_logs ADD COLUMN IF NOT EXISTS tool_class VARCHAR(30) NULL AFTER module" );
+            $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_logs ADD INDEX IF NOT EXISTS idx_tool_class (tool_class)" );
+            // Backfill existing rows using tool_name patterns.
+            $t = $wpdb->prefix . 'aicom_logs';
+            $wpdb->query( "UPDATE $t SET tool_class = 'public'          WHERE tool_class IS NULL AND tool_name = 'server.status'" );
+            $wpdb->query( "UPDATE $t SET tool_class = 'discovery'       WHERE tool_class IS NULL AND tool_name IN ('tools/list','wp.post_types.list','wp.taxonomies.list')" );
+            $wpdb->query( "UPDATE $t SET tool_class = 'admin_sensitive' WHERE tool_class IS NULL AND (tool_name LIKE 'wp.options.set%' OR tool_name LIKE 'wp.users.create%' OR tool_name LIKE 'wp.users.update%' OR tool_name LIKE 'wp.roles.%' OR tool_name = 'backup.cleanup')" );
+            $wpdb->query( "UPDATE $t SET tool_class = 'destructive'     WHERE tool_class IS NULL AND tool_name LIKE '%.delete'" );
+            $wpdb->query( "UPDATE $t SET tool_class = 'read'            WHERE tool_class IS NULL AND (tool_name LIKE '%.list' OR tool_name LIKE '%.get')" );
+            $wpdb->query( "UPDATE $t SET tool_class = 'write'           WHERE tool_class IS NULL" );
+            $wpdb->show_errors();
+        }
+
         // v4.0: rename tables from acl_* → aicom_* (second rebrand).
         if ( version_compare( $current, '4.0', '<' ) ) {
             $wpdb->hide_errors();
@@ -116,6 +153,7 @@ class AICOM_DB {
             updated_at          DATETIME        NOT NULL,
             created_by_user_id  BIGINT UNSIGNED NULL,
             revoked_at          DATETIME        NULL,
+            expires_at          DATETIME        NULL,
             PRIMARY KEY  (id),
             KEY idx_key_prefix (key_prefix),
             KEY idx_status     (status)
@@ -131,6 +169,7 @@ class AICOM_DB {
             api_key_label       VARCHAR(191)    NULL,
             tool_name           VARCHAR(191)    NOT NULL,
             module              VARCHAR(64)     NOT NULL,
+            tool_class          VARCHAR(30)     NULL,
             status              VARCHAR(32)     NOT NULL,
             http_status         SMALLINT        NULL,
             duration_ms         INT UNSIGNED    NULL,
@@ -147,7 +186,8 @@ class AICOM_DB {
             KEY idx_status_created   (status, created_at),
             KEY idx_ip_created       (remote_ip, created_at),
             KEY idx_key_created      (api_key_id, created_at),
-            KEY idx_request_id       (request_id)
+            KEY idx_request_id       (request_id),
+            KEY idx_tool_class       (tool_class)
         ) $charset;";
 
         // ── Backups ───────────────────────────────────────────────────────
@@ -166,8 +206,36 @@ class AICOM_DB {
             KEY idx_target     (target_type, target_id)
         ) $charset;";
 
+        // ── Sessions ──────────────────────────────────────────────────────
+        $sql_sessions = "CREATE TABLE {$wpdb->prefix}aicom_sessions (
+            id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            api_key_id    BIGINT UNSIGNED NOT NULL,
+            api_key_label VARCHAR(191)    NOT NULL DEFAULT '',
+            name          VARCHAR(255)    NOT NULL,
+            description   TEXT            NULL,
+            status        VARCHAR(20)     NOT NULL DEFAULT 'open',
+            opened_at     DATETIME        NOT NULL,
+            closed_at     DATETIME        NULL,
+            PRIMARY KEY (id),
+            KEY idx_api_key_status (api_key_id, status),
+            KEY idx_opened_at      (opened_at)
+        ) $charset;";
+
+        // ── User Presets ──────────────────────────────────────────────────
+        $sql_presets = "CREATE TABLE {$wpdb->prefix}aicom_presets (
+            id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name                VARCHAR(191)    NOT NULL,
+            scopes_json         LONGTEXT        NOT NULL,
+            created_at          DATETIME        NOT NULL,
+            created_by_user_id  BIGINT UNSIGNED NULL,
+            PRIMARY KEY (id),
+            KEY idx_created_at (created_at)
+        ) $charset;";
+
         dbDelta( $sql_keys );
         dbDelta( $sql_logs );
         dbDelta( $sql_backups );
+        dbDelta( $sql_sessions );
+        dbDelta( $sql_presets );
     }
 }

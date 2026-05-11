@@ -5,7 +5,7 @@
  * Exposes Clautron's capability catalog, blueprint management, and primitive
  * registry to AI agents. Requires Clautron plugin to be active.
  *
- * Registered tools (11):
+ * Registered tools (15):
  *   clautron.catalog.list             — active capabilities + available templates
  *   clautron.catalog.install          — install a template by capability_id
  *   clautron.primitives.list          — full primitive catalog with schemas
@@ -17,6 +17,10 @@
  *   clautron.blueprint.smoke_test     — verify compiled blueprint is wired correctly
  *   clautron.capability.meta.get      — read capability meta fields for a post
  *   clautron.capability.meta.set      — write capability meta fields for a post
+ *   clautron.events.types             — list all distinct event types in the store
+ *   clautron.events.query             — read raw event rows with filters
+ *   clautron.events.aggregate         — aggregate events (count/sum/avg by period)
+ *   clautron.capability.ensure        — idempotent: activate capability, create if missing
  */
 class AICOM_Module_Clautron extends AICOM_Module_Base {
 
@@ -34,7 +38,7 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             'class'           => 'discovery',
             'required_scopes' => [ 'read.wp' ],
             'dependency'      => $dep,
-            'description'     => 'List all Clautron capabilities: active ones (compiled and running) and available templates (demo blueprints ready to install). Use this first to understand what functionality exists on the site before building or operating on content.',
+            'description'     => 'List all Clautron capabilities: active ones (compiled and running) and available templates (demo blueprints ready to install). Each entry includes an llm_guide field with instructions on how to interact with that capability. ALWAYS call this before creating any new capability — if a capability_id already exists, use clautron.capability.ensure instead of clautron.blueprint.create to avoid duplicates.',
             'input_schema'    => [],
             'handler'         => [ $this, 'handle_catalog_list' ],
         ] );
@@ -103,9 +107,9 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             'required_scopes'  => [ $scopes ],
             'supports_dry_run' => true,
             'dependency'       => $dep,
-            'description'      => 'Create a new blueprint from a JSON string. Returns the new blueprint_id. The blueprint is saved as a draft — use clautron.blueprint.compile to activate it.',
+            'description'      => 'Create a new blueprint from a JSON string. Returns the new blueprint_id. The blueprint is saved as a draft — use clautron.blueprint.compile to activate it. WARNING: this tool is NOT idempotent. If you need to create a named capability, use clautron.capability.ensure instead — it checks whether a capability_id already exists before creating anything.',
             'input_schema'     => [
-                'blueprint_json' => [ 'type' => 'string', 'required' => true, 'description' => 'Full blueprint JSON. Must pass clautron.blueprint.validate first.' ],
+                'blueprint_json' => [ 'type' => 'string', 'required' => true, 'description' => 'Full blueprint JSON. Include capability_id and llm_guide fields. Must pass clautron.blueprint.validate first.' ],
             ],
             'handler'          => [ $this, 'handle_blueprint_create' ],
         ] );
@@ -148,6 +152,67 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
                 'post_id'       => [ 'type' => 'integer', 'required' => true ],
             ],
             'handler'         => [ $this, 'handle_capability_meta_get' ],
+        ] );
+
+        // ── Idempotent provisioning ────────────────────────────────────────────
+
+        $this->register( 'clautron.capability.ensure', [
+            'class'            => 'write',
+            'required_scopes'  => [ $scopes ],
+            'supports_dry_run' => true,
+            'dependency'       => $dep,
+            'description'      => 'Idempotent: activate a capability by capability_id. If it is already active, returns it immediately without creating anything. If it matches a demo template, installs the template. If neither, creates and compiles the provided blueprint_json. This is the PREFERRED way to provision capabilities — use this instead of blueprint.create + blueprint.compile to avoid duplicate blueprints.',
+            'input_schema'     => [
+                'capability_id'  => [ 'type' => 'string', 'required' => true, 'description' => 'Unique slug for this capability (e.g. "login-tracker", "order-monitor"). This is the idempotency key.' ],
+                'blueprint_json' => [ 'type' => 'string', 'description' => 'Full blueprint JSON for custom capabilities not available as templates. Include llm_guide and provides fields. Required if capability_id is not a known template.' ],
+            ],
+            'handler'          => [ $this, 'handle_capability_ensure' ],
+        ] );
+
+        // ── Events (monitoring & analytics) ───────────────────────────────────
+
+        $this->register( 'clautron.events.types', [
+            'class'           => 'discovery',
+            'required_scopes' => [ 'read.wp' ],
+            'dependency'      => $dep,
+            'description'     => 'List all distinct event_type values currently stored in clautron_events. Use this first to discover what monitoring capabilities are active on the site before querying or aggregating.',
+            'input_schema'    => [],
+            'handler'         => [ $this, 'handle_events_types' ],
+        ] );
+
+        $this->register( 'clautron.events.query', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp' ],
+            'dependency'      => $dep,
+            'description'     => 'Read raw event rows from the clautron_events store. Use to inspect individual occurrences before deciding whether to aggregate. Max 500 rows per call.',
+            'input_schema'    => [
+                'event_type'  => [ 'type' => 'string',  'required' => true,  'description' => 'Event type slug (from clautron.events.types).' ],
+                'since'       => [ 'type' => 'string',  'description' => 'strtotime-compatible start (e.g. -7 days, -1 month). Default: -30 days.' ],
+                'until'       => [ 'type' => 'string',  'description' => 'strtotime-compatible end. Default: now.' ],
+                'object_type' => [ 'type' => 'string',  'description' => 'Filter by object category (post, user, order…).' ],
+                'object_id'   => [ 'type' => 'integer', 'description' => 'Filter by object ID.' ],
+                'text_value'  => [ 'type' => 'string',  'description' => 'Filter by exact text_value (URL, status…).' ],
+                'limit'       => [ 'type' => 'integer', 'description' => 'Max rows to return (default 100, max 500).' ],
+                'order'       => [ 'type' => 'string',  'description' => 'ASC or DESC. Default DESC.' ],
+            ],
+            'handler'         => [ $this, 'handle_events_query' ],
+        ] );
+
+        $this->register( 'clautron.events.aggregate', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp' ],
+            'dependency'      => $dep,
+            'description'     => 'Aggregate clautron_events data for trend analysis and reporting. Returns an array of {period, value} rows. Use to detect trends, compare periods, or summarise monitoring data before generating insights.',
+            'input_schema'    => [
+                'event_type'  => [ 'type' => 'string',  'required' => true ],
+                'aggregate'   => [ 'type' => 'string',  'description' => 'count | sum | avg | min | max. Default: count.' ],
+                'group_by'    => [ 'type' => 'string',  'description' => 'hour | day | week | month | object_id | text_value. Omit for a single scalar result.' ],
+                'since'       => [ 'type' => 'string',  'description' => 'Start of period. Default: -30 days.' ],
+                'until'       => [ 'type' => 'string',  'description' => 'End of period. Default: now.' ],
+                'object_type' => [ 'type' => 'string',  'description' => 'Filter by object category.' ],
+                'object_id'   => [ 'type' => 'integer', 'description' => 'Filter by object ID.' ],
+            ],
+            'handler'         => [ $this, 'handle_events_aggregate' ],
         ] );
 
         $this->register( 'clautron.capability.meta.set', [
@@ -452,5 +517,128 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             'target_id'   => $post_id,
             'summary'     => [ 'fields' => $result['updated'] ?? [] ],
         ] );
+    }
+
+    // ── Ensure handler ────────────────────────────────────────────────────────
+
+    public function handle_capability_ensure( array $args, array $key_record, bool $dry_run ): array {
+        $capability_id  = $this->require_string( $args, 'capability_id' );
+        $blueprint_json = $args['blueprint_json'] ?? '';
+
+        if ( ! $capability_id ) {
+            return $this->err( 'MISSING_PARAM', 'capability_id is required.', 'validation_failed' );
+        }
+        if ( ! class_exists( 'CLAUTRON_Catalog' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Catalog not available.', 'error' );
+        }
+
+        if ( $dry_run ) {
+            $cap       = null;
+            $active    = CLAUTRON_Catalog::get_active();
+            foreach ( $active as $a ) {
+                if ( $a['capability_id'] === $capability_id ) {
+                    $cap = $a;
+                    break;
+                }
+            }
+            $in_templates = false;
+            foreach ( CLAUTRON_Catalog::get_templates() as $t ) {
+                if ( $t['capability_id'] === $capability_id ) {
+                    $in_templates = true;
+                    break;
+                }
+            }
+            return $this->ok( [
+                'dry_run'          => true,
+                'capability_id'    => $capability_id,
+                'already_active'   => ! is_null( $cap ),
+                'blueprint_id'     => $cap ? $cap['blueprint_id'] : null,
+                'template_exists'  => $in_templates,
+                'would_create'     => ! $cap && ! $in_templates && (bool) $blueprint_json,
+            ] );
+        }
+
+        $result = CLAUTRON_Catalog::ensure( $capability_id, $blueprint_json );
+
+        if ( ! ( $result['success'] ?? false ) ) {
+            return $this->err( 'ENSURE_FAILED', $result['error'] ?? 'Unknown error.', 'error' );
+        }
+
+        return $this->ok( $result, [
+            'target_type' => 'clautron_blueprint',
+            'target_id'   => $result['blueprint_id'] ?? 0,
+            'summary'     => [ 'action' => 'ensure', 'status' => $result['status'] ?? '', 'capability_id' => $capability_id ],
+        ] );
+    }
+
+    // ── Events handlers ───────────────────────────────────────────────────────
+
+    public function handle_events_types( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! class_exists( 'CLAUTRON_Event_Store' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Event_Store not available.', 'error' );
+        }
+
+        $types = CLAUTRON_Event_Store::get_distinct_types();
+        return $this->ok(
+            [ 'event_types' => $types, 'count' => count( $types ) ],
+            [ 'target_type' => 'clautron_events' ]
+        );
+    }
+
+    public function handle_events_query( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! class_exists( 'CLAUTRON_Event_Store' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Event_Store not available.', 'error' );
+        }
+
+        $event_type = $this->require_string( $args, 'event_type' );
+        if ( ! $event_type ) {
+            return $this->err( 'MISSING_PARAM', 'event_type is required.', 'validation_failed' );
+        }
+
+        $query_args = [ 'event_type' => $event_type ];
+        foreach ( [ 'since', 'until', 'object_type', 'text_value', 'order' ] as $key ) {
+            if ( isset( $args[ $key ] ) && $args[ $key ] !== '' ) {
+                $query_args[ $key ] = $args[ $key ];
+            }
+        }
+        if ( ! empty( $args['object_id'] ) ) {
+            $query_args['object_id'] = (int) $args['object_id'];
+        }
+        if ( ! empty( $args['limit'] ) ) {
+            $query_args['limit'] = (int) $args['limit'];
+        }
+
+        $rows = CLAUTRON_Event_Store::query( $query_args );
+        return $this->ok(
+            [ 'rows' => $rows, 'count' => count( $rows ) ],
+            [ 'target_type' => 'clautron_events' ]
+        );
+    }
+
+    public function handle_events_aggregate( array $args, array $key_record, bool $dry_run ): array {
+        if ( ! class_exists( 'CLAUTRON_Event_Store' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Event_Store not available.', 'error' );
+        }
+
+        $event_type = $this->require_string( $args, 'event_type' );
+        if ( ! $event_type ) {
+            return $this->err( 'MISSING_PARAM', 'event_type is required.', 'validation_failed' );
+        }
+
+        $agg_args = [ 'event_type' => $event_type ];
+        foreach ( [ 'aggregate', 'group_by', 'since', 'until', 'object_type' ] as $key ) {
+            if ( isset( $args[ $key ] ) && $args[ $key ] !== '' ) {
+                $agg_args[ $key ] = $args[ $key ];
+            }
+        }
+        if ( ! empty( $args['object_id'] ) ) {
+            $agg_args['object_id'] = (int) $args['object_id'];
+        }
+
+        $result = CLAUTRON_Event_Store::aggregate( $agg_args );
+        return $this->ok(
+            [ 'result' => $result, 'count' => count( $result ) ],
+            [ 'target_type' => 'clautron_events' ]
+        );
     }
 }
