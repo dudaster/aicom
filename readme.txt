@@ -1,6 +1,6 @@
 === AICOM - AI Commander ===
 Contributors: dudaster
-Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, celine, goose
+Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, accessibility, yoast, codex
 Requires at least: 6.0
 Tested up to: 6.9
 Stable tag: 3.2.0
@@ -12,13 +12,13 @@ Use your AI subscription to manage WordPress: create Elementor pages, update con
 
 == Description ==
 
-**AICOM - AI Commander** connects your WordPress site to any AI agent via MCP (Model Context Protocol). Use your existing AI subscription — Claude Code, OpenClaw, Celine, Goose, or any MCP-compatible client — to manage content, build pages, run audits, and automate repetitive tasks, all without leaving your AI interface.
+**AICOM - AI Commander** connects your WordPress site to any AI agent via MCP (Model Context Protocol). Use your existing AI subscription — Claude Code, OpenAI Codex, OpenClaw, Celine, Goose, or any MCP-compatible client — to manage content, build pages, run audits, and automate repetitive tasks, all without leaving your AI interface.
 
 No more copy-pasting between your AI assistant and the WordPress dashboard. Describe what you want, and your agent does it — safely, with a full record of every action.
 
 = Content Management =
 
-Create, update, and publish posts, pages, and custom post types directly from your AI agent. Build and duplicate Elementor pages, manage menus, upload media, update taxonomies, and handle bulk SEO fields — all in a single conversation. What used to take hours of dashboard work can be delegated to your AI in minutes.
+Create, update, and publish posts, pages, and custom post types directly from your AI agent. Build and duplicate Elementor pages, manage menus, upload media, update taxonomies, and handle bulk SEO fields including **Yoast SEO meta, titles, and social previews** — all in a single conversation. What used to take hours of dashboard work can be delegated to your AI in minutes.
 
 = Safety You Control =
 
@@ -40,13 +40,14 @@ Every request is logged: timestamp, remote IP, API key label, tool used, paramet
 
 = Accessibility Audits — New in v3.2.0 =
 
-AICOM now includes a dedicated **Accessibility module** so your AI agent can audit and fix WCAG issues across your site:
+AICOM now includes a dedicated **Accessibility module** so your AI agent can audit and fix WCAG issues across your entire site — no external tools or services required:
 
-* **Site report** — instantly see how many images are missing alt text across your entire media library, with a preview of the top offenders.
-* **Post audit** — scan any post or page for heading hierarchy errors (missing H1, skipped heading levels), images without alt text, and links with non-descriptive anchor text. Each issue is rated by severity and the post receives an overall accessibility score.
-* **Fix in place** — set alt text on any media library image directly. Pass an empty string to mark it as decorative. Full dry-run support so you can preview changes before saving.
+* **Site report** — instantly see how many images are missing alt text across your entire media library, with a ranked preview of the top offenders and a percentage score.
+* **Post audit** — scan any post or page for heading hierarchy errors (missing H1, skipped heading levels), images without alt text, and links with non-descriptive anchor text ("click here", "read more"). Each issue is rated by severity and the post receives an overall accessibility score from 0 to 100.
+* **Fix in place** — set alt text on any media library image in one call. Pass an empty string to correctly mark it as decorative (`aria-hidden`). Full dry-run support so you can preview changes before saving.
+* **Screenshot before & after** — combine AICOM's audit tools with your AI agent's browser capabilities to capture a visual record of the page before and after remediation.
 
-A typical AI-driven accessibility workflow: run the site report, get the list of problem images, let the agent analyse each image visually and generate descriptive alt text, then apply the fixes — all in one session, with a full audit trail and the option to screenshot results before and after.
+A typical AI-driven accessibility workflow: run the site report, get the list of problem images, let the agent analyse each image visually and write descriptive alt text, apply the fixes — then run the audit again to confirm the score improved. All in one session, with a full audit trail.
 
 = Supported Modules =
 
@@ -59,7 +60,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **WooCommerce** *(optional)* — products, categories, settings
 * **Elementor** *(optional)* — page creation from template, widget inspection, theme builder conditions
 * **Polylang** *(optional)* — translations, language assignment, string management
-* **Yoast SEO** *(optional)* — read and write SEO meta, social fields, bulk audit
+* **Yoast SEO** *(optional)* — read and write SEO titles, meta descriptions, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
 * **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
 
@@ -70,6 +71,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **Developers** building AI-powered WordPress tools or automation pipelines
 * **Accessibility specialists** who want to audit and remediate WCAG issues at scale with AI assistance
 * **Claude Code users** — point AICOM as an MCP server from your terminal and control WordPress alongside your code
+* **OpenAI Codex users** — connect Codex to your site via AICOM's MCP endpoint and let it manage content as part of your dev workflow
 * **OpenClaw / Celine / Goose users** — native MCP connector, works out of the box
 
 = How it works =
@@ -172,7 +174,7 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
 4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
 5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, Clautron) with status and registered tools.
-6. **Accessibility Audit** — Run a11y.audit_post on any page to get a scored report of WCAG issues: missing H1, heading hierarchy errors, images without alt text, and non-descriptive link text. Capture a screenshot of results before and after fixes for a visual before/after comparison.
+6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
 
