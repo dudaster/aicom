@@ -8,66 +8,81 @@ Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Control WordPress with Claude Code, OpenClaw, Celine, Goose and any AI agent via MCP. API key auth, scope control, safety locks, audit logging and 87 tools.
+Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
 
 == Description ==
 
-**AICOM - AI Commander** turns your WordPress site into an MCP (Model Context Protocol) server, giving AI agents direct, structured access to your WordPress content, settings, and data.
+**AICOM - AI Commander** connects your WordPress site to any AI agent via MCP (Model Context Protocol). Use your existing AI subscription — Claude Code, OpenClaw, Celine, Goose, or any MCP-compatible client — to manage content, build pages, run audits, and automate repetitive tasks, all without leaving your AI interface.
 
-Control your WordPress site through **Claude Code**, **OpenClaw**, **Celine**, **Goose**, and any other MCP-compatible AI agent. No more copy-pasting between your AI assistant and WordPress. No more manual repetitive tasks. Describe what you want, and your AI agent does it.
+No more copy-pasting between your AI assistant and the WordPress dashboard. Describe what you want, and your agent does it — safely, with a full record of every action.
 
-= What can you do with AICOM? =
+= Content Management =
 
-* **AI-powered content creation** — let an AI agent write, update and publish posts, pages and custom post types directly on your site
-* **Automate your WooCommerce store** — update product descriptions, manage categories and read settings through an AI agent without touching the dashboard
-* **Manage multilingual sites** — connect with Polylang so AI agents can create and manage translations automatically
-* **Control Elementor pages** — validate and inspect Elementor-built pages programmatically
-* **Build AI editorial workflows** — draft, review, schedule and publish content via AI instructions
-* **Bulk SEO tasks** — update meta fields, slugs, titles and descriptions in bulk via AI
-* **Audit every AI action** — full log of every request: who, what, when, from which IP, with result
+Create, update, and publish posts, pages, and custom post types directly from your AI agent. Build and duplicate Elementor pages, manage menus, upload media, update taxonomies, and handle bulk SEO fields — all in a single conversation. What used to take hours of dashboard work can be delegated to your AI in minutes.
+
+= Safety You Control =
+
+AICOM puts you in charge at every level:
+
+* **Scope-based API keys** — each key grants access only to the operations you explicitly allow. One key for read-only content review, another for full publishing access.
+* **Soft Lock / Hard Lock** — freeze all write operations (Soft) or block everything except public tools (Hard) with one click from the admin bar or Safety page.
+* **Working Hours Schedule** — automatically apply Soft or Hard Lock outside your configured working hours and days. Agents can't make changes at night or on weekends unless you explicitly override it.
+* **Dry-run mode** — test any operation before it runs. See exactly what would change without touching live data.
+* **Confirm flag** — destructive operations require an explicit `"confirm": true` parameter. Accidental deletions are prevented by design.
+
+= Backup & Restore =
+
+Before every significant change, your agent can snapshot the current state of a post or term. If something goes wrong, restore the exact previous version in one call. Backups are stored in the database, organised by session, and can be cleaned up automatically based on age or total size.
+
+= Full Audit Trail =
+
+Every request is logged: timestamp, remote IP, API key label, tool used, parameters, result, and response time. Logs are grouped into **named sessions** — when an agent opens a session, all its actions are recorded together so you can review, replay, or undo an entire workflow at once. The Audit Logs page includes a session activity chart and a direct Restore button for each session.
+
+= Accessibility Audits — New in v3.2.0 =
+
+AICOM now includes a dedicated **Accessibility module** so your AI agent can audit and fix WCAG issues across your site:
+
+* **Site report** — instantly see how many images are missing alt text across your entire media library, with a preview of the top offenders.
+* **Post audit** — scan any post or page for heading hierarchy errors (missing H1, skipped heading levels), images without alt text, and links with non-descriptive anchor text. Each issue is rated by severity and the post receives an overall accessibility score.
+* **Fix in place** — set alt text on any media library image directly. Pass an empty string to mark it as decorative. Full dry-run support so you can preview changes before saving.
+
+A typical AI-driven accessibility workflow: run the site report, get the list of problem images, let the agent analyse each image visually and generate descriptive alt text, then apply the fixes — all in one session, with a full audit trail and the option to screenshot results before and after.
+
+= Supported Modules =
+
+* **WordPress Core** — posts, pages, custom post types, terms, meta, options, menus, plugins
+* **Media** — upload, update, delete media; direct file system access
+* **Users & Roles** — create, update, manage users and role assignments
+* **Backup** — per-post and per-term snapshots, session-based restore
+* **Sessions** — named audit sessions with grouped action history
+* **Accessibility** — site-wide alt text audit, post-level WCAG check, alt text fixes
+* **WooCommerce** *(optional)* — products, categories, settings
+* **Elementor** *(optional)* — page creation from template, widget inspection, theme builder conditions
+* **Polylang** *(optional)* — translations, language assignment, string management
+* **Yoast SEO** *(optional)* — read and write SEO meta, social fields, bulk audit
+* **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
+* **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
 
 = Who is this for? =
 
-* **Developers** building AI-powered WordPress tools or integrations
-* **Agencies** automating client site management with AI agents
-* **Content teams** using AI writing assistants and wanting direct WordPress integration
-* **Claude Code users** — use AICOM as an MCP server directly from your terminal with Claude Code
-* **OpenClaw users** — AICOM works with the OpenClaw AI platform as a native WordPress MCP connector
-* **Celine & Goose users** — connect Celine or Goose to your WordPress site via AICOM's MCP endpoint
-* **Anyone** using Claude, ChatGPT, Gemini, or other AI agents who wants them to directly control a WordPress site
+* **Content teams** using Claude, ChatGPT, or any AI assistant who want it to publish and update WordPress content directly
+* **Agencies** managing multiple client sites and wanting AI-assisted workflows with a full paper trail
+* **Developers** building AI-powered WordPress tools or automation pipelines
+* **Accessibility specialists** who want to audit and remediate WCAG issues at scale with AI assistance
+* **Claude Code users** — point AICOM as an MCP server from your terminal and control WordPress alongside your code
+* **OpenClaw / Celine / Goose users** — native MCP connector, works out of the box
 
 = How it works =
 
-AICOM exposes a secure HTTP endpoint on your WordPress site. AI platforms and agents send structured requests using the MCP / Model Context Protocol standard. AICOM authenticates the request, checks permissions, executes the operation, and returns a structured response.
+AICOM exposes a secure HTTP endpoint on your WordPress site. Your AI agent sends structured MCP requests, AICOM authenticates the request, checks scopes and lock state, executes the operation, logs it, and returns a structured response.
 
 `AI Agent → AICOM Endpoint → WordPress`
-
-= Features =
-
-* **MCP Standard** — Full JSON-RPC 2.0 support (`tools/call`, `tools/list`), compatible with any MCP client
-* **87 tools** across 7 modules: WP Core, Media, Users, Backup, WooCommerce, Elementor, Polylang
-* **Security-first** — API key authentication (bcrypt-hashed), IP allowlists, scope-based access control per key
-* **Lock system** — Hard lock (read-only emergency mode), soft lock, unlocked — switchable from the WordPress admin
-* **Audit logging** — Every request logged with duration, API key label, tool used, parameters and result summary
-* **Dry-run mode** — Test what an operation would do without applying changes
-* **Confirm flag** — Destructive operations require explicit `"confirm": true` — prevents accidental AI mistakes
-* **Modular** — WooCommerce, Elementor and Polylang tools only activate when those plugins are present
-
-= Available Modules & Tools =
-
-* **WP Core** — server.status, wp.site.info, wp.posts.list/get/create/update/delete, wp.terms.*, wp.meta.*, wp.options.*
-* **Media** — media.list, media.get, media.upload, media.update, media.delete, files.list/read/write
-* **Users** — wp.users.list/get/create/update/delete, wp.roles.list
-* **Backup** — backup.post, backup.term, backup.restore, backup.list, backup.delete, backup.purge
-* **WooCommerce** *(optional)* — wc.products.list/get/create/update/delete, wc.categories.*, wc.settings.get/update
-* **Elementor** *(optional)* — elementor.page.validate, elementor.page.get_data, elementor.widget.*
-* **Polylang** *(optional)* — pll.languages.list, pll.post.translate, pll.term.translate, pll.string.*
 
 = API Key Scopes =
 
 Each API key is granted specific scopes — you control exactly what each AI agent can and cannot do:
 
-`read.wp`, `write.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.wordpress.settings`, `manage.media`, `manage.users`, `manage.plugins`, `manage.woocommerce.products`, `manage.woocommerce.settings`, `manage.elementor`, `manage.polylang`
+`read.wp`, `write.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.wordpress.settings`, `manage.media`, `manage.files`, `manage.users`, `manage.plugins`, `manage.backups`, `manage.a11y`, `manage.woocommerce.products`, `manage.woocommerce.settings`, `manage.elementor`, `manage.polylang`, `manage.yoast`, `manage.clautron`
 
 = Endpoint =
 
@@ -152,11 +167,12 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 
 == Screenshots ==
 
-1. **Dashboard** — Real-time server status, MCP endpoint URL, lock state indicator, today's request count broken down by result, and list of active modules with tool counts.
-2. **API Keys** — Generate new keys with a descriptive label, select granular scopes (read, write, manage per module), set an optional IP allowlist, and view all existing keys with their last-used date and status.
-3. **Audit Logs** — Full request history filterable by date range, API key, and tool name. Each row shows timestamp, IP, key label, tool called, result status, and response time in ms.
-4. **Safety Controls** — One-click Soft Lock and Hard Lock toggles with current lock status indicator. Includes the full Lock Permission Matrix showing which tool classes are allowed in each lock mode.
-5. **Modules** — Overview cards for all 7 modules (WordPress Core, Media, Users, Backup, WooCommerce, Elementor, Polylang) with active/inactive status and tool count, followed by the complete list of all 87 registered tools with their class, required scopes, and flags.
+1. **Dashboard** — Real-time server status, MCP endpoint URL, lock state indicator, today's request count broken down by result, and list of active modules.
+2. **API Keys** — Generate keys with granular scopes (read, write, manage per module), optional IP allowlist, expiry date, and scope presets. View all keys with last-used date and status.
+3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
+4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
+5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, Clautron) with status and registered tools.
+6. **Accessibility Audit** — Run a11y.audit_post on any page to get a scored report of WCAG issues: missing H1, heading hierarchy errors, images without alt text, and non-descriptive link text. Capture a screenshot of results before and after fixes for a visual before/after comparison.
 
 == Changelog ==
 
