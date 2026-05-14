@@ -12,7 +12,7 @@ Use your AI subscription to manage WordPress: create Elementor pages, update con
 
 == Description ==
 
-**AICOM - AI Commander** connects your WordPress site to any AI agent via MCP (Model Context Protocol). Use your existing AI subscription — Claude Code, OpenAI Codex, OpenClaw, Celine, Goose, or any MCP-compatible client — to manage content, build pages, run audits, and automate repetitive tasks, all without leaving your AI interface.
+**AICOM - AI Commander** connects your WordPress site to any AI agent via MCP (Model Context Protocol) or OpenAPI. Use your existing AI subscription — Claude Code, OpenAI Codex, ChatGPT Custom GPTs, Copilot Studio, Dify, n8n, OpenClaw, Celine, Goose, or any MCP-compatible client — to manage content, build pages, run audits, and automate repetitive tasks, all without leaving your AI interface.
 
 No more copy-pasting between your AI assistant and the WordPress dashboard. Describe what you want, and your agent does it — safely, with a full record of every action.
 
@@ -72,6 +72,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **Accessibility specialists** who want to audit and remediate WCAG issues at scale with AI assistance
 * **Claude Code users** — point AICOM as an MCP server from your terminal and control WordPress alongside your code
 * **OpenAI Codex users** — connect Codex to your site via AICOM's MCP endpoint and let it manage content as part of your dev workflow
+* **ChatGPT, Copilot Studio, Dify, n8n users** — import the OpenAPI schema URL into any OpenAPI-compatible client; all tools are discovered automatically with Bearer auth
 * **OpenClaw / Celine / Goose users** — native MCP connector, works out of the box
 
 = How it works =
@@ -180,8 +181,8 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 
 = 3.3.0 =
 * New: OpenAPI schema endpoint — GET /wp-json/aicom/v1/schema generates a live OpenAPI 3.0 spec from all registered tools.
-* New: Individual tool REST endpoints — POST /wp-json/aicom/v1/tools/{tool.name} for ChatGPT Custom GPT Actions compatibility.
-* Import the schema URL into a Custom GPT Action, set Authentication → Bearer, and ChatGPT discovers all tools automatically.
+* New: Individual tool REST endpoints — POST /wp-json/aicom/v1/tools/{tool.name} compatible with any OpenAPI client.
+* Works with ChatGPT Custom GPT Actions, Microsoft Copilot Studio, Dify, Flowise, n8n, Make.com, LangChain, Semantic Kernel, and any client that supports OpenAPI 3.0 + Bearer auth. Point at the schema URL, add your AICOM key, and all tools are discovered automatically.
 
 = 3.2.0 =
 * New: Accessibility module — a11y.images_missing_alt, a11y.audit_post, a11y.set_image_alt, a11y.site_report tools for AI-driven WCAG remediation.
