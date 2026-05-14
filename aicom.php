@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.2.0
+ * Version:           3.3.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.2.0' );
+define( 'AICOM_VERSION', '3.3.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -162,8 +162,9 @@ function aicom_boot(): void {
         ] );
     } );
 
-    // ── REST Endpoint ──────────────────────────────────────────────────────
+    // ── REST Endpoints ─────────────────────────────────────────────────────
     add_action( 'rest_api_init', function (): void {
+        // Main MCP endpoint
         register_rest_route( 'aicom/v1', '/mcp', [
             'methods'             => [ 'POST', 'GET' ],
             'callback'            => 'aicom_rest_handler',
@@ -171,6 +172,23 @@ function aicom_boot(): void {
             // are fully handled inside AICOM_Tool_Router::dispatch() via API key validation,
             // scope checks, and lock-state enforcement before any operation is executed.
             'permission_callback' => '__return_true',
+        ] );
+
+        // OpenAPI schema — for ChatGPT Custom GPT Actions import
+        register_rest_route( 'aicom/v1', '/schema', [
+            'methods'             => 'GET',
+            'callback'            => 'aicom_schema_handler',
+            'permission_callback' => '__return_true',
+        ] );
+
+        // Individual tool endpoints — REST wrapper around the MCP dispatcher
+        register_rest_route( 'aicom/v1', '/tools/(?P<tool>[a-zA-Z0-9._-]+)', [
+            'methods'             => 'POST',
+            'callback'            => 'aicom_tool_handler',
+            'permission_callback' => '__return_true',
+            'args'                => [
+                'tool' => [ 'required' => true, 'sanitize_callback' => 'sanitize_text_field' ],
+            ],
         ] );
     } );
 
@@ -190,7 +208,7 @@ function aicom_boot(): void {
     } );
 }
 
-// ── REST Handler ───────────────────────────────────────────────────────────
+// ── REST Handlers ──────────────────────────────────────────────────────────
 
 function aicom_rest_handler( WP_REST_Request $request ): WP_REST_Response {
     // GET = health/status endpoint
@@ -211,4 +229,26 @@ function aicom_rest_handler( WP_REST_Request $request ): WP_REST_Response {
     unset( $result['error']['http_status'] );
 
     return new WP_REST_Response( $result, 200 ); // Always HTTP 200; errors encoded in body per MCP convention
+}
+
+function aicom_schema_handler( WP_REST_Request $request ): WP_REST_Response {
+    $schema = AICOM_Schema_Generator::generate();
+    $response = new WP_REST_Response( $schema, 200 );
+    $response->header( 'Content-Type', 'application/json' );
+    return $response;
+}
+
+function aicom_tool_handler( WP_REST_Request $request ): WP_REST_Response {
+    $tool = $request->get_param( 'tool' );
+    $args = $request->get_json_params() ?: [];
+
+    $body = wp_json_encode( [
+        'jsonrpc' => '2.0',
+        'method'  => 'tools/call',
+        'params'  => [ 'name' => $tool, 'arguments' => $args ],
+        'id'      => 1,
+    ] );
+
+    $result = AICOM_Tool_Router::dispatch( $body );
+    return new WP_REST_Response( $result, 200 );
 }

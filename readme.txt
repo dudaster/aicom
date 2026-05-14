@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, accessibility, yoast, codex
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.2.0
+Stable tag: 3.3.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -177,6 +177,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.3.0 =
+* New: OpenAPI schema endpoint — GET /wp-json/aicom/v1/schema generates a live OpenAPI 3.0 spec from all registered tools.
+* New: Individual tool REST endpoints — POST /wp-json/aicom/v1/tools/{tool.name} for ChatGPT Custom GPT Actions compatibility.
+* Import the schema URL into a Custom GPT Action, set Authentication → Bearer, and ChatGPT discovers all tools automatically.
 
 = 3.2.0 =
 * New: Accessibility module — a11y.images_missing_alt, a11y.audit_post, a11y.set_image_alt, a11y.site_report tools for AI-driven WCAG remediation.
