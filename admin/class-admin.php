@@ -44,6 +44,7 @@ class AICOM_Admin {
         add_submenu_page( self::MENU_SLUG, __( 'Safety', 'aicom' ),      __( 'Safety', 'aicom' ),      self::CAPABILITY, 'aicom-safety',           [ $this, 'page_safety' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Modules', 'aicom' ),     __( 'Modules', 'aicom' ),     self::CAPABILITY, 'aicom-modules',          [ $this, 'page_modules' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Backups', 'aicom' ),     __( 'Backups', 'aicom' ),     self::CAPABILITY, 'aicom-backups',          [ $this, 'page_backups' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Skills', 'aicom' ),      __( 'Skills', 'aicom' ),      self::CAPABILITY, 'aicom-skills',           [ $this, 'page_skills' ] );
     }
 
     // ── Asset Enqueuing ───────────────────────────────────────────────────
@@ -106,6 +107,11 @@ class AICOM_Admin {
     public function page_backups(): void {
         $this->require_cap();
         require AICOM_DIR . 'admin/pages/backups.php';
+    }
+
+    public function page_skills(): void {
+        $this->require_cap();
+        require AICOM_DIR . 'admin/pages/skills.php';
     }
 
     // ── Admin notices (key created / rotated) ─────────────────────────────
@@ -280,6 +286,44 @@ class AICOM_Admin {
             case 'save_schedule':
                 $this->handle_save_schedule();
                 break;
+
+            case 'skills_activate':
+                $skill_id = absint( wp_unslash( $_POST['skill_id'] ?? 0 ) );
+                AICOM_Skills::set_status( $skill_id, 'active' );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&updated=activated' ) );
+                exit;
+
+            case 'skills_save_draft':
+                $skill_id = absint( wp_unslash( $_POST['skill_id'] ?? 0 ) );
+                AICOM_Skills::set_status( $skill_id, 'draft' );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&updated=draft' ) );
+                exit;
+
+            case 'skills_archive':
+                $skill_id = absint( wp_unslash( $_POST['skill_id'] ?? 0 ) );
+                AICOM_Skills::set_status( $skill_id, 'archived' );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&updated=archived' ) );
+                exit;
+
+            case 'skills_delete':
+                $skill_id = absint( wp_unslash( $_POST['skill_id'] ?? 0 ) );
+                if ( ! empty( $_POST['confirm'] ) ) {
+                    AICOM_Skills::delete( $skill_id );
+                }
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=suggested&updated=rejected' ) );
+                exit;
+
+            case 'skills_accept_proposal':
+                $proposal_id = absint( wp_unslash( $_POST['proposal_id'] ?? 0 ) );
+                $original_id = absint( wp_unslash( $_POST['original_id'] ?? 0 ) );
+                $proposal    = AICOM_Skills::get( $proposal_id );
+                if ( $proposal && $original_id ) {
+                    $patch = array_intersect_key( $proposal, array_flip( [ 'name', 'description', 'steps', 'rules', 'tags', 'input_schema', 'permissions', 'type' ] ) );
+                    AICOM_Skills::update( $original_id, $patch );
+                    AICOM_Skills::delete( $proposal_id );
+                }
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=proposals&updated=accepted' ) );
+                exit;
 
             default:
                 wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&error=unknown_action' ) );

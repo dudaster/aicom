@@ -10,6 +10,7 @@ $_aicom_nav = [
     'aicom-safety'     => [ __( 'Safety',     'aicom' ), 'dashicons-shield' ],
     'aicom-modules'    => [ __( 'Modules',    'aicom' ), 'dashicons-grid-view' ],
     'aicom-backups'    => [ __( 'Backups',    'aicom' ), 'dashicons-backup' ],
+    'aicom-skills'     => [ __( 'Skills',     'aicom' ), 'dashicons-media-text' ],
 ];
 ?>
 <div class="wrap aicom-wrap">

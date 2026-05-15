@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.4';
+    const DB_VERSION    = '4.5';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -95,6 +95,8 @@ class AICOM_DB {
             $wpdb->query( "ALTER TABLE {$wpdb->prefix}aicom_backups ADD INDEX IF NOT EXISTS idx_session_id (session_id)" );
             $wpdb->show_errors();
         }
+
+        // v4.5: add skills + skill_revisions tables (handled by dbDelta in create_tables).
 
         // v4.4: add tool_class to logs for graph color breakdown.
         if ( version_compare( $current, '4.4', '<' ) ) {
@@ -232,10 +234,52 @@ class AICOM_DB {
             KEY idx_created_at (created_at)
         ) $charset;";
 
+        // ── Skills ────────────────────────────────────────────────────────
+        $sql_skills = "CREATE TABLE {$wpdb->prefix}aicom_skills (
+            id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            slug              VARCHAR(100)    NOT NULL,
+            name              VARCHAR(255)    NOT NULL,
+            description       TEXT            NULL,
+            type              VARCHAR(30)     NOT NULL DEFAULT 'simple',
+            status            VARCHAR(30)     NOT NULL DEFAULT 'draft',
+            input_schema_json LONGTEXT        NULL,
+            rules_json        LONGTEXT        NULL,
+            steps_json        LONGTEXT        NULL,
+            permissions_json  LONGTEXT        NULL,
+            tags_json         LONGTEXT        NULL,
+            logging_enabled   TINYINT(1)      NOT NULL DEFAULT 1,
+            rollback_enabled  TINYINT(1)      NOT NULL DEFAULT 0,
+            version           INT UNSIGNED    NOT NULL DEFAULT 1,
+            parent_skill_id   BIGINT UNSIGNED NULL,
+            session_id        BIGINT UNSIGNED NULL,
+            created_by_key_id BIGINT UNSIGNED NULL,
+            created_at        DATETIME        NOT NULL,
+            updated_at        DATETIME        NOT NULL,
+            archived_at       DATETIME        NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_slug (slug),
+            KEY idx_status (status),
+            KEY idx_type   (type)
+        ) $charset;";
+
+        // ── Skill Revisions ───────────────────────────────────────────────
+        $sql_skill_revisions = "CREATE TABLE {$wpdb->prefix}aicom_skill_revisions (
+            id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            skill_id          BIGINT UNSIGNED NOT NULL,
+            version           INT UNSIGNED    NOT NULL,
+            snapshot_json     LONGTEXT        NOT NULL,
+            changed_by_key_id BIGINT UNSIGNED NULL,
+            created_at        DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_skill_version (skill_id, version)
+        ) $charset;";
+
         dbDelta( $sql_keys );
         dbDelta( $sql_logs );
         dbDelta( $sql_backups );
         dbDelta( $sql_sessions );
         dbDelta( $sql_presets );
+        dbDelta( $sql_skills );
+        dbDelta( $sql_skill_revisions );
     }
 }

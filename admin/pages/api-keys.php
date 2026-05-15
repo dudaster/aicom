@@ -37,6 +37,11 @@ $scope_tree = [
         'delete.users' => [ __( 'Delete users',                'aicom' ), 'high' ],
         'manage.roles' => [ __( 'Manage roles & capabilities', 'aicom' ), 'high' ],
     ],
+    __( 'Skills', 'aicom' ) => [
+        'read.skills'   => [ __( 'List, search and run Skills',                          'aicom' ), 'low'  ],
+        'manage.skills' => [ __( 'Create, update, archive and delete Skills',            'aicom' ), 'high' ],
+        'learn.skills'  => [ __( 'Suggest and propose Skill updates from sessions',      'aicom' ), 'med'  ],
+    ],
     __( 'Site Configuration', 'aicom' ) => [
         'manage.wordpress.settings' => [ __( 'WordPress options/settings',  'aicom' ), 'critical' ],
         'manage.plugins'            => [ __( 'Plugin management & updates',  'aicom' ), 'critical' ],
