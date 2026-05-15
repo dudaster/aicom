@@ -18,14 +18,14 @@ class AICOM_Auth {
      * Returns array — caller must store plain_key only for one-time display.
      */
     public static function generate_key(): array {
-        $random_prefix = wp_generate_password( 8, false, false );
+        $random_prefix = bin2hex( random_bytes( 4 ) ); // 8 hex chars = 32 bits of CSPRNG entropy
         $secret        = bin2hex( random_bytes( 20 ) ); // 40 hex chars
         $plain         = self::PREFIX_MARKER . $random_prefix . '_' . $secret;
 
         return [
             'plain_key'  => $plain,
             'key_prefix' => self::PREFIX_MARKER . $random_prefix,
-            'key_hash'   => password_hash( $plain, PASSWORD_BCRYPT ),
+            'key_hash'   => password_hash( $plain, PASSWORD_BCRYPT, [ 'cost' => 12 ] ),
         ];
     }
 
@@ -87,6 +87,8 @@ class AICOM_Auth {
         );
 
         if ( ! $row ) {
+            // Always run a dummy verify to prevent timing-based prefix enumeration.
+            password_verify( $plain_key, '$2y$12$invalidhashpaddingthat.isexactly60chars.longXXXXXXXXXXXX' );
             return null;
         }
 
@@ -335,6 +337,79 @@ class AICOM_Auth {
 
     // ── Private Helpers ───────────────────────────────────────────────────
 
+    /**
+     * If ip_lock is enabled on this key and no IP has been bound yet,
+     * bind the current request IP by writing it into ip_allowlist.
+     * Modifies $key_record in-place so check_ip_allowlist() passes on first use.
+     */
+    public static function maybe_auto_bind_ip( array &$key_record, string $ip ): void {
+        $restrictions = json_decode( $key_record['restrictions_json'] ?? '{}', true ) ?: [];
+
+        if ( empty( $restrictions['ip_lock'] ) ) {
+            return; // feature not enabled on this key
+        }
+        if ( ! empty( $restrictions['ip_allowlist'] ) ) {
+            return; // already bound (or manual allowlist set)
+        }
+
+        $restrictions['ip_allowlist']     = [ $ip ];
+        $restrictions['ip_lock_bound_at'] = current_time( 'mysql', true );
+        $new_json                         = wp_json_encode( $restrictions );
+        $now                              = current_time( 'mysql', true );
+
+        global $wpdb;
+        // Atomic conditional UPDATE: only succeeds if no ip_lock_bound_at was set yet.
+        // Prevents two concurrent first-requests from binding different IPs simultaneously.
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.NotPrepared
+        $affected = $wpdb->query( $wpdb->prepare(
+            "UPDATE {$wpdb->prefix}aicom_api_keys
+             SET restrictions_json = %s, updated_at = %s
+             WHERE id = %d AND restrictions_json NOT LIKE %s",
+            $new_json, $now, (int) $key_record['id'], '%"ip_lock_bound_at"%'
+        ) );
+
+        if ( $affected ) {
+            $key_record['restrictions_json'] = $new_json;
+        }
+    }
+
+    /**
+     * Reset an IP-locked key back to "waiting for first use".
+     * Clears ip_allowlist and ip_lock_bound_at but keeps ip_lock: true.
+     */
+    public static function reset_ip_lock( int $key_id ): bool {
+        global $wpdb;
+
+        $row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->prepare(
+                "SELECT id, restrictions_json FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d",
+                $key_id
+            ),
+            ARRAY_A
+        );
+
+        if ( ! $row ) {
+            return false;
+        }
+
+        $restrictions = json_decode( $row['restrictions_json'] ?? '{}', true ) ?: [];
+
+        if ( empty( $restrictions['ip_lock'] ) ) {
+            return false;
+        }
+
+        unset( $restrictions['ip_allowlist'], $restrictions['ip_lock_bound_at'] );
+
+        return (bool) $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $wpdb->prefix . 'aicom_api_keys',
+            [
+                'restrictions_json' => wp_json_encode( $restrictions ),
+                'updated_at'        => current_time( 'mysql', true ),
+            ],
+            [ 'id' => $key_id ]
+        );
+    }
+
     private static function ip_matches( string $ip, string $range ): bool {
         if ( $ip === $range ) {
             return true;
@@ -343,14 +418,15 @@ class AICOM_Auth {
         // CIDR notation support (IPv4 only)
         if ( strpos( $range, '/' ) !== false ) {
             [ $subnet, $bits ] = explode( '/', $range, 2 );
+            $bits        = (int) $bits;
             $ip_long     = ip2long( $ip );
             $subnet_long = ip2long( $subnet );
 
-            if ( $ip_long === false || $subnet_long === false ) {
+            if ( $bits < 0 || $bits > 32 || $ip_long === false || $subnet_long === false ) {
                 return false;
             }
 
-            $mask = -1 << ( 32 - (int) $bits );
+            $mask = $bits === 0 ? 0 : ( -1 << ( 32 - $bits ) );
             return ( $ip_long & $mask ) === ( $subnet_long & $mask );
         }
 

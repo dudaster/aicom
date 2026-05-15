@@ -226,7 +226,8 @@ class AICOM_Admin {
                     $scopes,
                     ! empty( $_POST['dry_run_only'] ),
                     sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) ),
-                    sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) )
+                    sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
+                    ! empty( $_POST['ip_lock'] )
                 );
                 break;
 
@@ -255,9 +256,16 @@ class AICOM_Admin {
                     ! empty( $_POST['dry_run_only'] ),
                     sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) ),
                     sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
-                    ! empty( $_POST['rotate_secret'] )
+                    ! empty( $_POST['rotate_secret'] ),
+                    ! empty( $_POST['ip_lock'] )
                 );
                 break;
+
+            case 'reset_ip_lock':
+                $key_id = absint( wp_unslash( $_POST['key_id'] ?? 0 ) );
+                AICOM_Auth::reset_ip_lock( $key_id );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&ip_lock_reset=' . $key_id ) );
+                exit;
 
             case 'archive_key':
                 AICOM_Auth::archive_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
@@ -455,7 +463,7 @@ class AICOM_Admin {
         }
     }
 
-    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '' ): void {
+    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '', bool $ip_lock = false ): void {
         if ( ! $label ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=missing_label' ) );
             exit;
@@ -468,9 +476,17 @@ class AICOM_Admin {
         if ( $ip_allowlist_raw ) {
             $restrictions['ip_allowlist'] = array_filter( array_map( 'trim', explode( "\n", $ip_allowlist_raw ) ) );
         }
+        if ( $ip_lock ) {
+            $restrictions['ip_lock'] = true;
+        }
         $this->apply_resource_restrictions( $restrictions );
 
-        $expires_at = $expires_raw ? gmdate( 'Y-m-d 23:59:59', strtotime( $expires_raw ) ) : null;
+        $expires_ts  = $expires_raw ? strtotime( $expires_raw ) : false;
+        $expires_at  = ( $expires_ts !== false ) ? gmdate( 'Y-m-d 23:59:59', $expires_ts ) : null;
+        if ( $expires_raw && $expires_ts === false ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=invalid_date' ) );
+            exit;
+        }
 
         $result = AICOM_Auth::create_key( $label, $scopes, $restrictions, $expires_at );
 
@@ -508,11 +524,15 @@ class AICOM_Admin {
         exit;
     }
 
-    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate ): void {
+    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate, bool $ip_lock = false ): void {
         if ( ! $id ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=invalid_key' ) );
             exit;
         }
+
+        global $wpdb;
+        $existing_row          = $wpdb->get_row( $wpdb->prepare( "SELECT restrictions_json FROM {$wpdb->prefix}aicom_api_keys WHERE id = %d", $id ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $existing_restrictions = json_decode( $existing_row['restrictions_json'] ?? '{}', true ) ?: [];
 
         $restrictions = [];
         if ( $dry_run_only ) {
@@ -521,8 +541,21 @@ class AICOM_Admin {
         if ( $ip_raw ) {
             $restrictions['ip_allowlist'] = array_filter( array_map( 'trim', explode( "\n", $ip_raw ) ) );
         }
+        if ( $ip_lock ) {
+            $restrictions['ip_lock'] = true;
+            // Preserve auto-bound IP if ip_lock remains on and the admin left the allowlist field blank.
+            if ( empty( $restrictions['ip_allowlist'] ) && ! empty( $existing_restrictions['ip_lock_bound_at'] ) ) {
+                $restrictions['ip_allowlist']     = $existing_restrictions['ip_allowlist'] ?? [];
+                $restrictions['ip_lock_bound_at'] = $existing_restrictions['ip_lock_bound_at'];
+            }
+        }
         $this->apply_resource_restrictions( $restrictions );
-        $expires_at = $expires_raw ? gmdate( 'Y-m-d 23:59:59', strtotime( $expires_raw ) ) : null;
+        $expires_ts  = $expires_raw ? strtotime( $expires_raw ) : false;
+        $expires_at  = ( $expires_ts !== false ) ? gmdate( 'Y-m-d 23:59:59', $expires_ts ) : null;
+        if ( $expires_raw && $expires_ts === false ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=invalid_date' ) );
+            exit;
+        }
 
         $diff    = AICOM_Auth::update_key( $id, $scopes, $restrictions, $expires_at );
         $rotated = false;

@@ -71,10 +71,15 @@ class AICOM_Policy_Engine {
             return false; // Deny by default
         }
 
-        $real = realpath( $path ) ?: $path;
+        // Reject non-existent paths — can't safely verify containment without a canonical path.
+        $real = realpath( $path );
+        if ( $real === false ) {
+            return false;
+        }
 
         foreach ( $allowlist as $allowed ) {
-            if ( strpos( $real, $allowed ) === 0 ) {
+            $allowed_dir = rtrim( realpath( $allowed ) ?: $allowed, '/' ) . '/';
+            if ( strpos( rtrim( $real, '/' ) . '/', $allowed_dir ) === 0 ) {
                 return true;
             }
         }

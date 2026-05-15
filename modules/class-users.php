@@ -199,8 +199,7 @@ class AICOM_Module_Users extends AICOM_Module_Base {
 
         return $this->ok(
             array_merge( $this->user_summary( $user ), [
-                'caps'           => $user->allcaps,
-                'registered'     => $user->user_registered,
+                'registered' => $user->user_registered,
             ] ),
             [ 'target_type' => 'user', 'target_id' => $id ]
         );
@@ -232,7 +231,8 @@ class AICOM_Module_Users extends AICOM_Module_Base {
 
         $id = wp_insert_user( $user_data );
         if ( is_wp_error( $id ) ) {
-            return $this->err( 'WP_ERROR', $id->get_error_message(), 'error', 500 );
+            // Generic message to avoid leaking whether a username/email already exists.
+            return $this->err( 'USER_CREATE_FAILED', 'Failed to create user', 'error', 500 );
         }
 
         return $this->ok(

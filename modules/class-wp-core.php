@@ -6,6 +6,18 @@
  */
 class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
+    // WordPress-internal meta keys that must never be written via API.
+    private const BLOCKED_META_KEYS = [
+        '_edit_lock',
+        '_edit_last',
+        '_wp_trash_meta_status',
+        '_wp_trash_meta_time',
+        '_wp_trash_meta_comments_status',
+        '_wp_desired_post_slug',
+        '_wp_old_date',
+        '_wp_old_slug',
+    ];
+
     public function get_module_name(): string {
         return 'wp_core';
     }
@@ -539,9 +551,15 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             $data['post_name'] = sanitize_title( $args['post_name'] );
         }
         // Default author to the user who owns the API key; avoids author=0 on REST requests
-        $data['post_author'] = isset( $args['post_author'] )
-            ? (int) $args['post_author']
-            : (int) ( $key_record['created_by_user_id'] ?? 0 );
+        if ( isset( $args['post_author'] ) ) {
+            $author_id = (int) $args['post_author'];
+            if ( $author_id > 0 && ! get_user_by( 'ID', $author_id ) ) {
+                return $this->err( 'INVALID_PARAM', "No user with ID $author_id", 'validation_failed' );
+            }
+            $data['post_author'] = $author_id;
+        } else {
+            $data['post_author'] = (int) ( $key_record['created_by_user_id'] ?? 0 );
+        }
 
         if ( isset( $args['post_date'] ) ) {
             $date = $this->normalize_post_date( $args['post_date'] );
@@ -588,7 +606,13 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         if ( isset( $args['post_status'] ) )   $data['post_status']  = sanitize_key( $args['post_status'] );
         if ( isset( $args['post_excerpt'] ) )  $data['post_excerpt'] = sanitize_text_field( $args['post_excerpt'] );
         if ( isset( $args['post_name'] ) )     $data['post_name']    = sanitize_title( $args['post_name'] );
-        if ( isset( $args['post_author'] ) )   $data['post_author']  = (int) $args['post_author'];
+        if ( isset( $args['post_author'] ) ) {
+            $author_id = (int) $args['post_author'];
+            if ( $author_id > 0 && ! get_user_by( 'ID', $author_id ) ) {
+                return $this->err( 'INVALID_PARAM', "No user with ID $author_id", 'validation_failed' );
+            }
+            $data['post_author'] = $author_id;
+        }
 
         if ( isset( $args['post_date'] ) ) {
             $date = $this->normalize_post_date( $args['post_date'] );
@@ -846,7 +870,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
     public function handle_terms_assign_to_post( array $args, array $key_record, bool $dry_run ): array {
         $post_id  = $this->require_int( $args, 'post_id' );
-        $term_ids = array_map( 'intval', (array) ( $args['term_ids'] ?? [] ) );
+        $term_ids = array_values( array_filter( array_map( 'intval', (array) ( $args['term_ids'] ?? [] ) ), fn( $id ) => $id > 0 ) );
         $taxonomy = sanitize_key( $args['taxonomy'] ?? '' );
 
         if ( ! $post_id || empty( $term_ids ) || ! $taxonomy ) {
@@ -917,6 +941,10 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameters post_id and meta_key are required', 'validation_failed' );
         }
 
+        if ( in_array( $meta_key, self::BLOCKED_META_KEYS, true ) ) {
+            return $this->err( 'DENIED_SYSTEM_KEY', "Meta key is reserved for WordPress internals: $meta_key", 'validation_failed', 403 );
+        }
+
         if ( ! AICOM_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Meta key not in allowlist: $meta_key", 'denied_allowlist', 403 );
         }
@@ -945,11 +973,17 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'MISSING_PARAM', 'Parameter meta must be a non-empty object of key→value pairs', 'validation_failed' );
         }
 
-        $denied = [];
+        $denied  = [];
+        $blocked = [];
         foreach ( array_keys( $meta ) as $key ) {
-            if ( ! AICOM_Policy_Engine::check_meta_key_allowlist( $key_record, $key ) ) {
+            if ( in_array( $key, self::BLOCKED_META_KEYS, true ) ) {
+                $blocked[] = $key;
+            } elseif ( ! AICOM_Policy_Engine::check_meta_key_allowlist( $key_record, $key ) ) {
                 $denied[] = $key;
             }
+        }
+        if ( $blocked ) {
+            return $this->err( 'DENIED_SYSTEM_KEY', 'Reserved WordPress meta keys: ' . implode( ', ', $blocked ), 'validation_failed', 403 );
         }
         if ( $denied ) {
             return $this->err( 'DENIED_ALLOWLIST', 'Meta keys not in allowlist: ' . implode( ', ', $denied ), 'denied_allowlist', 403 );
@@ -975,6 +1009,10 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
         if ( ! $post_id || ! $meta_key ) {
             return $this->err( 'MISSING_PARAM', 'Parameters post_id and meta_key are required', 'validation_failed' );
+        }
+
+        if ( in_array( $meta_key, self::BLOCKED_META_KEYS, true ) ) {
+            return $this->err( 'DENIED_SYSTEM_KEY', "Meta key is reserved for WordPress internals: $meta_key", 'validation_failed', 403 );
         }
 
         if ( ! AICOM_Policy_Engine::check_meta_key_allowlist( $key_record, $meta_key ) ) {

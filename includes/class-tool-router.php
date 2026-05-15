@@ -28,12 +28,15 @@ class AICOM_Tool_Router {
     /** Session ID of the active session for the current request (0 = none). */
     public static int $current_session_id = 0;
 
+    /** Scopes of the currently-executing key, set just before the cap filter and cleared after. */
+    private static array $current_key_scopes = [];
+
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
     public static function dispatch( string $raw_body ): array {
         $remote_ip = self::remote_ip();
         $start     = microtime( true );
-        $payload   = json_decode( $raw_body, true );
+        $payload   = json_decode( $raw_body, true, 64 );
 
         if ( json_last_error() !== JSON_ERROR_NONE ) {
             return self::early_error( 'parse_error', 'Invalid JSON payload', 400, wp_generate_uuid4(), $remote_ip, '', 'unknown', $start, 0, '', null );
@@ -130,11 +133,18 @@ class AICOM_Tool_Router {
             return self::early_error( 'auth_failed', 'API key missing', 401, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
         }
 
+        if ( self::is_rate_limited( $remote_ip ) ) {
+            return self::early_error( 'rate_limited', 'Too many failed authentication attempts — try again later', 429, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
+        }
+
         $key_record = AICOM_Auth::validate_key( $plain_key );
 
         if ( ! $key_record ) {
+            self::record_auth_failure( $remote_ip );
             return self::early_error( 'auth_failed', 'Invalid or revoked API key', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
         }
+
+        AICOM_Auth::maybe_auto_bind_ip( $key_record, $remote_ip );
 
         if ( ! AICOM_Auth::check_ip_allowlist( $key_record, $remote_ip ) ) {
             return self::early_error( 'auth_failed', 'IP not in allowlist', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, (int) $key_record['id'], $key_record['label'], $rpc_id );
@@ -223,8 +233,9 @@ class AICOM_Tool_Router {
             return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'HANDLER_MISSING', 'Tool handler not callable', 'error', 500, $arguments, $start, $rpc_id );
         }
 
-        // Grant capabilities only for the duration of tool execution. Using a filter
-        // instead of wp_set_current_user() avoids impersonating any WordPress user account.
+        // Grant only the WP capabilities that the key's scopes actually need.
+        // Scoped to tool execution only — cleared immediately in finally.
+        self::$current_key_scopes = json_decode( $key_record['scopes_json'] ?? '[]', true ) ?: [];
         add_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
 
         $exec_exception = null;
@@ -234,6 +245,7 @@ class AICOM_Tool_Router {
             $exec_exception = $e;
         } finally {
             remove_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
+            self::$current_key_scopes = [];
         }
 
         if ( $exec_exception !== null ) {
@@ -396,39 +408,132 @@ class AICOM_Tool_Router {
     }
 
     /**
-     * Temporary user_has_cap filter: grant capabilities needed for API tool execution.
-     * Applied only during step 10 (Execute) of the dispatch pipeline and always removed
-     * immediately after via try/finally — whether the handler succeeds or throws.
-     *
-     * @param array $allcaps Existing capability map for the current user.
-     * @return array Augmented capability map.
+     * Grant only the WP capabilities that the current key's scopes require.
+     * Runs only during step 10 (Execute) and is always removed in finally.
      */
     public static function grant_api_request_caps( array $allcaps ): array {
-        $allcaps['manage_options']         = true;
-        $allcaps['edit_posts']             = true;
-        $allcaps['edit_others_posts']      = true;
-        $allcaps['edit_published_posts']   = true;
-        $allcaps['delete_posts']           = true;
-        $allcaps['delete_others_posts']    = true;
-        $allcaps['delete_published_posts'] = true;
-        $allcaps['publish_posts']          = true;
-        $allcaps['upload_files']           = true;
-        $allcaps['manage_categories']      = true;
-        $allcaps['list_users']             = true;
-        $allcaps['edit_users']             = true;
-        $allcaps['promote_users']          = true;
-        $allcaps['create_users']           = true;
-        $allcaps['delete_users']           = true;
-        $allcaps['manage_woocommerce']     = true;
+        $s = self::$current_key_scopes;
+
+        $allcaps['read'] = true;
+
+        if ( in_array( 'read.wp', $s, true ) ) {
+            $allcaps['edit_posts'] = true; // WP_Query / get_post() needs this for non-public post types
+        }
+
+        if ( in_array( 'write.wp.posts', $s, true ) ) {
+            $allcaps['edit_posts']             = true;
+            $allcaps['edit_others_posts']      = true;
+            $allcaps['edit_published_posts']   = true;
+            $allcaps['delete_posts']           = true;
+            $allcaps['delete_others_posts']    = true;
+            $allcaps['delete_published_posts'] = true;
+            $allcaps['publish_posts']          = true;
+            $allcaps['manage_categories']      = true;
+        }
+
+        if ( in_array( 'manage.meta', $s, true ) ) {
+            $allcaps['edit_posts']           = true;
+            $allcaps['edit_others_posts']    = true;
+            $allcaps['edit_published_posts'] = true;
+        }
+
+        if ( in_array( 'manage.media', $s, true ) ) {
+            $allcaps['upload_files']           = true;
+            $allcaps['edit_posts']             = true;
+            $allcaps['edit_others_posts']      = true;
+            $allcaps['edit_published_posts']   = true;
+            $allcaps['delete_posts']           = true;
+            $allcaps['delete_others_posts']    = true;
+            $allcaps['delete_published_posts'] = true;
+        }
+
+        if ( in_array( 'manage.files', $s, true ) ) {
+            $allcaps['upload_files'] = true;
+        }
+
+        if ( in_array( 'manage.wordpress.settings', $s, true ) ) {
+            $allcaps['manage_options'] = true;
+        }
+
+        if ( in_array( 'read.users', $s, true ) ) {
+            $allcaps['list_users'] = true;
+        }
+
+        if ( in_array( 'manage.users', $s, true ) ) {
+            $allcaps['list_users']    = true;
+            $allcaps['edit_users']    = true;
+            $allcaps['promote_users'] = true;
+            $allcaps['create_users']  = true;
+        }
+
+        if ( in_array( 'delete.users', $s, true ) ) {
+            $allcaps['delete_users'] = true;
+            $allcaps['list_users']   = true;
+        }
+
+        if ( in_array( 'manage.roles', $s, true ) ) {
+            $allcaps['list_users']    = true;
+            $allcaps['edit_users']    = true;
+            $allcaps['promote_users'] = true;
+        }
+
+        if ( in_array( 'manage.backups', $s, true ) ) {
+            $allcaps['edit_posts']             = true;
+            $allcaps['edit_others_posts']      = true;
+            $allcaps['edit_published_posts']   = true;
+            $allcaps['delete_posts']           = true;
+            $allcaps['delete_others_posts']    = true;
+            $allcaps['publish_posts']          = true;
+            $allcaps['manage_categories']      = true;
+        }
+
+        if ( in_array( 'manage.woocommerce.products', $s, true )
+            || in_array( 'manage.woocommerce.settings', $s, true ) ) {
+            $allcaps['manage_woocommerce']     = true;
+            $allcaps['edit_posts']             = true;
+            $allcaps['edit_others_posts']      = true;
+            $allcaps['edit_published_posts']   = true;
+            $allcaps['delete_posts']           = true;
+            $allcaps['delete_others_posts']    = true;
+            $allcaps['delete_published_posts'] = true;
+            $allcaps['publish_posts']          = true;
+        }
+
+        if ( in_array( 'manage.elementor', $s, true ) ) {
+            $allcaps['edit_posts']           = true;
+            $allcaps['edit_others_posts']    = true;
+            $allcaps['edit_published_posts'] = true;
+            $allcaps['publish_posts']        = true;
+        }
+
         return $allcaps;
     }
 
     public static function remote_ip(): string {
-        // Respect X-Forwarded-For only if trusted (simplified — production should validate proxy).
-        $forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
-        if ( $forwarded ) {
-            return sanitize_text_field( trim( explode( ',', $forwarded )[0] ) );
+        $remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+
+        // Only trust X-Forwarded-For when the direct connection comes from a configured trusted proxy.
+        // Configure via: add_filter('aicom_trusted_proxies', fn() => ['10.0.0.1', '10.0.0.2']);
+        $trusted_proxies = (array) apply_filters( 'aicom_trusted_proxies', [] );
+        if ( ! empty( $trusted_proxies ) && in_array( $remote_addr, $trusted_proxies, true ) ) {
+            $forwarded = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : '';
+            if ( $forwarded ) {
+                return sanitize_text_field( trim( explode( ',', $forwarded )[0] ) );
+            }
         }
-        return isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+
+        return $remote_addr;
+    }
+
+    private static function is_rate_limited( string $ip ): bool {
+        return (int) get_transient( 'aicom_rl_' . $ip ) >= 5;
+    }
+
+    private static function record_auth_failure( string $ip ): void {
+        $key   = 'aicom_rl_' . $ip;
+        $count = (int) get_transient( $key );
+        // Exponential backoff: 1 min → 2 → 4 → 8 ... capped at 24 h
+        $ttl   = min( MINUTE_IN_SECONDS * ( 2 ** $count ), DAY_IN_SECONDS );
+        set_transient( $key, $count + 1, $ttl );
     }
 }

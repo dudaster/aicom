@@ -282,6 +282,18 @@
 .aicom-status-warning   { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
 .aicom-status-warning::before { background: #f59e0b; }
 
+.aicom-ip-lock-badge {
+    display: inline-block;
+    font-size: 0.7em;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-top: 4px;
+    cursor: default;
+}
+.aicom-ip-lock-badge.is-bound   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.aicom-ip-lock-badge.is-waiting { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+
 /* ── Edit key: scope diff preview ──────────────────────────────────────── */
 #aicom-scope-diff { margin-top: 8px; font-size: 0.82em; font-family: 'JetBrains Mono', monospace; }
 .aicom-diff-added   { color: #15803d; }

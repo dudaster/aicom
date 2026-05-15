@@ -205,7 +205,7 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                 ?>
                 <div class="aicom-graph-bar <?php echo esc_attr( $bar_cls ); ?>"
                      style="height:<?php echo (int) $pct; ?>%"
-                     data-url="<?php echo $is_active_bar ? $clear_url : $bar_url; ?>"
+                     data-url="<?php echo esc_attr( $is_active_bar ? $clear_url : $bar_url ); ?>"
                      title="<?php echo esc_attr( $tip ); ?>">
                     <?php if ( ! $is_empty ) :
                         foreach ( $class_order as $cls ) :

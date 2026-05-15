@@ -382,8 +382,18 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_update_price_on' => $id ] );
         }
 
-        if ( isset( $args['regular_price'] ) ) $product->set_regular_price( (string) $args['regular_price'] );
-        if ( isset( $args['sale_price'] ) )    $product->set_sale_price( (string) $args['sale_price'] );
+        if ( isset( $args['regular_price'] ) ) {
+            if ( ! is_numeric( $args['regular_price'] ) || (float) $args['regular_price'] < 0 ) {
+                return $this->err( 'INVALID_PARAM', 'regular_price must be a non-negative number', 'validation_failed' );
+            }
+            $product->set_regular_price( (string) $args['regular_price'] );
+        }
+        if ( isset( $args['sale_price'] ) ) {
+            if ( $args['sale_price'] !== '' && ( ! is_numeric( $args['sale_price'] ) || (float) $args['sale_price'] < 0 ) ) {
+                return $this->err( 'INVALID_PARAM', 'sale_price must be a non-negative number or empty string', 'validation_failed' );
+            }
+            $product->set_sale_price( (string) $args['sale_price'] );
+        }
         $product->save();
 
         return $this->ok(
@@ -407,9 +417,23 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_update_stock_on' => $id ] );
         }
 
-        if ( isset( $args['manage_stock'] ) ) $product->set_manage_stock( (bool) $args['manage_stock'] );
-        if ( isset( $args['stock_quantity'] ) ) $product->set_stock_quantity( (int) $args['stock_quantity'] );
-        if ( isset( $args['stock_status'] ) ) $product->set_stock_status( sanitize_key( $args['stock_status'] ) );
+        if ( isset( $args['manage_stock'] ) ) {
+            $product->set_manage_stock( (bool) $args['manage_stock'] );
+        }
+        if ( isset( $args['stock_quantity'] ) ) {
+            $qty = filter_var( $args['stock_quantity'], FILTER_VALIDATE_INT );
+            if ( $qty === false ) {
+                return $this->err( 'INVALID_PARAM', 'stock_quantity must be an integer', 'validation_failed' );
+            }
+            $product->set_stock_quantity( $qty );
+        }
+        if ( isset( $args['stock_status'] ) ) {
+            $valid_statuses = [ 'instock', 'outofstock', 'onbackorder' ];
+            if ( ! in_array( $args['stock_status'], $valid_statuses, true ) ) {
+                return $this->err( 'INVALID_PARAM', 'stock_status must be one of: ' . implode( ', ', $valid_statuses ), 'validation_failed' );
+            }
+            $product->set_stock_status( $args['stock_status'] );
+        }
         $product->save();
 
         return $this->ok(

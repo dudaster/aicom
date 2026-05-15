@@ -311,6 +311,11 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
         // Optional: restore to a different post (e.g. copy structure to a translation page)
         $target_post_id = isset( $args['target_post_id'] ) ? (int) $args['target_post_id'] : (int) $backup['target_id'];
 
+        $target_post = get_post( $target_post_id );
+        if ( ! $target_post ) {
+            return $this->err( 'NOT_FOUND', "Target post $target_post_id not found", 'error', 404 );
+        }
+
         if ( $dry_run ) {
             return $this->ok( [ 'dry_run' => true, 'would_restore_backup_id' => $backup_id, 'target_post_id' => $target_post_id ] );
         }

@@ -44,6 +44,9 @@ abstract class AICOM_Module_Base {
         if ( $val === null || $val === '' ) {
             return null;
         }
+        if ( ! is_scalar( $val ) ) {
+            return null; // Reject arrays/objects — prevents silent "Array" string coercion
+        }
         return (string) $val;
     }
 

@@ -174,6 +174,10 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             return $this->err( 'NOT_FOUND', "Post $post_id not found", 'error', 404 );
         }
 
+        if ( ! AICOM_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Post type not in allowlist: {$post->post_type}", 'denied_allowlist', 403 );
+        }
+
         $meta  = get_post_meta( $post_id );
         $terms = [];
         foreach ( get_object_taxonomies( $post->post_type ) as $taxonomy ) {
@@ -252,6 +256,10 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             foreach ( $payload['meta'] as $meta_key => $values ) {
                 delete_post_meta( $post_id, $meta_key );
                 foreach ( (array) $values as $val ) {
+                    // Block PHP object serialization strings (gadget chain protection).
+                    if ( is_string( $val ) && preg_match( '/^[OC]:\d+:/', $val ) ) {
+                        continue;
+                    }
                     add_post_meta( $post_id, $meta_key, maybe_unserialize( $val ) );
                 }
             }
@@ -282,6 +290,10 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
         $term = get_term( $term_id, $taxonomy );
         if ( is_wp_error( $term ) || ! $term ) {
             return $this->err( 'NOT_FOUND', "Term $term_id not found", 'error', 404 );
+        }
+
+        if ( ! AICOM_Policy_Engine::check_taxonomy_allowlist( $key_record, $taxonomy ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Taxonomy not in allowlist: $taxonomy", 'denied_allowlist', 403 );
         }
 
         $meta = get_term_meta( $term_id );

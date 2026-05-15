@@ -137,11 +137,19 @@ $keys = $wpdb->get_results(
     // ══════════════════════════════════════════════════════════════════════
     // EDIT KEY VIEW
     // ══════════════════════════════════════════════════════════════════════
-    $edit_scopes       = json_decode( $edit_key['scopes_json'] ?? '[]', true ) ?: [];
-    $edit_restrictions = json_decode( $edit_key['restrictions_json'] ?? '{}', true ) ?: [];
-    $edit_expires      = $edit_key['expires_at'] ? gmdate( 'Y-m-d', strtotime( $edit_key['expires_at'] ) ) : '';
-    $edit_ip           = implode( "\n", $edit_restrictions['ip_allowlist'] ?? [] );
-    $edit_dry_run      = ! empty( $edit_restrictions['dry_run_only'] );
+    $edit_scopes          = json_decode( $edit_key['scopes_json'] ?? '[]', true ) ?: [];
+    $edit_restrictions    = json_decode( $edit_key['restrictions_json'] ?? '{}', true ) ?: [];
+    $edit_expires         = $edit_key['expires_at'] ? gmdate( 'Y-m-d', strtotime( $edit_key['expires_at'] ) ) : '';
+    $edit_ip_lock         = ! empty( $edit_restrictions['ip_lock'] );
+    $edit_ip_lock_bound   = $edit_restrictions['ip_lock_bound_at'] ?? null;
+    $edit_ip_lock_ip      = $edit_ip_lock && $edit_ip_lock_bound && ! empty( $edit_restrictions['ip_allowlist'] )
+                                ? $edit_restrictions['ip_allowlist'][0]
+                                : null;
+    // Hide auto-bound IP from the manual textarea — merge logic in handle_edit_key() preserves it.
+    $edit_ip              = ( $edit_ip_lock && $edit_ip_lock_bound )
+                                ? ''
+                                : implode( "\n", $edit_restrictions['ip_allowlist'] ?? [] );
+    $edit_dry_run         = ! empty( $edit_restrictions['dry_run_only'] );
     $edit_post_types   = implode( "\n", $edit_restrictions['post_types'] ?? [] );
     $edit_taxonomies   = implode( "\n", $edit_restrictions['taxonomies'] ?? [] );
     $edit_meta_keys    = implode( "\n", $edit_restrictions['meta_keys']  ?? [] );
@@ -228,6 +236,33 @@ $keys = $wpdb->get_results(
                             <textarea name="ip_allowlist" id="aicom-edit-ip" rows="3"
                                       style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
                                       placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"><?php echo esc_textarea( $edit_ip ); ?></textarea>
+                        </div>
+                    </div>
+
+                    <!-- IP Auto-Lock -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label">
+                            <?php esc_html_e( 'IP Auto-Lock', 'aicom' ); ?>
+                        </label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="ip_lock" value="1" <?php checked( $edit_ip_lock ); ?> />
+                                <?php esc_html_e( 'Bind key to the first IP that uses it', 'aicom' ); ?>
+                            </label>
+                            <?php if ( $edit_ip_lock && $edit_ip_lock_bound && $edit_ip_lock_ip ) : ?>
+                            <p class="aicom-field-desc" style="color:#059669;margin-top:6px">
+                                &#128274; <?php printf(
+                                    /* translators: 1: IP address, 2: UTC datetime */
+                                    esc_html__( 'Locked to %1$s since %2$s UTC', 'aicom' ),
+                                    esc_html( $edit_ip_lock_ip ),
+                                    esc_html( substr( $edit_ip_lock_bound, 0, 16 ) )
+                                ); ?>
+                            </p>
+                            <?php elseif ( $edit_ip_lock ) : ?>
+                            <p class="aicom-field-desc" style="color:#d97706;margin-top:6px">
+                                &#128275; <?php esc_html_e( 'Waiting for first use — IP will be bound on next request.', 'aicom' ); ?>
+                            </p>
+                            <?php endif; ?>
                         </div>
                     </div>
 
@@ -370,11 +405,14 @@ $keys = $wpdb->get_results(
     <?php if ( $unarchived ) : ?>
     <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Key unarchived — now suspended.', 'aicom' ); ?></p></div>
     <?php endif; ?>
+    <?php if ( isset( $_GET['ip_lock_reset'] ) ) : ?>
+    <div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'IP lock reset — the key will bind to the next connecting IP.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
 
     <!-- ── Tab bar ────────────────────────────────────────────────────────── -->
     <?php
     $default_tab = 'generate';
-    if ( $created || $rotated || isset( $_GET['revoked'] ) || isset( $_GET['suspended'] ) || isset( $_GET['unsuspended'] ) || $edited || $archived || $unarchived ) {
+    if ( $created || $rotated || isset( $_GET['revoked'] ) || isset( $_GET['suspended'] ) || isset( $_GET['unsuspended'] ) || $edited || $archived || $unarchived || isset( $_GET['ip_lock_reset'] ) ) {
         $default_tab = 'keys';
     }
     $key_count = count( $keys ?: [] );
@@ -520,6 +558,21 @@ $keys = $wpdb->get_results(
                                           style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
                                           placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"></textarea>
                                 <p class="aicom-field-desc"><?php esc_html_e( 'e.g. 203.0.113.5 or 192.168.1.0/24', 'aicom' ); ?></p>
+                            </div>
+                        </div>
+
+                        <!-- IP Auto-Lock -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label">
+                                <?php esc_html_e( 'IP Auto-Lock', 'aicom' ); ?>
+                                <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
+                            </label>
+                            <div class="aicom-field-control">
+                                <label class="aicom-toggle-label">
+                                    <input type="checkbox" name="ip_lock" value="1" />
+                                    <?php esc_html_e( 'Bind key to the first IP that uses it', 'aicom' ); ?>
+                                </label>
+                                <p class="aicom-field-desc"><?php esc_html_e( 'On first use the connecting IP is recorded and all subsequent requests must come from that IP. Use "Reset IP lock" in the key menu to rebind.', 'aicom' ); ?></p>
                             </div>
                         </div>
 
@@ -691,7 +744,13 @@ $keys = $wpdb->get_results(
                     </thead>
                     <tbody>
                     <?php foreach ( $keys as $key ) :
-                        $scopes = json_decode( $key['scopes_json'], true ) ?: [];
+                        $scopes          = json_decode( $key['scopes_json'], true ) ?: [];
+                        $row_restrictions = json_decode( $key['restrictions_json'] ?? '{}', true ) ?: [];
+                        $row_ip_lock      = ! empty( $row_restrictions['ip_lock'] );
+                        $row_ip_bound_at  = $row_restrictions['ip_lock_bound_at'] ?? null;
+                        $row_ip_bound_ip  = $row_ip_lock && $row_ip_bound_at && ! empty( $row_restrictions['ip_allowlist'] )
+                                                ? $row_restrictions['ip_allowlist'][0]
+                                                : null;
                         $status_class = match( $key['status'] ) {
                             'active'    => 'aicom-status-active',
                             'suspended' => 'aicom-status-suspended',
@@ -703,7 +762,23 @@ $keys = $wpdb->get_results(
                         <tr>
                             <td><span class="aicom-key-label"><?php echo esc_html( $key['label'] ); ?></span></td>
                             <td><code class="aicom-key-prefix"><?php echo esc_html( $key['key_prefix'] ); ?>…</code></td>
-                            <td><span class="aicom-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span></td>
+                            <td>
+                                <span class="aicom-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $key['status'] ); ?></span>
+                                <?php if ( $row_ip_lock ) : ?>
+                                    <?php if ( $row_ip_bound_ip ) : ?>
+                                    <br><span class="aicom-ip-lock-badge is-bound"
+                                              title="<?php echo esc_attr( sprintf(
+                                                  /* translators: 1: IP, 2: UTC datetime */
+                                                  __( 'IP-locked to %1$s since %2$s UTC', 'aicom' ),
+                                                  $row_ip_bound_ip,
+                                                  substr( $row_ip_bound_at, 0, 16 )
+                                              ) ); ?>">&#128274; <?php esc_html_e( 'IP-locked', 'aicom' ); ?></span>
+                                    <?php else : ?>
+                                    <br><span class="aicom-ip-lock-badge is-waiting"
+                                              title="<?php esc_attr_e( 'IP Auto-Lock active — waiting for first use', 'aicom' ); ?>">&#128275; <?php esc_html_e( 'IP-unlocked', 'aicom' ); ?></span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
                             <td class="aicom-key-scopes">
                                 <?php if ( empty( $scopes ) ) : ?>
                                 <em style="color:#9ca3af"><?php esc_html_e( 'none', 'aicom' ); ?></em>
@@ -729,6 +804,18 @@ $keys = $wpdb->get_results(
                                            class="aicom-km-item">
                                             <span class="aicom-km-icon">✎</span> <?php esc_html_e( 'Edit scopes', 'aicom' ); ?>
                                         </a>
+                                        <?php if ( $row_ip_lock && $row_ip_bound_ip ) : ?>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                            <input type="hidden" name="action" value="aicom_save" />
+                                            <input type="hidden" name="aicom_action" value="reset_ip_lock" />
+                                            <input type="hidden" name="key_id" value="<?php echo (int) $key['id']; ?>" />
+                                            <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                            <button type="submit" class="aicom-km-item"
+                                                    onclick="return confirm('<?php echo esc_js( __( 'Reset IP lock? The next request will re-bind to a new IP.', 'aicom' ) ); ?>')">
+                                                <span class="aicom-km-icon">&#128275;</span> <?php esc_html_e( 'Reset IP lock', 'aicom' ); ?>
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
                                         <div class="aicom-km-sep"></div>
                                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                                             <input type="hidden" name="action" value="aicom_save" />

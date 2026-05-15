@@ -180,10 +180,15 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $attachment_id = null;
 
         if ( $url ) {
+            // Validate URL to prevent SSRF
+            if ( ! $this->is_safe_url( $url ) ) {
+                return $this->err( 'INVALID_URL', 'URL must use http or https and must not target private or reserved addresses', 'validation_failed', 400 );
+            }
+
             // Download from URL
             $tmp = download_url( $url );
             if ( is_wp_error( $tmp ) ) {
-                return $this->err( 'DOWNLOAD_FAILED', $tmp->get_error_message(), 'error', 500 );
+                return $this->err( 'DOWNLOAD_FAILED', 'Failed to download the requested file', 'error', 500 );
             }
 
             $file_array = [
@@ -313,11 +318,18 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             return $this->err( 'NOT_FOUND', "Directory not found: $path", 'error', 404 );
         }
 
-        $files = scandir( $path );
-        $result = [];
+        $files     = scandir( $path );
+        $real_base = realpath( $path ) . '/';
+        $result    = [];
         foreach ( $files as $file ) {
-            if ( $file === '.' || $file === '..' ) continue;
-            $full = $path . '/' . $file;
+            if ( $file === '.' || $file === '..' ) {
+                continue;
+            }
+            $full      = realpath( $path . '/' . $file );
+            // Skip symlink escapes or paths that left the base directory.
+            if ( $full === false || strpos( $full . ( is_dir( $full ) ? '/' : '' ), $real_base ) !== 0 ) {
+                continue;
+            }
             $result[] = [
                 'name'     => $file,
                 'is_dir'   => is_dir( $full ),
@@ -345,8 +357,8 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         // Hard-block writes to the plugin directory — plugin folders are deleted on
         // upgrade, and any data stored there is publicly accessible.
         $real_path       = realpath( $path ) ?: $path;
-        $real_plugin_dir = realpath( WP_PLUGIN_DIR ) ?: WP_PLUGIN_DIR;
-        if ( strpos( $real_path, $real_plugin_dir ) === 0 ) {
+        $real_plugin_dir = rtrim( realpath( WP_PLUGIN_DIR ) ?: WP_PLUGIN_DIR, '/' ) . '/';
+        if ( strpos( rtrim( $real_path, '/' ) . '/', $real_plugin_dir ) === 0 ) {
             return $this->err( 'DENIED_PLUGIN_DIR', 'Writes to the plugin directory are not allowed', 'validation_failed', 400 );
         }
 
@@ -429,5 +441,22 @@ class AICOM_Module_Media extends AICOM_Module_Base {
     private function is_blocked_extension( string $filename ): bool {
         $ext = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
         return in_array( $ext, self::BLOCKED_EXTENSIONS, true );
+    }
+
+    private function is_safe_url( string $url ): bool {
+        $parsed = wp_parse_url( $url );
+        if ( ! $parsed ) {
+            return false;
+        }
+        if ( ! in_array( strtolower( $parsed['scheme'] ?? '' ), [ 'http', 'https' ], true ) ) {
+            return false;
+        }
+        $host = $parsed['host'] ?? '';
+        if ( ! $host ) {
+            return false;
+        }
+        // Resolve hostname to IP to block private/loopback/reserved ranges.
+        $ip = gethostbyname( $host );
+        return filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false;
     }
 }
