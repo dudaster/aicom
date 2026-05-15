@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, accessibility, yoast, codex
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.3.0
+Stable tag: 3.5.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,20 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.5.0 =
+* New: JSON-RPC 2.0 batch support — send multiple tool calls in a single request as a top-level JSON array; each item is dispatched independently and responses are returned as an array. Notifications (items without id) are processed but excluded from the response per spec.
+* New: Skills detail view — click Details in the action menu to see a full readable breakdown of a skill (input schema, steps, rules, tags, permissions) with an Export JSON button.
+* New: Skills import — paste a skill JSON definition directly in the admin UI to create a draft skill without calling the MCP API.
+* New: Skills archive & restore — archived skills are now visible in the list with Restore and Delete actions.
+* Improvement: Audit Logs — merged the separate Logs and Filters tabs into a single Logs tab; the filter form is always visible at the top.
+* Improvement: API Keys — preset action icons (rename ✏, duplicate ❐, delete ✕) are now grouped horizontally with CSS tooltips on hover.
+
+= 3.4.0 =
+* New: Skills — define reusable AI procedures (steps, rules, input schema, permissions) that agents can discover, run, and propose updates to. Includes 11 MCP tools: skills.list, skills.get, skills.match, skills.compare, skills.run, skills.create, skills.activate, skills.update, skills.archive, skills.delete, skills.import, skills.suggest_from_session, skills.propose_update.
+* New: Skills admin UI — four-tab panel (Skills, Suggested, Proposals, History) with kebab action menus, search, and type/status filters.
+* New: Three new API key scopes: manage.skills, read.skills, learn.skills.
+* New: session.close response includes suggest_skill: true when skill suggestions are enabled, prompting the agent to offer saving the workflow as a reusable skill.
 
 = 3.3.0 =
 * New: OpenAPI schema endpoint — GET /wp-json/aicom/v1/schema generates a live OpenAPI 3.0 spec from all registered tools.

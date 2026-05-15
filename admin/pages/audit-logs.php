@@ -108,13 +108,14 @@ $period_options = [
 ];
 
 $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
+$active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
 ?>
 <?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
 
     <div class="aicom-page-header">
         <h1>
             <?php esc_html_e( 'Audit Logs', 'aicom' ); ?>
-            <?php if ( $active_tab === 'logs' ) : ?>
+            <?php if ( $active_tab_norm === 'logs' ) : ?>
             <span class="aicom-count">(<?php echo number_format( $total ); ?> <?php esc_html_e( 'total', 'aicom' ); ?>)</span>
             <?php endif; ?>
         </h1>
@@ -141,10 +142,9 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
         $tabs = [
             'sessions' => __( 'Sessions', 'aicom' ),
             'logs'     => __( 'Logs', 'aicom' ),
-            'filters'  => __( 'Filters', 'aicom' ),
         ];
         foreach ( $tabs as $slug => $label ) :
-            $is_active = $active_tab === $slug;
+            $is_active = $active_tab_norm === $slug;
             $tab_url   = add_query_arg( [ 'page' => 'aicom-audit-logs', 'tab' => $slug ], admin_url( 'admin.php' ) );
         ?>
         <a href="<?php echo esc_url( $tab_url ); ?>"
@@ -328,12 +328,12 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
         </div>
     </div>
 
-    <?php elseif ( $active_tab === 'filters' ) : ?>
+    <?php elseif ( $active_tab === 'logs' || $active_tab === 'filters' ) : ?>
 
-    <!-- Filters -->
+    <!-- Logs (with filters) -->
     <div class="aicom-card">
         <div class="aicom-card-head">
-            <h2 class="aicom-card-title"><?php esc_html_e( 'Filters', 'aicom' ); ?></h2>
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Filter', 'aicom' ); ?></h2>
             <?php if ( $filter_tool || $filter_status || $filter_key_id || $filter_ip || $filter_session_id || $filter_period !== 'today' ) : ?>
             <a href="<?php echo esc_url( $base_url ); ?>" style="font-size:0.78em;color:var(--aicom-text-sm)"><?php esc_html_e( 'Reset filters', 'aicom' ); ?></a>
             <?php endif; ?>
@@ -446,7 +446,7 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
                 <?php
                 $pagination_args = array_filter( [
                     'page'       => 'aicom-audit-logs',
-                    'tab'        => 'filters',
+                    'tab'        => 'logs',
                     'tool_name'  => $filter_tool,
                     'status'     => $filter_status,
                     'api_key_id' => $filter_key_id ?: null,
@@ -458,78 +458,6 @@ $base_url = admin_url( 'admin.php?page=aicom-audit-logs' );
                 $base = admin_url( 'admin.php' ) . '?' . http_build_query( $pagination_args );
                 for ( $p = 1; $p <= $num_pages; $p++ ) :
                     $url = $base . '&paged=' . $p;
-                    $cls = $p === $page_num ? 'button button-primary button-small' : 'button button-small';
-                ?>
-                <a href="<?php echo esc_url( $url ); ?>" class="<?php echo esc_attr( $cls ); ?>"><?php echo (int) $p; ?></a>
-                <?php endfor; ?>
-            </div>
-            <?php endif; ?>
-        <?php endif; ?>
-        </div>
-    </div>
-
-    <?php else : // tab = logs (default) ?>
-
-    <!-- Logs Table (default tab — no filters shown, just the data) -->
-    <div class="aicom-card">
-        <div class="aicom-card-head">
-            <h2 class="aicom-card-title">
-                <?php esc_html_e( 'Log Entries', 'aicom' ); ?>
-                <span style="font-size:0.75em;font-weight:400;color:var(--aicom-text-sm);margin-left:6px">
-                    <?php esc_html_e( 'Today', 'aicom' ); ?> &mdash;
-                    <?php
-                    /* translators: %s: formatted number */
-                    printf( esc_html( _n( '%s result', '%s results', $total, 'aicom' ) ), number_format( $total ) );
-                    ?>
-                </span>
-            </h2>
-            <a href="<?php echo esc_url( add_query_arg( [ 'page' => 'aicom-audit-logs', 'tab' => 'filters' ], admin_url( 'admin.php' ) ) ); ?>"
-               style="font-size:0.78em;color:var(--aicom-text-sm)"><?php esc_html_e( 'Filters &rarr;', 'aicom' ); ?></a>
-        </div>
-        <div class="aicom-card-body" style="padding:0">
-        <?php if ( empty( $logs ) ) : ?>
-            <p style="padding:24px;color:var(--aicom-text-sm);margin:0"><?php esc_html_e( 'No log entries for today.', 'aicom' ); ?></p>
-        <?php else : ?>
-            <table class="aicom-keys-table aicom-logs-table">
-                <thead>
-                    <tr>
-                        <th style="width:140px"><?php esc_html_e( 'Time', 'aicom' ); ?></th>
-                        <th><?php esc_html_e( 'Tool', 'aicom' ); ?></th>
-                        <th style="width:130px"><?php esc_html_e( 'Status', 'aicom' ); ?></th>
-                        <th style="width:80px"><?php esc_html_e( 'Duration', 'aicom' ); ?></th>
-                        <th><?php esc_html_e( 'Key', 'aicom' ); ?></th>
-                        <th><?php esc_html_e( 'IP', 'aicom' ); ?></th>
-                        <th><?php esc_html_e( 'Target', 'aicom' ); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ( $logs as $log ) :
-                    if ( $log['status'] === 'success' ) {
-                        $status_cls = 'aicom-status-active';
-                    } elseif ( strpos( $log['status'], 'blocked' ) === 0 ) {
-                        $status_cls = 'aicom-status-warning';
-                    } else {
-                        $status_cls = 'aicom-status-revoked';
-                    }
-                ?>
-                    <tr>
-                        <td class="aicom-key-date"><?php echo esc_html( $log['created_at'] ); ?></td>
-                        <td><code style="font-size:0.78em"><?php echo esc_html( $log['tool_name'] ); ?></code></td>
-                        <td><span class="aicom-status <?php echo esc_attr( $status_cls ); ?>"><?php echo esc_html( $log['status'] ); ?></span></td>
-                        <td class="aicom-key-date"><?php echo $log['duration_ms'] !== null ? esc_html( $log['duration_ms'] ) . 'ms' : '—'; ?></td>
-                        <td style="font-size:0.84em"><?php echo esc_html( $log['api_key_label'] ?: '—' ); ?></td>
-                        <td><code style="font-size:0.75em"><?php echo esc_html( $log['remote_ip'] ); ?></code></td>
-                        <td class="aicom-key-date"><?php echo $log['target_type'] ? esc_html( $log['target_type'] . ':' . $log['target_id'] ) : '—'; ?></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-
-            <?php if ( $num_pages > 1 ) : ?>
-            <div style="padding:12px 16px;border-top:1px solid var(--aicom-border-light);display:flex;gap:4px;align-items:center">
-                <?php
-                for ( $p = 1; $p <= $num_pages; $p++ ) :
-                    $url = add_query_arg( [ 'page' => 'aicom-audit-logs', 'tab' => 'logs', 'paged' => $p ], admin_url( 'admin.php' ) );
                     $cls = $p === $page_num ? 'button button-primary button-small' : 'button button-small';
                 ?>
                 <a href="<?php echo esc_url( $url ); ?>" class="<?php echo esc_attr( $cls ); ?>"><?php echo (int) $p; ?></a>

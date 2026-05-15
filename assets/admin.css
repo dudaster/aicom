@@ -771,22 +771,60 @@ a.aicom-tab-btn { text-decoration: none; }
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.aicom-preset-delete {
+.aicom-preset-actions {
     position: absolute;
-    top: 7px;
-    right: 7px;
+    top: 6px;
+    right: 6px;
+    display: none;
+    flex-direction: row;
+    gap: 1px;
+    align-items: center;
+}
+.aicom-preset-user:hover .aicom-preset-actions { display: flex; }
+
+.aicom-preset-rename,
+.aicom-preset-duplicate,
+.aicom-preset-delete {
     background: none;
     border: none;
     cursor: pointer;
-    color: #d1d5db;
-    font-size: 10px;
+    color: #4b5563;
+    font-size: 11px;
     line-height: 1;
     padding: 3px 5px;
     border-radius: 4px;
-    display: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
-.aicom-preset-user:hover .aicom-preset-delete { display: block; }
+.aicom-preset-rename:hover,
+.aicom-preset-duplicate:hover { background: #eff6ff; color: #3b82f6; }
 .aicom-preset-delete:hover { background: #fee2e2; color: #dc2626; }
+
+.aicom-preset-rename::after,
+.aicom-preset-duplicate::after,
+.aicom-preset-delete::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: #fff;
+    font-size: 0.7em;
+    font-weight: 500;
+    padding: 3px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 200;
+}
+.aicom-preset-rename:hover::after,
+.aicom-preset-duplicate:hover::after,
+.aicom-preset-delete:hover::after { opacity: 1; }
 
 /* ── Risk Badges ────────────────────────────────────────────────────────── */
 .aicom-risk-badge {

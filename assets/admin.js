@@ -341,9 +341,11 @@
                         '<span class="aicom-preset-name">' + $('<span>').text(d.name).html() + '</span>' +
                         '<span class="aicom-preset-count">' + d.count + ' scopes</span>' +
                         '<span class="aicom-preset-user-badge">Custom</span>' +
-                        '<span class="aicom-preset-rename" data-preset-id="' + d.id + '" title="Rename preset" role="button" tabindex="0">&#9999;</span>' +
-                        '<span class="aicom-preset-duplicate" data-preset-id="' + d.id + '" title="Duplicate preset" role="button" tabindex="0">&#10064;</span>' +
-                        '<span class="aicom-preset-delete" data-preset-id="' + d.id + '" title="Delete preset" role="button" tabindex="0">&#10005;</span>'
+                        '<span class="aicom-preset-actions">' +
+                            '<span class="aicom-preset-rename" data-preset-id="' + d.id + '" title="Rename" role="button" tabindex="0">&#9999;</span>' +
+                            '<span class="aicom-preset-duplicate" data-preset-id="' + d.id + '" title="Duplicate" role="button" tabindex="0">&#10064;</span>' +
+                            '<span class="aicom-preset-delete" data-preset-id="' + d.id + '" title="Delete" role="button" tabindex="0">&#10005;</span>' +
+                        '</span>'
                     );
                 $('.aicom-preset-custom').before($new);
             });

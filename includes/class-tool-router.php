@@ -7,6 +7,7 @@
  *  - MCP list:                    {"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}
  *  - Shorthand method:            {"method":"tool.name","params":{}}
  *  - Shorthand tool:              {"tool":"tool.name","arguments":{}}
+ *  - JSON-RPC 2.0 batch:          [{...},{...}] — array of any of the above; returns array of responses
  *
  * Step order (MUST NOT be changed — deterministic, auditable):
  *  1.  Parse request + normalize tool_name/arguments + generate request_id
@@ -30,18 +31,47 @@ class AICOM_Tool_Router {
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
     public static function dispatch( string $raw_body ): array {
-        $start      = microtime( true );
-        $request_id = wp_generate_uuid4();
-        $remote_ip  = self::remote_ip();
-        $rpc_id     = null; // set after parse if jsonrpc request
-
-        // ── Step 1: Parse ─────────────────────────────────────────────────
-        $payload = json_decode( $raw_body, true );
+        $remote_ip = self::remote_ip();
+        $start     = microtime( true );
+        $payload   = json_decode( $raw_body, true );
 
         if ( json_last_error() !== JSON_ERROR_NONE ) {
-            return self::early_error( 'parse_error', 'Invalid JSON payload', 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
+            return self::early_error( 'parse_error', 'Invalid JSON payload', 400, wp_generate_uuid4(), $remote_ip, '', 'unknown', $start, 0, '', null );
         }
 
+        // ── JSON-RPC 2.0 batch: top-level JSON array (empty or indexed) ──
+        if ( is_array( $payload ) && ( empty( $payload ) || array_key_exists( 0, $payload ) ) ) {
+            if ( empty( $payload ) ) {
+                return self::mcp_error( 'INVALID_REQUEST', 'Empty batch array', wp_generate_uuid4(), null );
+            }
+            $responses = [];
+            foreach ( $payload as $item ) {
+                if ( ! is_array( $item ) ) {
+                    $responses[] = self::mcp_error( 'INVALID_REQUEST', 'Batch item must be an object', wp_generate_uuid4(), null );
+                    continue;
+                }
+                $rpc_id = $item['id'] ?? null;
+                $result = self::run( $item, $remote_ip );
+                if ( $rpc_id !== null ) {
+                    $responses[] = $result; // notifications (no id) are processed but not returned
+                }
+            }
+            return $responses;
+        }
+
+        // ── Single request ────────────────────────────────────────────────
+        return self::run( is_array( $payload ) ? $payload : [], $remote_ip );
+    }
+
+    /**
+     * Process a single pre-parsed JSON-RPC/shorthand payload through the full 12-step pipeline.
+     */
+    private static function run( array $payload, string $remote_ip ): array {
+        $start      = microtime( true );
+        $request_id = wp_generate_uuid4();
+        $rpc_id     = null;
+
+        // ── Step 1: Parse ─────────────────────────────────────────────────
         // Extract JSON-RPC id (present when client uses MCP standard format)
         $rpc_id     = $payload['id'] ?? null;
         $rpc_method = trim( (string) ( $payload['method'] ?? '' ) );
@@ -116,12 +146,15 @@ class AICOM_Tool_Router {
         // ── Step 3.5: Session enforcement ─────────────────────────────────
         // Write/destructive/admin_sensitive tools require an open named session.
         // Exempt: session.open, session.close, tools/list, and read/discovery tools.
-        $session_exempt = in_array( $tool_name, [ 'session.open', 'session.close', 'tools/list' ], true )
+        $session_exempt = in_array( $tool_name, [ 'session.open', 'session.close', 'tools/list', 'skills.suggestions' ], true )
             || in_array( $tool_class, [ 'read', 'discovery', 'public' ], true )
             || $tool_meta === null; // unknown tools → rejected at step 4
 
         if ( $session_exempt ) {
-            self::$current_session_id = 0;
+            // Read/discovery tools don't require a session, but associate with one
+            // if open — so they appear in the session's audit log for skill analysis.
+            $ambient = AICOM_Sessions::get_active( $key_id );
+            self::$current_session_id = $ambient ? (int) $ambient['id'] : 0;
         } else {
             $active_session = AICOM_Sessions::get_active( $key_id );
             if ( ! $active_session ) {

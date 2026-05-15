@@ -325,6 +325,56 @@ class AICOM_Admin {
                 wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=proposals&updated=accepted' ) );
                 exit;
 
+            case 'skills_toggle_suggestions':
+                $enabled = ! empty( $_POST['suggestions_enabled'] );
+                update_option( 'aicom_skill_suggestions', $enabled ? '1' : '0' );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&settings_saved=1' ) );
+                exit;
+
+            case 'skills_export':
+                $skill_id = absint( wp_unslash( $_POST['skill_id'] ?? 0 ) );
+                $skill    = AICOM_Skills::get( $skill_id );
+                if ( ! $skill ) {
+                    wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&error=not_found' ) );
+                    exit;
+                }
+                $export = array_filter( [
+                    'name'         => $skill['name'],
+                    'slug'         => $skill['slug'],
+                    'description'  => $skill['description'] ?: null,
+                    'type'         => $skill['type'],
+                    'input_schema' => $skill['input_schema'] ?: null,
+                    'rules'        => $skill['rules'] ?: null,
+                    'steps'        => $skill['steps'] ?: null,
+                    'permissions'  => $skill['permissions'] ?: null,
+                    'tags'         => $skill['tags'] ?: null,
+                ], fn( $v ) => $v !== null );
+                nocache_headers();
+                header( 'Content-Type: application/json; charset=utf-8' );
+                header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $skill['slug'] ) . '.json"' );
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                echo wp_json_encode( $export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+                exit;
+
+            case 'skills_import_json':
+                $json_raw = sanitize_textarea_field( wp_unslash( $_POST['skill_json'] ?? '' ) );
+                $data     = json_decode( $json_raw, true );
+                if ( ! is_array( $data ) || empty( $data['name'] ) ) {
+                    wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&import=1&import_error=invalid_json' ) );
+                    exit;
+                }
+                if ( empty( $data['slug'] ) ) {
+                    $data['slug'] = sanitize_title( $data['name'] );
+                }
+                $data['status'] = 'draft';
+                $result = AICOM_Skills::create( $data );
+                if ( is_wp_error( $result ) ) {
+                    wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&import=1&import_error=' . urlencode( $result->get_error_code() ) ) );
+                    exit;
+                }
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-skills&tab=skills&imported=' . (int) $result['id'] ) );
+                exit;
+
             default:
                 wp_safe_redirect( admin_url( 'admin.php?page=' . self::MENU_SLUG . '&error=unknown_action' ) );
                 exit;

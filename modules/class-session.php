@@ -24,7 +24,7 @@ class AICOM_Module_Session extends AICOM_Module_Base {
         $this->register( 'session.close', [
             'class'           => 'write',
             'required_scopes' => [],
-            'description'     => 'Close the current session. Call this when you have finished your changes.',
+            'description'     => 'Close the current session. Call this when you have finished your changes. If the response includes suggest_skill: true, reflect on what was done in this session: if the workflow looks repeatable and useful, call skills.match first to check whether a similar skill already exists, then ask the user: "Would you like me to save this as a reusable skill for next time?"',
             'input_schema'    => [],
             'handler'         => [ $this, 'handle_close' ],
         ] );
@@ -83,72 +83,10 @@ class AICOM_Module_Session extends AICOM_Module_Base {
             'closed_at'  => $closed['closed_at'],
         ];
 
-        $suggestion = $this->analyze_session_for_skill( (int) $closed['id'] );
-        if ( $suggestion ) {
-            $response['skill_suggestion'] = $suggestion;
+        if ( get_option( 'aicom_skill_suggestions', '1' ) === '1' ) {
+            $response['suggest_skill'] = true;
         }
 
         return $this->ok( $response );
-    }
-
-    private function analyze_session_for_skill( int $session_id ): ?array {
-        global $wpdb;
-
-        $logs = $wpdb->get_results(
-            $wpdb->prepare(
-                "SELECT tool_name, module, tool_class FROM {$wpdb->prefix}aicom_logs
-                 WHERE session_id = %d AND status = 'success'
-                 AND tool_name NOT IN ('session.open','session.close','skills.list','skills.get','skills.match','skills.run','skills.create','skills.suggest_from_session')
-                 ORDER BY created_at ASC",
-                $session_id
-            ),
-            ARRAY_A
-        ) ?: [];
-
-        // Only suggest if session had at least 2 meaningful write/destructive actions
-        $write_actions = array_filter( $logs, fn( $l ) => in_array( $l['tool_class'], [ 'write', 'destructive', 'admin_sensitive' ], true ) );
-        if ( count( $write_actions ) < 2 ) {
-            return null;
-        }
-
-        $tool_sequence = array_column( $logs, 'tool_name' );
-        $modules_used  = array_values( array_unique( array_column( $logs, 'module' ) ) );
-
-        $candidate = [
-            'name'  => 'Session workflow',
-            'steps' => array_map( fn( $t ) => [ 'action' => $t ], $tool_sequence ),
-            'tags'  => $modules_used,
-            'type'  => 'simple',
-        ];
-
-        $similar = AICOM_Skills::find_similar( $candidate );
-        $top     = $similar[0] ?? null;
-
-        if ( $top && $top['score'] >= 0.85 ) {
-            return [
-                'should_suggest'  => false,
-                'match_type'      => 'use_existing',
-                'message'         => "This workflow matches the existing skill \"{$top['skill']['name']}\" (score: {$top['score']}). Consider using skills.run next time.",
-                'matched_skill'   => [ 'id' => $top['skill']['id'], 'name' => $top['skill']['name'], 'slug' => $top['skill']['slug'] ],
-            ];
-        }
-
-        if ( $top && $top['score'] >= 0.60 ) {
-            return [
-                'should_suggest'  => true,
-                'match_type'      => 'clarify',
-                'message'         => "This workflow is similar to \"{$top['skill']['name']}\" (score: {$top['score']}). Ask the user: would you like to save this as a new skill, or update the existing one?",
-                'tool_sequence'   => $tool_sequence,
-                'similar_skill'   => [ 'id' => $top['skill']['id'], 'name' => $top['skill']['name'], 'slug' => $top['skill']['slug'] ],
-            ];
-        }
-
-        return [
-            'should_suggest' => true,
-            'match_type'     => 'create_new',
-            'message'        => 'This looks like a repeatable workflow. Ask the user: "I noticed a repeatable pattern in this session — would you like me to save it as a skill for future use?"',
-            'tool_sequence'  => $tool_sequence,
-            'similar_skills' => array_slice( $similar, 0, 3 ),
-        ];
     }
 }

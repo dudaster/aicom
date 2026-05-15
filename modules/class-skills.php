@@ -195,6 +195,19 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
             ],
             'handler' => [ $this, 'handle_propose_update' ],
         ] );
+
+        // ── Settings ───────────────────────────────────────────────────────
+
+        $this->register( 'skills.suggestions', [
+            'class'            => 'admin_sensitive',
+            'required_scopes'  => [ 'manage.skills' ],
+            'supports_dry_run' => true,
+            'description'      => 'Enable, disable, or check the status of automatic skill suggestions that appear when session.close detects a repeatable workflow. Use action=disable if the user does not want to be prompted about saving skills.',
+            'input_schema'     => [
+                'action' => [ 'type' => 'string', 'required' => true, 'description' => 'enable | disable | status' ],
+            ],
+            'handler' => [ $this, 'handle_suggestions_setting' ],
+        ] );
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────────
@@ -613,5 +626,36 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
             return "Use existing skill \"{$top['skill']['name']}\" (id: {$top['skill']['id']}, score: {$top['score']}). Call skills.run to load it.";
         }
         return "Partial match with \"{$top['skill']['name']}\" (score: {$top['score']}). Ask the user whether to use the existing skill, update it (skills.propose_update), or create a new one.";
+    }
+
+    public function handle_suggestions_setting( array $args, array $key_record, bool $dry_run ): array {
+        $action = strtolower( trim( (string) ( $args['action'] ?? '' ) ) );
+        if ( ! in_array( $action, [ 'enable', 'disable', 'status' ], true ) ) {
+            return $this->err( 'INVALID_PARAM', 'action must be enable, disable, or status', 'validation_failed' );
+        }
+
+        $current = get_option( 'aicom_skill_suggestions', '1' ) === '1';
+
+        if ( $action === 'status' ) {
+            return $this->ok( [
+                'enabled' => $current,
+                'message' => $current
+                    ? 'Skill suggestions are enabled. session.close will suggest saving repeatable workflows.'
+                    : 'Skill suggestions are disabled. session.close will not analyze or suggest skills.',
+            ] );
+        }
+
+        if ( $dry_run ) {
+            return $this->ok( [ 'dry_run' => true, 'would_set_enabled' => $action === 'enable' ] );
+        }
+
+        update_option( 'aicom_skill_suggestions', $action === 'enable' ? '1' : '0' );
+
+        return $this->ok( [
+            'enabled' => $action === 'enable',
+            'message' => $action === 'enable'
+                ? 'Skill suggestions enabled. session.close will now analyze workflows and suggest saving repeatable ones.'
+                : 'Skill suggestions disabled. session.close will no longer suggest saving skills.',
+        ] );
     }
 }

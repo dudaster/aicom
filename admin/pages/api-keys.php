@@ -441,15 +441,17 @@ $keys = $wpdb->get_results(
                                         <span class="aicom-preset-name"><?php echo esc_html( $cp['name'] ); ?></span>
                                         <span class="aicom-preset-count"><?php printf( esc_html( _n( '%d scope', '%d scopes', count( $cp_scopes ), 'aicom' ) ), count( $cp_scopes ) ); ?></span>
                                         <span class="aicom-preset-user-badge"><?php esc_html_e( 'Custom', 'aicom' ); ?></span>
-                                        <span class="aicom-preset-rename"
-                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
-                                              title="<?php esc_attr_e( 'Rename preset', 'aicom' ); ?>" role="button" tabindex="0">&#9999;</span>
-                                        <span class="aicom-preset-duplicate"
-                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
-                                              title="<?php esc_attr_e( 'Duplicate preset', 'aicom' ); ?>" role="button" tabindex="0">&#10064;</span>
-                                        <span class="aicom-preset-delete"
-                                              data-preset-id="<?php echo (int) $cp['id']; ?>"
-                                              title="<?php esc_attr_e( 'Delete preset', 'aicom' ); ?>" role="button" tabindex="0">&#10005;</span>
+                                        <span class="aicom-preset-actions">
+                                            <span class="aicom-preset-rename"
+                                                  data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                                  title="<?php esc_attr_e( 'Rename', 'aicom' ); ?>" role="button" tabindex="0">&#9999;</span>
+                                            <span class="aicom-preset-duplicate"
+                                                  data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                                  title="<?php esc_attr_e( 'Duplicate', 'aicom' ); ?>" role="button" tabindex="0">&#10064;</span>
+                                            <span class="aicom-preset-delete"
+                                                  data-preset-id="<?php echo (int) $cp['id']; ?>"
+                                                  title="<?php esc_attr_e( 'Delete', 'aicom' ); ?>" role="button" tabindex="0">&#10005;</span>
+                                        </span>
                                     </button>
                                     <?php endforeach; ?>
 
