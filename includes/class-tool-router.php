@@ -397,14 +397,22 @@ class AICOM_Tool_Router {
     }
 
     private static function safe_json( array $data ): string {
-        // Strip potentially sensitive fields before logging
-        $sanitized = $data;
-        foreach ( [ 'password', 'pass', 'secret', 'key', 'token', 'api_key' ] as $sensitive ) {
-            if ( isset( $sanitized[ $sensitive ] ) ) {
-                $sanitized[ $sensitive ] = '***';
+        return wp_json_encode( self::strip_sensitive( $data ) ) ?: '{}';
+    }
+
+    private static function strip_sensitive( $data ) {
+        if ( ! is_array( $data ) ) {
+            return $data;
+        }
+        static $deny = [ 'password', 'pass', 'user_pass', 'secret', 'token', 'api_key', 'auth_key', 'auth_pass', 'auth' ];
+        foreach ( $data as $k => $v ) {
+            if ( in_array( strtolower( (string) $k ), $deny, true ) ) {
+                $data[ $k ] = '***';
+            } elseif ( is_array( $v ) ) {
+                $data[ $k ] = self::strip_sensitive( $v );
             }
         }
-        return wp_json_encode( $sanitized ) ?: '{}';
+        return $data;
     }
 
     /**
