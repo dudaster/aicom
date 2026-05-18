@@ -2,8 +2,8 @@
 Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, accessibility, yoast, codex
 Requires at least: 6.0
-Tested up to: 6.9
-Stable tag: 3.6.1
+Tested up to: 7.0
+Stable tag: 3.7.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,18 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.7.0 =
+
+**Brand refresh**
+
+* New visual identity: lowercase **a**i**com** wordmark, ink + cream + coral palette.
+* New plugin icon (animated SVG) and updated WordPress.org banner.
+* Refined admin UI: warmer surfaces, accent only where it matters, monochrome menu icon that follows your admin color scheme.
+
+**Compatibility**
+
+* Tested with WordPress 7.0.
 
 = 3.6.1 =
 

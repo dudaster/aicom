@@ -28,13 +28,18 @@ class AICOM_Admin {
     // ── Menu Registration ─────────────────────────────────────────────────
 
     public function register_menus(): void {
+        $icon_svg  = @file_get_contents( AICOM_DIR . 'assets/branding/aicom-icon-mono.svg' );
+        $menu_icon = $icon_svg
+            ? 'data:image/svg+xml;base64,' . base64_encode( $icon_svg )
+            : 'dashicons-rest-api';
+
         add_menu_page(
-            __( 'AICOM', 'aicom' ),
-            __( 'AICOM', 'aicom' ),
+            __( 'aicom', 'aicom' ),
+            __( 'aicom', 'aicom' ),
             self::CAPABILITY,
             self::MENU_SLUG,
             [ $this, 'page_dashboard' ],
-            'dashicons-rest-api',
+            $menu_icon,
             80
         );
 
@@ -743,8 +748,8 @@ class AICOM_Admin {
 
         $bar->add_node( [
             'id'    => 'aicom-toolbar',
-            'title' => '<span class="ab-icon dashicons dashicons-rest-api"></span>'
-                     . '<span class="ab-label">AICOM Keys</span>'
+            'title' => '<span class="ab-icon aicom-tb-icon"></span>'
+                     . '<span class="ab-label">aicom keys</span>'
                      . $count_html,
             'href'  => $manage_url,
             'meta'  => [ 'class' => $tb_class ],

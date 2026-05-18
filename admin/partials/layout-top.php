@@ -17,10 +17,9 @@ $_aicom_nav = [
 <div class="aicom-layout">
 
     <nav class="aicom-sidenav" aria-label="AICOM navigation">
-        <div class="aicom-sidenav-logo">
-            <span class="dashicons dashicons-rest-api"></span>
-            <span>AICOM</span>
-        </div>
+        <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom' ) ); ?>" class="aicom-sidenav-logo">
+            <img src="<?php echo esc_url( AICOM_URL . 'assets/branding/aicom-logo-primary.svg' ); ?>" alt="aicom" class="aicom-sidenav-logo-img">
+        </a>
         <ul class="aicom-sidenav-menu">
             <?php foreach ( $_aicom_nav as $slug => [ $label, $icon ] ) : ?>
             <li class="<?php echo $_aicom_current_page === $slug ? 'is-active' : ''; ?>">
