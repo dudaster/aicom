@@ -15,8 +15,94 @@ class AICOM_Admin {
         add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
         add_action( 'admin_post_aicom_save', [ $this, 'handle_post' ] );
         add_action( 'admin_notices',         [ $this, 'display_key_notice' ] );
+        add_action( 'wp_dashboard_setup',    [ $this, 'register_dashboard_widget' ] );
         add_filter( 'plugin_action_links_aicom/aicom.php', [ $this, 'plugin_action_links' ] );
         add_action( 'aicom_expire_keys',     [ 'AICOM_Auth', 'expire_overdue_keys' ] );
+    }
+
+    // ── WP Dashboard Widget (index.php) ───────────────────────────────────
+
+    public function register_dashboard_widget(): void {
+        if ( ! current_user_can( self::CAPABILITY ) ) {
+            return;
+        }
+        wp_add_dashboard_widget(
+            'aicom_dashboard_widget',
+            __( 'AICOM — AI Commander', 'aicom' ),
+            [ $this, 'render_dashboard_widget' ],
+            null,
+            null,
+            'side',
+            'high'
+        );
+    }
+
+    public function render_dashboard_widget(): void {
+        $sessions     = array_slice( AICOM_Sessions::get_all(), 0, 5 );
+        $api_keys_url = admin_url( 'admin.php?page=aicom-api-keys' );
+        $aicom_url    = admin_url( 'admin.php?page=aicom' );
+        $help_url     = admin_url( 'admin.php?page=aicom-help' );
+        $audit_url    = admin_url( 'admin.php?page=aicom-audit-logs' );
+        $logo_url     = AICOM_URL . 'assets/branding/aicom-logo-primary.svg';
+        ?>
+        <div class="aicom-dash-widget">
+            <div class="aicom-dash-widget-head">
+                <a href="<?php echo esc_url( $aicom_url ); ?>" class="aicom-dash-widget-logo-link">
+                    <img src="<?php echo esc_url( $logo_url ); ?>" alt="aicom" class="aicom-dash-widget-logo">
+                </a>
+                <p class="aicom-dash-widget-tagline"><?php esc_html_e( 'AI Commander for WordPress', 'aicom' ); ?></p>
+            </div>
+
+            <div class="aicom-dash-widget-cta">
+                <a href="<?php echo esc_url( $api_keys_url ); ?>" class="button button-primary button-hero aicom-dash-widget-cta-btn"><?php esc_html_e( 'Create an API key', 'aicom' ); ?></a>
+                <a href="<?php echo esc_url( $aicom_url ); ?>" class="aicom-dash-widget-cta-aside"><?php esc_html_e( 'or pick a quick preset →', 'aicom' ); ?></a>
+            </div>
+
+            <div class="aicom-dash-widget-section">
+                <div class="aicom-dash-widget-section-head">
+                    <h3><?php esc_html_e( "Today's activity", 'aicom' ); ?></h3>
+                    <a href="<?php echo esc_url( $audit_url ); ?>" class="aicom-dash-widget-link"><?php esc_html_e( 'View all →', 'aicom' ); ?></a>
+                </div>
+
+                <?php if ( empty( $sessions ) ) : ?>
+                    <p class="aicom-dash-widget-empty"><?php esc_html_e( 'No sessions yet. Generate a key and try a sentence — your activity will land here.', 'aicom' ); ?></p>
+                <?php else : ?>
+                    <ul class="aicom-dash-widget-sessions">
+                        <?php foreach ( $sessions as $s ) :
+                            $name      = $s['name'] ?? __( 'Untitled session', 'aicom' );
+                            $req_count = (int) ( $s['request_count'] ?? 0 );
+                            $opened_ts = strtotime( $s['opened_at'] ?? '' );
+                            $when      = $opened_ts
+                                ? sprintf( /* translators: %s = relative time */ __( '%s ago', 'aicom' ), human_time_diff( $opened_ts, current_time( 'timestamp', true ) ) )
+                                : '';
+                            $is_active = ( $s['status'] ?? '' ) === 'active';
+                        ?>
+                            <li class="aicom-dash-widget-session<?php echo $is_active ? ' is-active' : ''; ?>">
+                                <span class="aicom-dash-widget-session-dot" aria-hidden="true"></span>
+                                <span class="aicom-dash-widget-session-name"><?php echo esc_html( $name ); ?></span>
+                                <span class="aicom-dash-widget-session-meta">
+                                    <?php
+                                    /* translators: %d: number of requests */
+                                    printf( esc_html( _n( '%d request', '%d requests', $req_count, 'aicom' ) ), $req_count );
+                                    ?>
+                                    <?php if ( $when ) : ?>
+                                        · <?php echo esc_html( $when ); ?>
+                                    <?php endif; ?>
+                                </span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+            </div>
+
+            <div class="aicom-dash-widget-footer">
+                <a href="<?php echo esc_url( $help_url ); ?>" class="aicom-dash-widget-help">
+                    <span class="aicom-dash-widget-help-icon" aria-hidden="true">?</span>
+                    <?php esc_html_e( 'New here? Read the four-minute guide.', 'aicom' ); ?>
+                </a>
+            </div>
+        </div>
+        <?php
     }
 
     public function plugin_action_links( array $links ): array {
@@ -50,6 +136,7 @@ class AICOM_Admin {
         add_submenu_page( self::MENU_SLUG, __( 'Modules', 'aicom' ),     __( 'Modules', 'aicom' ),     self::CAPABILITY, 'aicom-modules',          [ $this, 'page_modules' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Backups', 'aicom' ),     __( 'Backups', 'aicom' ),     self::CAPABILITY, 'aicom-backups',          [ $this, 'page_backups' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Skills', 'aicom' ),      __( 'Skills', 'aicom' ),      self::CAPABILITY, 'aicom-skills',           [ $this, 'page_skills' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Help', 'aicom' ),        __( 'Help', 'aicom' ),        self::CAPABILITY, 'aicom-help',             [ $this, 'page_help' ] );
     }
 
     // ── Asset Enqueuing ───────────────────────────────────────────────────
@@ -119,6 +206,11 @@ class AICOM_Admin {
         require AICOM_DIR . 'admin/pages/skills.php';
     }
 
+    public function page_help(): void {
+        $this->require_cap();
+        require AICOM_DIR . 'admin/pages/help.php';
+    }
+
     // ── Admin notices (key created / rotated) ─────────────────────────────
 
     public function display_key_notice(): void {
@@ -152,53 +244,91 @@ class AICOM_Admin {
             ? __( 'Key created', 'aicom' )
             : __( 'Key rotated', 'aicom' );
         ?>
-        <div id="aicom-key-modal-overlay" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);align-items:center;justify-content:center;">
-            <div id="aicom-key-modal" role="dialog" aria-modal="true" style="background:#fff;border-radius:12px;box-shadow:0 24px 64px rgba(15,23,42,.22);width:100%;max-width:560px;margin:20px;padding:32px;position:relative;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+        <div id="aicom-key-modal-overlay" class="aicom-confirm-overlay aicom-keymodal-overlay">
+            <div id="aicom-key-modal" class="aicom-confirm-modal aicom-keymodal" role="dialog" aria-modal="true">
+                <button id="aicom-key-modal-close" class="aicom-confirm-close" type="button" aria-label="<?php esc_attr_e( 'Close', 'aicom' ); ?>">&times;</button>
 
-                <button id="aicom-key-modal-close" aria-label="<?php esc_attr_e( 'Close', 'aicom' ); ?>"
-                        style="position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:#64748b;font-size:20px;line-height:1;padding:4px;">&#10005;</button>
-
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-                    <span style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;border-radius:6px;padding:4px 10px;font-size:0.78em;font-weight:700;letter-spacing:.4px;text-transform:uppercase;"><?php echo esc_html( $label ); ?></span>
-                    <span style="color:#dc2626;font-size:0.82em;font-weight:600;"><?php esc_html_e( 'Copy it now — won\'t be shown again', 'aicom' ); ?></span>
+                <div class="aicom-keymodal-status">
+                    <span class="aicom-keymodal-status-badge"><?php echo esc_html( $label ); ?></span>
+                    <span class="aicom-keymodal-status-note"><?php esc_html_e( "Copy it now — won't be shown again", 'aicom' ); ?></span>
                 </div>
 
-                <p style="margin:0 0 6px;font-size:0.82em;font-weight:600;color:#334155;text-transform:uppercase;letter-spacing:.5px;"><?php esc_html_e( 'API Key', 'aicom' ); ?></p>
-                <div style="display:flex;gap:8px;margin-bottom:20px;">
-                    <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>"
-                           id="aicom-plain-key"
-                           style="flex:1;font-family:monospace;font-size:13px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:7px;background:#f8fafc;color:#0f172a;min-width:0;"
-                           onclick="this.select()" />
-                    <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>"
-                            style="white-space:nowrap;flex-shrink:0;"><?php esc_html_e( 'Copy Key', 'aicom' ); ?></button>
+                <h3><?php esc_html_e( 'Your new API key', 'aicom' ); ?></h3>
+
+                <div class="aicom-keymodal-field">
+                    <span class="aicom-confirm-scopes-label"><?php esc_html_e( 'API Key', 'aicom' ); ?></span>
+                    <div class="aicom-keymodal-row">
+                        <input type="text" readonly value="<?php echo esc_attr( $plain_key ); ?>"
+                               id="aicom-plain-key"
+                               class="aicom-keymodal-input"
+                               onclick="this.select()" />
+                        <button type="button" class="button aicom-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>"><?php esc_html_e( 'Copy Key', 'aicom' ); ?></button>
+                    </div>
                 </div>
 
-                <p style="margin:0 0 6px;font-size:0.82em;font-weight:600;color:#334155;text-transform:uppercase;letter-spacing:.5px;"><?php esc_html_e( 'Agent connect prompt', 'aicom' ); ?></p>
-                <p style="margin:0 0 8px;font-size:0.8em;color:#64748b;"><?php esc_html_e( 'Paste into OpenClaw or any MCP client:', 'aicom' ); ?></p>
-                <div style="display:flex;gap:8px;align-items:flex-start;">
-                    <textarea readonly rows="5"
-                              style="flex:1;font-family:monospace;font-size:11px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:7px;background:#f8fafc;color:#334155;resize:none;min-width:0;"><?php echo esc_textarea( $agent_text ); ?></textarea>
-                    <button class="button aicom-copy-btn" data-target="<?php echo esc_attr( $agent_text ); ?>"
-                            style="white-space:nowrap;flex-shrink:0;"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
+                <div class="aicom-keymodal-field">
+                    <span class="aicom-confirm-scopes-label"><?php esc_html_e( 'What to tell your agent', 'aicom' ); ?></span>
+                    <p class="aicom-keymodal-desc"><?php esc_html_e( "Give this to your AI helper — they'll know what to do with it. No setup required on your end.", 'aicom' ); ?></p>
+                    <div class="aicom-keymodal-terminal-wrap">
+                        <button type="button"
+                                class="aicom-keymodal-terminal-icon"
+                                id="aicom-agent-prompt-copy-icon"
+                                data-target="<?php echo esc_attr( $agent_text ); ?>"
+                                aria-label="<?php esc_attr_e( 'Copy prompt', 'aicom' ); ?>"
+                                title="<?php esc_attr_e( 'Copy prompt', 'aicom' ); ?>">
+                            <svg class="aicom-icon-copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <svg class="aicom-icon-check" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </button>
+                        <div class="aicom-keymodal-terminal" id="aicom-agent-prompt"><?php echo esc_html( $agent_text ); ?></div>
+                    </div>
+                    <div class="aicom-keymodal-terminal-actions">
+                        <button type="button" class="button aicom-copy-btn" data-target="<?php echo esc_attr( $agent_text ); ?>"><?php esc_html_e( 'Copy prompt', 'aicom' ); ?></button>
+                    </div>
                 </div>
 
-                <div style="margin-top:24px;text-align:right;">
-                    <button id="aicom-key-modal-done" class="button button-primary"><?php esc_html_e( 'Done', 'aicom' ); ?></button>
+                <div class="aicom-confirm-actions">
+                    <button id="aicom-key-modal-done" type="button" class="button button-primary"><?php esc_html_e( 'Done', 'aicom' ); ?></button>
                 </div>
             </div>
         </div>
         <script>
-        (function() {
+        (function () {
             var overlay = document.getElementById('aicom-key-modal-overlay');
             if (!overlay) return;
-            overlay.style.display = 'flex';
-
-            function closeModal() { overlay.style.display = 'none'; }
-
+            function closeModal() { overlay.hidden = true; document.removeEventListener('keydown', onEsc); }
+            function onEsc(e) { if (e.key === 'Escape') closeModal(); }
             document.getElementById('aicom-key-modal-close').addEventListener('click', closeModal);
             document.getElementById('aicom-key-modal-done').addEventListener('click', closeModal);
-            overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
-            document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+            document.addEventListener('keydown', onEsc);
+
+            // Terminal icon copy — independent of .aicom-copy-btn (jQuery) so SVGs survive
+            var iconBtn = document.getElementById('aicom-agent-prompt-copy-icon');
+            if (iconBtn) {
+                iconBtn.addEventListener('click', function () {
+                    var text = iconBtn.dataset.target || '';
+                    var ok = function () {
+                        iconBtn.classList.add('is-copied');
+                        setTimeout(function () { iconBtn.classList.remove('is-copied'); }, 1500);
+                    };
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text).then(ok).catch(function () {
+                            var ta = document.createElement('textarea');
+                            ta.value = text;
+                            document.body.appendChild(ta);
+                            ta.select();
+                            try { document.execCommand('copy'); } catch (e) {}
+                            document.body.removeChild(ta);
+                            ok();
+                        });
+                    }
+                });
+            }
         })();
         </script>
         <?php
@@ -223,6 +353,15 @@ class AICOM_Admin {
                 );
                 break;
 
+            case 'generate_pairing_token':
+                // One-time bootstrap token for AICOM Hub pairing (PRD §16.2).
+                // Plaintext is stashed in a short-lived transient so the next
+                // pageview can reveal it exactly once.
+                $token = AICOM_Hub_Pairing::create_token();
+                set_transient( 'aicom_new_pairing_token', $token, 600 );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-safety&pairing_generated=1' ) );
+                exit;
+
             case 'create_key':
                 $raw_scopes = filter_input( INPUT_POST, 'scopes', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) ?? [];
                 $scopes = array_map( 'sanitize_text_field', wp_unslash( $raw_scopes ) );
@@ -232,8 +371,14 @@ class AICOM_Admin {
                     ! empty( $_POST['dry_run_only'] ),
                     sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) ),
                     sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
-                    ! empty( $_POST['ip_lock'] )
+                    ! empty( $_POST['ip_lock'] ),
+                    self::read_working_hours_from_post()
                 );
+                break;
+
+            case 'quick_create_key':
+                $preset_slug = sanitize_key( wp_unslash( $_POST['preset'] ?? '' ) );
+                $this->handle_quick_create_key( $preset_slug );
                 break;
 
             case 'rotate_key':
@@ -262,7 +407,8 @@ class AICOM_Admin {
                     sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) ),
                     sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
                     ! empty( $_POST['rotate_secret'] ),
-                    ! empty( $_POST['ip_lock'] )
+                    ! empty( $_POST['ip_lock'] ),
+                    self::read_working_hours_from_post()
                 );
                 break;
 
@@ -468,7 +614,7 @@ class AICOM_Admin {
         }
     }
 
-    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '', bool $ip_lock = false ): void {
+    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '', bool $ip_lock = false, array $working_hours = [] ): void {
         if ( ! $label ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=missing_label' ) );
             exit;
@@ -483,6 +629,9 @@ class AICOM_Admin {
         }
         if ( $ip_lock ) {
             $restrictions['ip_lock'] = true;
+        }
+        if ( ! empty( $working_hours['enabled'] ) ) {
+            $restrictions['working_hours'] = $working_hours;
         }
         $this->apply_resource_restrictions( $restrictions );
 
@@ -499,6 +648,22 @@ class AICOM_Admin {
         set_transient( 'aicom_new_key_' . $result['id'], $result['plain_key'], 60 );
 
         wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&created=' . $result['id'] ) );
+        exit;
+    }
+
+    private function handle_quick_create_key( string $preset_slug ): void {
+        $presets = self::system_presets();
+        if ( ! isset( $presets[ $preset_slug ] ) ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=aicom&error=invalid_preset' ) );
+            exit;
+        }
+        $preset = $presets[ $preset_slug ];
+        $label  = self::next_available_label( 'Quick ' . $preset['name'] );
+
+        $result = AICOM_Auth::create_key( $label, $preset['scopes'], [], null );
+        set_transient( 'aicom_new_key_' . $result['id'], $result['plain_key'], 60 );
+
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom&created=' . $result['id'] ) );
         exit;
     }
 
@@ -529,7 +694,7 @@ class AICOM_Admin {
         exit;
     }
 
-    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate, bool $ip_lock = false ): void {
+    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate, bool $ip_lock = false, array $working_hours = [] ): void {
         if ( ! $id ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=invalid_key' ) );
             exit;
@@ -553,6 +718,9 @@ class AICOM_Admin {
                 $restrictions['ip_allowlist']     = $existing_restrictions['ip_allowlist'] ?? [];
                 $restrictions['ip_lock_bound_at'] = $existing_restrictions['ip_lock_bound_at'];
             }
+        }
+        if ( ! empty( $working_hours['enabled'] ) ) {
+            $restrictions['working_hours'] = $working_hours;
         }
         $this->apply_resource_restrictions( $restrictions );
         $expires_ts  = $expires_raw ? strtotime( $expires_raw ) : false;
@@ -600,6 +768,108 @@ class AICOM_Admin {
         $restored = self::do_restore_session( $session_id );
         wp_safe_redirect( admin_url( 'admin.php?page=aicom-audit-logs&tab=sessions&restored=' . $restored ) );
         exit;
+    }
+
+    /**
+     * Shared system preset definitions — used by both the API Keys page (full list)
+     * and the dashboard Quick API key card (first four). Keeping a single source
+     * means the dashboard never drifts from the API Keys page.
+     */
+    public static function system_presets(): array {
+        $all_scopes = AICOM_Auth::scope_slugs();
+        return [
+            'read-only' => [
+                'name'   => __( 'Read-only', 'aicom' ),
+                'scopes' => [ 'read.wp', 'read.users' ],
+                'risk'   => 'low',
+                'desc'   => __( 'Safe browsing only', 'aicom' ),
+            ],
+            'content-assistant' => [
+                'name'   => __( 'Content Assistant', 'aicom' ),
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies' ],
+                'risk'   => 'med',
+                'desc'   => __( 'Write & publish content', 'aicom' ),
+            ],
+            'elementor-editor' => [
+                'name'   => __( 'Elementor Editor', 'aicom' ),
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media' ],
+                'risk'   => 'med',
+                'desc'   => __( 'Build Elementor pages', 'aicom' ),
+            ],
+            'woocommerce-catalog' => [
+                'name'   => __( 'WooCommerce Catalog', 'aicom' ),
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products' ],
+                'risk'   => 'med',
+                'desc'   => __( 'Manage products', 'aicom' ),
+            ],
+            'site-maintenance' => [
+                'name'   => __( 'Site Maintenance', 'aicom' ),
+                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings' ],
+                'risk'   => 'high',
+                'desc'   => __( 'Updates, backups, settings', 'aicom' ),
+            ],
+            'full-admin' => [
+                'name'   => __( 'Full Admin', 'aicom' ),
+                'scopes' => $all_scopes,
+                'risk'   => 'critical',
+                'desc'   => __( 'All permissions', 'aicom' ),
+            ],
+        ];
+    }
+
+    /**
+     * Read working_hours form fields out of $_POST into the shape stored in
+     * restrictions_json. Returns an empty array when the user didn't enable it.
+     * Caller is responsible for nonce/cap; $_POST is already verified by handle_post().
+     */
+    public static function read_working_hours_from_post(): array {
+        if ( empty( $_POST['working_hours_enabled'] ) ) {
+            return [];
+        }
+        $raw_days = filter_input( INPUT_POST, 'working_hours_days', FILTER_DEFAULT, FILTER_REQUIRE_ARRAY ) ?? [];
+        $days     = array_values( array_unique( array_filter( array_map( 'intval', $raw_days ), function ( $d ) {
+            return $d >= 0 && $d <= 6;
+        } ) ) );
+        $start    = sanitize_text_field( wp_unslash( $_POST['working_hours_start'] ?? '09:00' ) );
+        $end      = sanitize_text_field( wp_unslash( $_POST['working_hours_end']   ?? '18:00' ) );
+
+        // Validate HH:MM format; fall back to defaults if malformed.
+        if ( ! preg_match( '/^[0-2]\d:[0-5]\d$/', $start ) ) { $start = '09:00'; }
+        if ( ! preg_match( '/^[0-2]\d:[0-5]\d$/', $end )   ) { $end   = '18:00'; }
+
+        return [
+            'enabled' => true,
+            'days'    => $days ?: [ 1, 2, 3, 4, 5 ],
+            'start'   => $start,
+            'end'     => $end,
+        ];
+    }
+
+    /**
+     * Pick a label not already in use, with macOS-style " (N)" suffix.
+     * "Quick Content Assistant" → "Quick Content Assistant (2)" if base is taken.
+     */
+    public static function next_available_label( string $base ): string {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aicom_api_keys';
+        $rows = $wpdb->get_col( $wpdb->prepare(
+            "SELECT label FROM {$table} WHERE label = %s OR label LIKE %s",
+            $base,
+            $wpdb->esc_like( $base . ' (' ) . '%)'
+        ) );
+        if ( empty( $rows ) ) return $base;
+        $base_taken = false;
+        $max = 1;
+        foreach ( $rows as $label ) {
+            if ( $label === $base ) {
+                $base_taken = true;
+            } elseif ( preg_match( '/^' . preg_quote( $base, '/' ) . ' \((\d+)\)$/', $label, $m ) ) {
+                $n = (int) $m[1];
+                if ( $n > $max ) $max = $n;
+            }
+        }
+        if ( ! $base_taken ) return $base;
+        return $base . ' (' . ( $max + 1 ) . ')';
     }
 
     /**

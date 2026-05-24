@@ -69,12 +69,20 @@ register_activation_hook( __FILE__, function (): void {
     if ( ! wp_next_scheduled( 'aicom_cleanup_backups' ) ) {
         wp_schedule_event( time(), 'daily', 'aicom_cleanup_backups' );
     }
+    if ( ! wp_next_scheduled( 'aicom_hub_sync' ) ) {
+        wp_schedule_event( time(), 'hourly', 'aicom_hub_sync' );
+    }
+    if ( ! wp_next_scheduled( 'aicom_hub_nonce_gc' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_hub_nonce_gc' );
+    }
 } );
 
 // ── Deactivation Hook ──────────────────────────────────────────────────────
 register_deactivation_hook( __FILE__, function (): void {
     wp_clear_scheduled_hook( 'aicom_expire_keys' );
     wp_clear_scheduled_hook( 'aicom_cleanup_backups' );
+    wp_clear_scheduled_hook( 'aicom_hub_sync' );
+    wp_clear_scheduled_hook( 'aicom_hub_nonce_gc' );
 } );
 
 // ── Auto-migrate on version mismatch (e.g. plugin update without deactivate/activate) ─
@@ -99,8 +107,16 @@ function aicom_boot(): void {
     if ( ! wp_next_scheduled( 'aicom_cleanup_backups' ) ) {
         wp_schedule_event( time(), 'daily', 'aicom_cleanup_backups' );
     }
+    if ( ! wp_next_scheduled( 'aicom_hub_sync' ) ) {
+        wp_schedule_event( time(), 'hourly', 'aicom_hub_sync' );
+    }
+    if ( ! wp_next_scheduled( 'aicom_hub_nonce_gc' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_hub_nonce_gc' );
+    }
     add_action( 'aicom_expire_keys',     function() { AICOM_Sessions::close_stale( 2 ); } );
     add_action( 'aicom_cleanup_backups', [ 'AICOM_Admin', 'run_backup_cleanup' ] );
+    add_action( 'aicom_hub_sync',        [ 'AICOM_Hub_Channel', 'cron_push_all' ] );
+    add_action( 'aicom_hub_nonce_gc',    [ 'AICOM_Hub_Pairing', 'gc_nonces' ] );
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
         new AICOM_Module_Session(),
@@ -191,6 +207,9 @@ function aicom_boot(): void {
                 'tool' => [ 'required' => true, 'sanitize_callback' => 'sanitize_text_field' ],
             ],
         ] );
+
+        // Hub ↔ Local management channel (PRD §16) — /pair and /management.
+        AICOM_Hub_Channel::register_routes();
     } );
 
     // ── Fallback Endpoint (/index.php?aicom=1) ─────────────────────────

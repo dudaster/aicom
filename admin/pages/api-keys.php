@@ -16,88 +16,68 @@ if ( $edited ) {
     $edit_diff = $edit_diff_json ? json_decode( $edit_diff_json, true ) : [];
 }
 
-// ── Scope tree ─────────────────────────────────────────────────────────────
-$scope_tree = [
-    __( 'WordPress Core', 'aicom' ) => [
-        'read.wp'           => [ __( 'Read posts, terms, meta, settings', 'aicom' ), 'low' ],
-        'write.wp.posts'    => [ __( 'Create & edit posts/pages',          'aicom' ), 'med' ],
-        'delete.wp.posts'   => [ __( 'Trash & delete posts',               'aicom' ), 'med' ],
-        'manage.meta'       => [ __( 'Post meta read/write',               'aicom' ), 'med' ],
-        'manage.taxonomies' => [ __( 'Categories, tags, taxonomies',       'aicom' ), 'med' ],
-        'manage.menus'      => [ __( 'Navigation menus',                   'aicom' ), 'med' ],
-    ],
-    __( 'Media & Files', 'aicom' ) => [
-        'manage.media' => [ __( 'Upload & manage media library',          'aicom' ), 'med' ],
-        'manage.files' => [ __( 'Direct file system access',              'aicom' ), 'high' ],
-        'manage.a11y'  => [ __( 'Accessibility audits & alt text fixes',  'aicom' ), 'med' ],
-    ],
-    __( 'Users & Roles', 'aicom' ) => [
-        'read.users'   => [ __( 'List & read user profiles',   'aicom' ), 'med' ],
-        'manage.users' => [ __( 'Create & update users',       'aicom' ), 'high' ],
-        'delete.users' => [ __( 'Delete users',                'aicom' ), 'high' ],
-        'manage.roles' => [ __( 'Manage roles & capabilities', 'aicom' ), 'high' ],
-    ],
-    __( 'Skills', 'aicom' ) => [
-        'read.skills'   => [ __( 'List, search and run Skills',                          'aicom' ), 'low'  ],
-        'manage.skills' => [ __( 'Create, update, archive and delete Skills',            'aicom' ), 'high' ],
-        'learn.skills'  => [ __( 'Suggest and propose Skill updates from sessions',      'aicom' ), 'med'  ],
-    ],
-    __( 'Site Configuration', 'aicom' ) => [
-        'manage.wordpress.settings' => [ __( 'WordPress options/settings',  'aicom' ), 'critical' ],
-        'manage.plugins'            => [ __( 'Plugin management & updates',  'aicom' ), 'critical' ],
-        'manage.backups'            => [ __( 'Backup & restore data',        'aicom' ), 'high' ],
-    ],
-    __( 'Integrations', 'aicom' ) => [
-        'manage.woocommerce.products' => [ __( 'WooCommerce products',     'aicom' ), 'med' ],
-        'manage.woocommerce.settings' => [ __( 'WooCommerce settings',     'aicom' ), 'high' ],
-        'manage.elementor'            => [ __( 'Elementor pages & widgets', 'aicom' ), 'med' ],
-        'manage.polylang'             => [ __( 'Polylang translations',     'aicom' ), 'med' ],
-        'manage.yoast'                => [ __( 'Yoast SEO fields',         'aicom' ), 'med' ],
-        'manage.clautron'             => [ __( 'Clautron blueprints',      'aicom' ), 'med' ],
-    ],
-];
-$scope_tree_flat = array_merge( ...array_values( $scope_tree ) );
-$all_scope_keys  = array_keys( $scope_tree_flat );
+// ── Scope tree (single source of truth: AICOM_Auth::scope_tree) ────────────
+$scope_tree      = AICOM_Auth::scope_tree();
+$scope_tree_flat = AICOM_Auth::scope_flat();
+$all_scope_keys  = AICOM_Auth::scope_slugs();
 
 // ── System presets ─────────────────────────────────────────────────────────
-$presets = [
-    'read-only' => [
-        'name'   => __( 'Read-only', 'aicom' ),
-        'scopes' => [ 'read.wp', 'read.users' ],
-        'risk'   => 'low',
-        'desc'   => __( 'Safe browsing only', 'aicom' ),
-    ],
-    'content-assistant' => [
-        'name'   => __( 'Content Assistant', 'aicom' ),
-        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies' ],
-        'risk'   => 'med',
-        'desc'   => __( 'Write & publish content', 'aicom' ),
-    ],
-    'elementor-editor' => [
-        'name'   => __( 'Elementor Editor', 'aicom' ),
-        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media' ],
-        'risk'   => 'med',
-        'desc'   => __( 'Build Elementor pages', 'aicom' ),
-    ],
-    'woocommerce-catalog' => [
-        'name'   => __( 'WooCommerce Catalog', 'aicom' ),
-        'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products' ],
-        'risk'   => 'med',
-        'desc'   => __( 'Manage products', 'aicom' ),
-    ],
-    'site-maintenance' => [
-        'name'   => __( 'Site Maintenance', 'aicom' ),
-        'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings' ],
-        'risk'   => 'high',
-        'desc'   => __( 'Updates, backups, settings', 'aicom' ),
-    ],
-    'full-admin' => [
-        'name'   => __( 'Full Admin', 'aicom' ),
-        'scopes' => $all_scope_keys,
-        'risk'   => 'critical',
-        'desc'   => __( 'All permissions', 'aicom' ),
-    ],
+$presets = AICOM_Admin::system_presets();
+
+// ── Working Hours helper ───────────────────────────────────────────────────
+// Renders the same field group in both Generate and Edit forms. Site uses the
+// short day labels from Safety; we mirror them here so the UI feels familiar.
+$day_labels = [
+    0 => __( 'Sun', 'aicom' ),
+    1 => __( 'Mon', 'aicom' ),
+    2 => __( 'Tue', 'aicom' ),
+    3 => __( 'Wed', 'aicom' ),
+    4 => __( 'Thu', 'aicom' ),
+    5 => __( 'Fri', 'aicom' ),
+    6 => __( 'Sat', 'aicom' ),
 ];
+$render_working_hours = function ( bool $enabled, array $days, string $start, string $end ) use ( $day_labels ) {
+    ?>
+    <div class="aicom-field-row aicom-wh-row<?php echo $enabled ? ' is-enabled' : ''; ?>">
+        <label class="aicom-field-label"><?php esc_html_e( 'Working Hours', 'aicom' ); ?><br><small><?php esc_html_e( 'Optional', 'aicom' ); ?></small></label>
+        <div class="aicom-field-control">
+            <label class="aicom-toggle-label">
+                <input type="checkbox" name="working_hours_enabled" value="1" class="aicom-wh-toggle" <?php checked( $enabled ); ?> />
+                <?php esc_html_e( 'Restrict this key to a daily time window', 'aicom' ); ?>
+            </label>
+            <div class="aicom-wh-fields" hidden style="margin-top:10px;padding:12px 14px;background:var(--aicom-bg);border:1px dashed var(--aicom-border);border-radius:6px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+                    <span class="aicom-field-desc" style="margin:0;font-weight:600;color:var(--aicom-text-md)"><?php esc_html_e( 'Days', 'aicom' ); ?></span>
+                    <?php foreach ( $day_labels as $d_num => $d_label ) : ?>
+                        <label style="display:inline-flex;align-items:center;gap:4px;font-size:0.85em;cursor:pointer;padding:2px 6px;border-radius:4px;background:var(--aicom-surface);border:1px solid var(--aicom-border)">
+                            <input type="checkbox" name="working_hours_days[]" value="<?php echo (int) $d_num; ?>"
+                                <?php checked( in_array( $d_num, $days, true ) ); ?> />
+                            <span><?php echo esc_html( $d_label ); ?></span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span class="aicom-field-desc" style="margin:0;font-weight:600;color:var(--aicom-text-md)"><?php esc_html_e( 'From', 'aicom' ); ?></span>
+                    <input type="time" name="working_hours_start" value="<?php echo esc_attr( $start ); ?>"
+                           style="font-size:0.88em;padding:5px 8px;border:1px solid var(--aicom-border);border-radius:4px" />
+                    <span class="aicom-field-desc" style="margin:0;color:var(--aicom-text-sm)"><?php esc_html_e( 'to', 'aicom' ); ?></span>
+                    <input type="time" name="working_hours_end" value="<?php echo esc_attr( $end ); ?>"
+                           style="font-size:0.88em;padding:5px 8px;border:1px solid var(--aicom-border);border-radius:4px" />
+                </div>
+            </div>
+            <p class="aicom-field-desc">
+                <?php
+                printf(
+                    /* translators: %s = site timezone */
+                    esc_html__( 'Requests outside this window return 403. Site timezone: %s', 'aicom' ),
+                    esc_html( wp_timezone_string() )
+                );
+                ?>
+            </p>
+        </div>
+    </div>
+    <?php
+};
 
 // ── Custom presets from DB ─────────────────────────────────────────────────
 $custom_presets = $wpdb->get_results(
@@ -150,6 +130,11 @@ $keys = $wpdb->get_results(
                                 ? ''
                                 : implode( "\n", $edit_restrictions['ip_allowlist'] ?? [] );
     $edit_dry_run         = ! empty( $edit_restrictions['dry_run_only'] );
+    $edit_wh              = $edit_restrictions['working_hours'] ?? [];
+    $edit_wh_enabled      = ! empty( $edit_wh['enabled'] );
+    $edit_wh_days         = array_map( 'intval', $edit_wh['days'] ?? [ 1, 2, 3, 4, 5 ] );
+    $edit_wh_start        = $edit_wh['start'] ?? '09:00';
+    $edit_wh_end          = $edit_wh['end']   ?? '18:00';
     $edit_post_types   = implode( "\n", $edit_restrictions['post_types'] ?? [] );
     $edit_taxonomies   = implode( "\n", $edit_restrictions['taxonomies'] ?? [] );
     $edit_meta_keys    = implode( "\n", $edit_restrictions['meta_keys']  ?? [] );
@@ -335,6 +320,8 @@ $keys = $wpdb->get_results(
                             </div>
                         </div>
                     </div>
+
+                    <?php $render_working_hours( $edit_wh_enabled, $edit_wh_days, $edit_wh_start, $edit_wh_end ); ?>
 
                     <!-- Dry-run -->
                     <div class="aicom-field-row">
@@ -640,6 +627,8 @@ $keys = $wpdb->get_results(
                             </div>
                         </div>
 
+                        <?php $render_working_hours( false, [ 1, 2, 3, 4, 5 ], '09:00', '18:00' ); ?>
+
                         <!-- Dry-run -->
                         <div class="aicom-field-row">
                             <label class="aicom-field-label"><?php esc_html_e( 'Dry-Run Only', 'aicom' ); ?></label>
@@ -902,6 +891,19 @@ $keys = $wpdb->get_results(
             </div>
         </div>
     </div><!-- #aicom-tab-keys -->
+
+    <script>
+    // Working Hours: show days/hours panel only when the toggle is checked.
+    (function () {
+        document.querySelectorAll('.aicom-wh-toggle').forEach(function (cb) {
+            var fields = cb.closest('.aicom-field-control').querySelector('.aicom-wh-fields');
+            if (!fields) return;
+            var sync = function () { fields.hidden = ! cb.checked; };
+            sync();
+            cb.addEventListener('change', sync);
+        });
+    })();
+    </script>
 
 <?php include AICOM_DIR . 'admin/partials/layout-bottom.php'; ?>
 <?php

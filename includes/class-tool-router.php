@@ -150,6 +150,12 @@ class AICOM_Tool_Router {
             return self::early_error( 'auth_failed', 'IP not in allowlist', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, (int) $key_record['id'], $key_record['label'], $rpc_id );
         }
 
+        // Per-key Working Hours: optional schedule restriction, mirrors the
+        // site-wide Safety schedule but scoped to this single key.
+        if ( ! AICOM_Auth::check_working_hours( $key_record ) ) {
+            return self::early_error( 'blocked_working_hours', 'This key is outside its working hours', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, (int) $key_record['id'], $key_record['label'], $rpc_id );
+        }
+
         $key_id    = (int) $key_record['id'];
         $key_label = $key_record['label'];
 

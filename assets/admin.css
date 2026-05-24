@@ -1,6 +1,6 @@
 /* ── AICOM - AI Commander Admin Styles ──────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,500&display=swap');
 
 /* ── Design tokens ─────────────────────────────────────────────────────── */
 :root {
@@ -779,6 +779,277 @@ a.aicom-tab-btn { text-decoration: none; }
 .aicom-preset-risk-critical { border-top: 3px solid #ef4444; }
 .aicom-preset-user          { border-top: 3px solid #a855f7; }
 
+/* When .aicom-preset-card is a <button> (dashboard quick-gen), reset browser chrome */
+button.aicom-preset-card {
+    font: inherit;
+    color: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* ── Dashboard: Quick API key generation ─────────────────────────────── */
+.aicom-quick-keys { margin-bottom: 16px; }
+.aicom-quick-keys-lede {
+    margin: 0 0 14px;
+    font-size: 0.9em;
+    color: var(--aicom-text-md);
+    line-height: 1.5;
+}
+.aicom-quick-keys-form .aicom-preset-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 0;
+}
+@media (max-width: 1024px) {
+    .aicom-quick-keys-form .aicom-preset-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .aicom-quick-keys-form .aicom-preset-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Confirm modal (Quick key generation) ────────────────────────────── */
+.aicom-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(22, 24, 29, .55);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.aicom-confirm-overlay[hidden] { display: none; }
+.aicom-confirm-modal {
+    background: var(--aicom-surface);
+    border-radius: 12px;
+    box-shadow: 0 24px 64px rgba(22, 24, 29, .25);
+    width: 100%;
+    max-width: 520px;
+    margin: 20px;
+    padding: 28px 28px 24px;
+    position: relative;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    animation: aicomConfirmIn .18s ease-out;
+}
+@keyframes aicomConfirmIn {
+    from { opacity: 0; transform: translateY(8px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+}
+.aicom-confirm-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--aicom-text-sm);
+    font-size: 22px;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background .15s, color .15s;
+}
+.aicom-confirm-close:hover { background: var(--aicom-bg); color: var(--aicom-ink); }
+.aicom-confirm-modal h3 {
+    margin: 0 0 16px;
+    font-size: 1.15em;
+    font-weight: 700;
+    color: var(--aicom-ink);
+    line-height: 1.3;
+}
+.aicom-confirm-sub {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    padding: 10px 12px;
+    background: var(--aicom-bg);
+    border-radius: 6px;
+    font-size: 0.92em;
+}
+.aicom-confirm-sub-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--aicom-text-sm);
+    font-family: 'JetBrains Mono', monospace;
+}
+.aicom-confirm-sub strong { color: var(--aicom-ink); font-weight: 700; }
+.aicom-confirm-scopes-label {
+    font-size: 0.7em;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: var(--aicom-text-sm);
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 0 8px;
+}
+.aicom-confirm-scopes {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--aicom-border);
+    border-radius: 6px;
+}
+.aicom-confirm-scopes li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--aicom-border-light);
+    font-size: 0.88em;
+}
+.aicom-confirm-scopes li:last-child { border-bottom: none; }
+.aicom-confirm-scope-label { color: var(--aicom-text); }
+.aicom-confirm-scope-slug code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.84em;
+    color: var(--aicom-text-sm);
+    background: var(--aicom-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+.aicom-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* Key modal — reuses .aicom-confirm-* base classes, adds field-specific styles */
+.aicom-keymodal { max-width: 720px; }
+.aicom-keymodal h3 {
+    margin: 0 0 22px;
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--aicom-ink);
+}
+.aicom-keymodal-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 18px;
+    flex-wrap: wrap;
+}
+.aicom-keymodal-status-badge {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.72em;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+.aicom-keymodal-status-note {
+    color: #dc2626;
+    font-size: 0.82em;
+    font-weight: 600;
+}
+.aicom-keymodal-field { margin-bottom: 24px; }
+.aicom-keymodal-field:last-of-type { margin-bottom: 28px; }
+
+/* Larger, friendlier section subtitles inside the key modal */
+.aicom-keymodal .aicom-confirm-scopes-label {
+    font-size: 0.88em;
+    letter-spacing: .1em;
+    color: var(--aicom-ink);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.aicom-keymodal-desc {
+    margin: 4px 0 10px;
+    font-size: 0.93em;
+    color: var(--aicom-text-md);
+    line-height: 1.55;
+}
+.aicom-keymodal-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: 6px;
+}
+.aicom-keymodal-input {
+    flex: 1;
+    min-width: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--aicom-border);
+    border-radius: 6px;
+    background: var(--aicom-bg);
+    color: var(--aicom-ink);
+}
+.aicom-keymodal-input:focus {
+    outline: none;
+    border-color: var(--aicom-primary);
+    box-shadow: 0 0 0 3px rgba(232, 93, 44, .12);
+}
+
+/* Terminal-style box for the agent prompt */
+.aicom-keymodal-terminal-wrap {
+    position: relative;
+    margin: 6px 0 10px;
+}
+.aicom-keymodal-terminal {
+    background: var(--aicom-ink);
+    color: #f5f1e8;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    padding: 18px 56px 18px 20px; /* extra right padding for the icon */
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 240px;
+    overflow-y: auto;
+    user-select: all;
+    border: 1px solid #2a2d33;
+}
+.aicom-keymodal-terminal-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(245, 241, 232, .08);
+    border: 1px solid rgba(245, 241, 232, .2);
+    border-radius: 5px;
+    color: rgba(245, 241, 232, .75);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s, transform .15s;
+    padding: 0;
+}
+.aicom-keymodal-terminal-icon:hover {
+    background: rgba(232, 93, 44, .85);
+    color: #fff;
+    border-color: var(--aicom-primary);
+    transform: translateY(-1px);
+}
+.aicom-keymodal-terminal-icon.is-copied {
+    background: #15803d;
+    border-color: #15803d;
+    color: #fff;
+}
+.aicom-keymodal-terminal-icon .aicom-icon-check { display: none; }
+.aicom-keymodal-terminal-icon.is-copied .aicom-icon-copy { display: none; }
+.aicom-keymodal-terminal-icon.is-copied .aicom-icon-check { display: block; }
+.aicom-keymodal-terminal-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+.aicom-keymodal-row .button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
 .aicom-preset-user-badge {
     font-size: 0.65em;
     color: #a855f7;
@@ -1273,3 +1544,869 @@ p.aicom-session-desc {
 }
 .aicom-stat-box.is-ok .aicom-stat-label  { color: #15803d; }
 .aicom-stat-box.is-warn .aicom-stat-label { color: #92400e; }
+
+/* ── Help page — editorial cottage ─────────────────────────────────────── */
+
+.aicom-help-page {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 16px 4px 60px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--aicom-text-md);
+    line-height: 1.65;
+}
+
+/* — kicker label between hairlines — */
+.aicom-help-kicker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--aicom-primary);
+    margin: 0 0 18px;
+}
+.aicom-help-rule {
+    display: inline-block;
+    width: 36px;
+    height: 1px;
+    background: var(--aicom-primary);
+    opacity: .55;
+}
+
+/* — fleuron ornaments between sections — */
+.aicom-help-fleuron {
+    text-align: center;
+    color: var(--aicom-primary);
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    opacity: .55;
+    margin: 56px 0;
+    user-select: none;
+}
+
+/* — Hero — */
+.aicom-help-hero {
+    text-align: center;
+    padding: 24px 12px 8px;
+}
+.aicom-help-hero h1 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-weight: 500;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1.04;
+    color: var(--aicom-ink);
+    letter-spacing: -0.012em;
+    margin: 0 auto 28px;
+    max-width: 22ch;
+}
+.aicom-help-hero h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--aicom-primary);
+    display: block;
+    margin-top: 4px;
+}
+.aicom-help-hero-lead {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-weight: 400;
+    font-size: 1.15rem;
+    line-height: 1.62;
+    color: var(--aicom-text);
+    max-width: 58ch;
+    margin: 0 auto 18px;
+}
+.aicom-help-hero-lead::first-letter {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-weight: 700;
+    font-size: 3.8em;
+    float: left;
+    line-height: 0.85;
+    padding: 8px 12px 0 0;
+    color: var(--aicom-primary);
+}
+.aicom-help-signed {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.92rem;
+    color: var(--aicom-text-sm);
+    margin: 24px 0 0;
+}
+
+/* — Recipe: 3 steps — */
+.aicom-help-recipe {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 48px 40px;
+    padding: 16px 0;
+    max-width: 940px;
+    margin: 0 auto;
+}
+.aicom-help-recipe-step { text-align: left; }
+.aicom-help-recipe-num {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 144;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 3.4rem;
+    line-height: 1;
+    color: var(--aicom-primary);
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+}
+.aicom-help-recipe-step h3 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 500;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    color: var(--aicom-ink);
+    margin: 0 0 10px;
+    letter-spacing: -0.005em;
+}
+.aicom-help-recipe-step p {
+    margin: 0;
+    font-size: 0.97rem;
+    line-height: 1.6;
+    color: var(--aicom-text-md);
+}
+.aicom-help-recipe-step a { color: var(--aicom-primary-dk); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.aicom-help-recipe-step em { color: var(--aicom-primary); font-style: italic; }
+
+/* — Section heads — */
+.aicom-help-section-head {
+    max-width: 56ch;
+    margin: 0 auto 36px;
+    text-align: center;
+}
+.aicom-help-section-head h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 500;
+    font-size: clamp(1.8rem, 3.6vw, 2.4rem);
+    line-height: 1.15;
+    color: var(--aicom-ink);
+    margin: 0 0 14px;
+    letter-spacing: -0.012em;
+}
+.aicom-help-section-head h2 em {
+    font-style: italic;
+    color: var(--aicom-primary);
+}
+.aicom-help-section-head p {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--aicom-text-md);
+}
+
+/* ── Interactive builder ─────────────────────────────────────────────── */
+.aicom-help-builder { padding: 0; }
+
+.aicom-help-recipes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 36px;
+}
+.aicom-help-recipe-card {
+    text-align: left;
+    background: var(--aicom-surface);
+    border: 1.5px solid var(--aicom-border);
+    border-radius: 8px;
+    padding: 18px 18px 20px;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-family: inherit;
+    color: inherit;
+    position: relative;
+}
+.aicom-help-recipe-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--aicom-primary-lt);
+    box-shadow: 0 8px 24px rgba(22, 24, 29, .06);
+}
+.aicom-help-recipe-card.is-active {
+    background: #fff;
+    border-color: var(--aicom-primary);
+    box-shadow: 0 0 0 4px rgba(232, 93, 44, .10), 0 12px 28px rgba(22, 24, 29, .08);
+    transform: translateY(-2px);
+}
+.aicom-help-recipe-card-cat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--aicom-primary);
+}
+.aicom-help-recipe-card-title {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 36;
+    font-weight: 500;
+    font-size: 1.1rem;
+    color: var(--aicom-ink);
+    line-height: 1.2;
+}
+.aicom-help-recipe-card-story {
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--aicom-text-md);
+    font-family: inherit;
+    flex: 1;
+}
+.aicom-help-recipe-card-cue {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    color: var(--aicom-text-sm);
+    margin-top: 4px;
+    opacity: 0;
+    transition: opacity .15s;
+}
+.aicom-help-recipe-card:hover .aicom-help-recipe-card-cue,
+.aicom-help-recipe-card.is-active .aicom-help-recipe-card-cue {
+    opacity: 1;
+    color: var(--aicom-primary);
+}
+
+/* — Output panel — */
+.aicom-help-output {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 36px;
+    padding: 36px;
+    background: var(--aicom-surface);
+    border: 1px solid var(--aicom-border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+.aicom-help-output::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: var(--aicom-primary);
+    opacity: .9;
+}
+
+.aicom-help-output-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--aicom-text-sm);
+    margin: 0 0 14px;
+}
+
+/* — Perms column — */
+.aicom-help-output-perms ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+}
+.aicom-help-output-perms li {
+    position: relative;
+    padding: 8px 0 8px 26px;
+    font-size: 0.93rem;
+    color: var(--aicom-ink);
+    line-height: 1.4;
+    border-bottom: 1px dashed var(--aicom-border-light);
+}
+.aicom-help-output-perms li:last-child { border-bottom: none; }
+.aicom-help-output-perms li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 14px;
+    height: 8px;
+    border-left: 2px solid var(--aicom-primary);
+    border-bottom: 2px solid var(--aicom-primary);
+    transform: rotate(-45deg);
+}
+.aicom-help-output-link {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.96rem;
+    color: var(--aicom-primary-dk);
+    text-decoration: none;
+    border-bottom: 1px solid var(--aicom-primary);
+    padding-bottom: 2px;
+}
+.aicom-help-output-link:hover { color: var(--aicom-primary); }
+
+/* — Prompt column — */
+.aicom-help-output-prompt {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.aicom-help-output-prompt blockquote {
+    margin: 0 0 18px;
+    padding: 22px 26px;
+    background: var(--aicom-bg);
+    border-radius: 6px;
+    border-left: 3px solid var(--aicom-primary);
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.08rem;
+    line-height: 1.55;
+    color: var(--aicom-ink);
+    flex: 1;
+    position: relative;
+}
+.aicom-help-copy-btn {
+    align-self: flex-start;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--aicom-ink);
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    cursor: pointer;
+    transition: background .15s, transform .15s;
+}
+.aicom-help-copy-btn:hover { background: #2a2d33; transform: translateY(-1px); }
+.aicom-help-copy-btn.is-copied { background: #15803d; }
+
+/* ── Wiring section ──────────────────────────────────────────────────── */
+.aicom-help-notes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-bottom: 16px;
+}
+.aicom-help-note-card {
+    background: var(--aicom-surface);
+    border: 1px solid var(--aicom-border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.aicom-help-note-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--aicom-text-sm);
+}
+.aicom-help-note-card code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--aicom-ink);
+    background: transparent;
+    padding: 0;
+    word-break: break-all;
+}
+.aicom-help-aside {
+    font-size: 0.88rem;
+    color: var(--aicom-text-sm);
+    margin: 0 0 28px;
+    font-style: italic;
+    text-align: center;
+}
+.aicom-help-aside code {
+    background: var(--aicom-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-style: normal;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.92em;
+}
+
+.aicom-help-disclosures {
+    max-width: 760px;
+    margin: 0 auto;
+}
+.aicom-help-disclosure {
+    border-bottom: 1px solid var(--aicom-border-light);
+    padding: 18px 0;
+}
+.aicom-help-disclosure:first-child { border-top: 1px solid var(--aicom-border-light); }
+.aicom-help-disclosure > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.1rem;
+    color: var(--aicom-ink);
+    transition: color .15s;
+}
+.aicom-help-disclosure > summary:hover { color: var(--aicom-primary-dk); }
+.aicom-help-disclosure > summary::-webkit-details-marker { display: none; }
+.aicom-help-summary-mark {
+    color: var(--aicom-primary);
+    font-family: 'Fraunces', serif;
+    font-size: 1.4rem;
+    line-height: 1;
+    transition: transform .2s;
+}
+.aicom-help-disclosure[open] .aicom-help-summary-mark { transform: rotate(45deg); }
+.aicom-help-disclosure p,
+.aicom-help-disclosure pre {
+    margin-top: 14px;
+}
+.aicom-help-disclosure p {
+    font-size: 0.95rem;
+    color: var(--aicom-text-md);
+    line-height: 1.65;
+}
+.aicom-help-disclosure p code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: var(--aicom-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--aicom-ink);
+}
+.aicom-help-disclosure pre {
+    background: var(--aicom-ink);
+    color: #f5f1e8;
+    padding: 18px 22px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    margin: 0;
+}
+
+/* Snippet wrapper — pre + floating copy button */
+.aicom-help-snippet {
+    position: relative;
+    margin-top: 14px;
+}
+.aicom-help-snippet pre {
+    padding-right: 80px;  /* room for copy button */
+}
+.aicom-help-snippet-copy {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #f5f1e8;
+    background: rgba(245, 241, 232, .08);
+    border: 1px solid rgba(245, 241, 232, .2);
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, transform .15s;
+}
+.aicom-help-snippet-copy:hover {
+    background: rgba(232, 93, 44, .85);
+    border-color: var(--aicom-primary);
+    color: #fff;
+    transform: translateY(-1px);
+}
+.aicom-help-snippet-copy.is-copied {
+    background: #15803d;
+    border-color: #15803d;
+    color: #fff;
+}
+
+/* ── Helper picker (wiring section, mirrors recipe cards) ───────────── */
+.aicom-help-helpers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 0 0 32px;
+}
+.aicom-help-helper-card {
+    text-align: left;
+    background: var(--aicom-surface);
+    border: 1.5px solid var(--aicom-border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: inherit;
+    color: inherit;
+}
+.aicom-help-helper-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--aicom-primary-lt);
+    box-shadow: 0 8px 20px rgba(22, 24, 29, .06);
+}
+.aicom-help-helper-card.is-active {
+    background: #fff;
+    border-color: var(--aicom-primary);
+    box-shadow: 0 0 0 4px rgba(232, 93, 44, .10), 0 12px 24px rgba(22, 24, 29, .08);
+    transform: translateY(-2px);
+}
+.aicom-help-helper-name {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 24;
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--aicom-ink);
+    line-height: 1.2;
+}
+.aicom-help-helper-where {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--aicom-text-sm);
+}
+.aicom-help-helper-card.is-active .aicom-help-helper-where {
+    color: var(--aicom-primary);
+}
+
+/* Wiring output — same shell as builder output but tighter on text side */
+.aicom-help-output--wiring {
+    grid-template-columns: 1fr 1.4fr;
+}
+.aicom-help-output-intro .aicom-help-helper-intro {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--aicom-text);
+    margin: 0 0 12px;
+}
+.aicom-help-output-intro .aicom-help-helper-after {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--aicom-text-sm);
+    font-style: italic;
+    margin: 0;
+}
+.aicom-help-output--wiring .aicom-help-snippet pre {
+    background: var(--aicom-ink);
+    color: #f5f1e8;
+    padding: 18px 22px;
+    padding-right: 80px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+}
+
+@media (max-width: 1024px) {
+    .aicom-help-helpers { grid-template-columns: repeat(2, 1fr); }
+    .aicom-help-output--wiring { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 640px) {
+    .aicom-help-helpers { grid-template-columns: 1fr; }
+}
+
+/* ── Quiet questions ─────────────────────────────────────────────────── */
+.aicom-help-thread {
+    max-width: 680px;
+    margin: 0 auto;
+}
+.aicom-help-q {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--aicom-border-light);
+}
+.aicom-help-q:last-child { border-bottom: none; }
+.aicom-help-q > summary {
+    cursor: pointer;
+    list-style: none;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 24;
+    font-size: 1.1rem;
+    font-weight: 400;
+    color: var(--aicom-ink);
+    line-height: 1.35;
+    position: relative;
+    padding-left: 36px;
+    transition: color .15s;
+}
+.aicom-help-q > summary:hover { color: var(--aicom-primary-dk); }
+.aicom-help-q > summary::-webkit-details-marker { display: none; }
+.aicom-help-q > summary::before {
+    content: '?';
+    position: absolute;
+    left: 0;
+    top: -2px;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 60;
+    font-weight: 700;
+    font-style: normal;
+    font-size: 1.6rem;
+    color: var(--aicom-primary);
+    line-height: 1;
+}
+.aicom-help-q[open] > summary::before { content: '!'; }
+.aicom-help-q > p {
+    margin: 14px 0 0 36px;
+    font-size: 0.96rem;
+    line-height: 1.7;
+    color: var(--aicom-text-md);
+}
+.aicom-help-q > p code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    background: var(--aicom-bg);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--aicom-ink);
+}
+
+/* ── Closing ─────────────────────────────────────────────────────────── */
+.aicom-help-closing {
+    text-align: center;
+    max-width: 56ch;
+    margin: 0 auto;
+    padding: 16px 12px 28px;
+}
+.aicom-help-closing h2 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 1.7rem;
+    color: var(--aicom-ink);
+    margin: 0 0 16px;
+}
+.aicom-help-closing p {
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--aicom-text-md);
+    margin: 0 0 22px;
+}
+.aicom-help-closing-signoff {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 1.25rem;
+    color: var(--aicom-primary);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .aicom-help-recipes { grid-template-columns: repeat(2, 1fr); }
+    .aicom-help-recipe { grid-template-columns: 1fr; gap: 32px; max-width: 480px; }
+    .aicom-help-output { grid-template-columns: 1fr; gap: 24px; padding: 24px; }
+    .aicom-help-notes { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .aicom-help-recipes { grid-template-columns: 1fr; }
+}
+
+/* ── Stagger reveal on page load ─────────────────────────────────────── */
+.aicom-help-page > section,
+.aicom-help-page > .aicom-help-fleuron {
+    animation: aicomHelpFadeUp .6s ease-out backwards;
+}
+.aicom-help-page > section:nth-child(1) { animation-delay: 0s; }
+.aicom-help-page > *:nth-child(2) { animation-delay: .08s; }
+.aicom-help-page > *:nth-child(3) { animation-delay: .14s; }
+.aicom-help-page > *:nth-child(4) { animation-delay: .2s; }
+.aicom-help-page > *:nth-child(5) { animation-delay: .26s; }
+.aicom-help-page > *:nth-child(6) { animation-delay: .32s; }
+.aicom-help-page > *:nth-child(7) { animation-delay: .38s; }
+.aicom-help-page > *:nth-child(8) { animation-delay: .44s; }
+.aicom-help-page > *:nth-child(9) { animation-delay: .5s; }
+@keyframes aicomHelpFadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .aicom-help-page > *,
+    .aicom-help-recipe-card { animation: none !important; transition: none !important; }
+}
+
+/* ── WP Dashboard Widget (on /wp-admin/index.php) ──────────────────────── */
+#aicom_dashboard_widget .inside { padding: 0; margin: 0; }
+.aicom-dash-widget {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--aicom-text-md);
+    line-height: 1.55;
+}
+.aicom-dash-widget-head {
+    padding: 18px 16px 14px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--aicom-bg) 0%, #ffffff 100%);
+    border-bottom: 1px solid var(--aicom-border-light);
+}
+.aicom-dash-widget-logo-link {
+    display: inline-block;
+    text-decoration: none;
+    box-shadow: none !important;
+}
+.aicom-dash-widget-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+}
+.aicom-dash-widget-tagline {
+    margin: 8px 0 0;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 14;
+    font-style: italic;
+    font-size: 0.92em;
+    color: var(--aicom-text-sm);
+}
+
+/* CTA row */
+.aicom-dash-widget-cta {
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--aicom-border-light);
+}
+.aicom-dash-widget-cta-btn.button-hero {
+    background: var(--aicom-ink);
+    border-color: var(--aicom-ink);
+    color: #fff;
+    text-shadow: none;
+    box-shadow: 0 1px 0 rgba(22, 24, 29, .12);
+    font-size: 13px;
+    padding: 0 18px;
+    min-height: 36px;
+    line-height: 34px;
+    border-radius: 6px;
+    transition: background .15s, transform .15s;
+}
+.aicom-dash-widget-cta-btn.button-hero:hover,
+.aicom-dash-widget-cta-btn.button-hero:focus {
+    background: #2a2d33;
+    border-color: #2a2d33;
+    color: #fff;
+    transform: translateY(-1px);
+}
+.aicom-dash-widget-cta-aside {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 0.92em;
+    color: var(--aicom-primary-dk);
+    text-decoration: none;
+}
+.aicom-dash-widget-cta-aside:hover { color: var(--aicom-primary); }
+
+/* Section */
+.aicom-dash-widget-section { padding: 14px 16px 10px; }
+.aicom-dash-widget-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.aicom-dash-widget-section-head h3 {
+    margin: 0;
+    font-size: 0.78em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--aicom-text-sm);
+    font-family: 'JetBrains Mono', monospace;
+}
+.aicom-dash-widget-link {
+    font-size: 0.85em;
+    color: var(--aicom-primary-dk);
+    text-decoration: none;
+}
+.aicom-dash-widget-link:hover { color: var(--aicom-primary); }
+
+/* Sessions list */
+.aicom-dash-widget-sessions {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.aicom-dash-widget-session {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--aicom-border-light);
+    font-size: 0.9em;
+}
+.aicom-dash-widget-session:last-child { border-bottom: none; }
+.aicom-dash-widget-session-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--aicom-text-xs);
+    flex-shrink: 0;
+}
+.aicom-dash-widget-session.is-active .aicom-dash-widget-session-dot {
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, .18);
+}
+.aicom-dash-widget-session-name {
+    color: var(--aicom-ink);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.aicom-dash-widget-session-meta {
+    font-size: 0.82em;
+    color: var(--aicom-text-sm);
+    text-align: right;
+    white-space: nowrap;
+}
+.aicom-dash-widget-empty {
+    margin: 0;
+    padding: 8px 0 12px;
+    font-style: italic;
+    color: var(--aicom-text-sm);
+    font-size: 0.92em;
+}
+
+/* Footer */
+.aicom-dash-widget-footer {
+    padding: 12px 16px 14px;
+    background: var(--aicom-bg);
+    border-top: 1px solid var(--aicom-border-light);
+}
+.aicom-dash-widget-help {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-size: 0.92em;
+    color: var(--aicom-text-md);
+    transition: color .15s;
+}
+.aicom-dash-widget-help:hover { color: var(--aicom-primary-dk); }
+.aicom-dash-widget-help-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--aicom-primary-lt);
+    color: var(--aicom-primary-dk);
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 0.95em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}

@@ -29,6 +29,130 @@ $success_pct = $stats['total_today'] > 0
         <p class="aicom-page-desc">AICOM - AI Commander for WordPress &nbsp;&mdash;&nbsp; v<?php echo esc_html( AICOM_VERSION ); ?></p>
     </div>
 
+    <!-- Row 0: Quick API key generation (first 4 presets, low/med risk) -->
+    <?php
+    $quick_presets = array_slice( AICOM_Admin::system_presets(), 0, 4, true );
+    $scope_flat    = AICOM_Auth::scope_flat();
+    ?>
+    <div class="aicom-card aicom-quick-keys">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Quick API key generation', 'aicom' ); ?></h2>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ); ?>" class="aicom-card-link"><?php esc_html_e( 'More options →', 'aicom' ); ?></a>
+        </div>
+        <div class="aicom-card-body">
+            <p class="aicom-quick-keys-lede"><?php esc_html_e( 'One click generates a new key with the right scopes already ticked. The label takes the preset name; we add a number if you already have one.', 'aicom' ); ?></p>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="aicom-quick-keys-form" id="aicom-quick-form">
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <input type="hidden" name="action" value="aicom_save">
+                <input type="hidden" name="aicom_action" value="quick_create_key">
+                <input type="hidden" name="preset" id="aicom-quick-preset-input" value="">
+                <div class="aicom-preset-grid">
+                    <?php foreach ( $quick_presets as $slug => $p ) :
+                        // Build friendly scope labels for the confirm modal.
+                        $scope_labels = [];
+                        foreach ( $p['scopes'] as $scope_slug ) {
+                            $entry = $scope_flat[ $scope_slug ] ?? null;
+                            $scope_labels[] = [
+                                'slug'  => $scope_slug,
+                                'label' => $entry ? $entry[0] : $scope_slug,
+                                'risk'  => $entry ? $entry[1] : 'low',
+                            ];
+                        }
+                    ?>
+                        <button type="button"
+                                class="aicom-preset-card aicom-preset-risk-<?php echo esc_attr( $p['risk'] ); ?>"
+                                data-preset="<?php echo esc_attr( $slug ); ?>"
+                                data-preset-name="<?php echo esc_attr( $p['name'] ); ?>"
+                                data-preset-risk="<?php echo esc_attr( $p['risk'] ); ?>"
+                                data-scopes="<?php echo esc_attr( wp_json_encode( $scope_labels ) ); ?>">
+                            <span class="aicom-preset-name"><?php echo esc_html( $p['name'] ); ?></span>
+                            <span class="aicom-preset-desc"><?php echo esc_html( $p['desc'] ); ?></span>
+                            <span class="aicom-preset-count">
+                                <?php
+                                /* translators: %d: number of scopes */
+                                printf( esc_html( _n( '%d scope', '%d scopes', count( $p['scopes'] ), 'aicom' ) ), count( $p['scopes'] ) );
+                                ?>
+                            </span>
+                            <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $p['risk'] ); ?>"><?php echo esc_html( strtoupper( $p['risk'] ) ); ?></span>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirm modal (hidden until a preset is clicked) -->
+    <div id="aicom-quick-confirm-overlay" class="aicom-confirm-overlay" hidden>
+        <div class="aicom-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="aicom-confirm-title">
+            <button type="button" class="aicom-confirm-close" id="aicom-confirm-close" aria-label="<?php esc_attr_e( 'Close', 'aicom' ); ?>">&times;</button>
+            <h3 id="aicom-confirm-title"><?php esc_html_e( 'You\'re about to create a key with:', 'aicom' ); ?></h3>
+            <p class="aicom-confirm-sub">
+                <span class="aicom-confirm-sub-label"><?php esc_html_e( 'Preset', 'aicom' ); ?></span>
+                <strong id="aicom-confirm-preset-name"></strong>
+                <span class="aicom-risk-badge" id="aicom-confirm-preset-risk"></span>
+            </p>
+            <p class="aicom-confirm-scopes-label"><?php esc_html_e( 'Scopes included', 'aicom' ); ?></p>
+            <ul class="aicom-confirm-scopes" id="aicom-confirm-scopes"></ul>
+            <div class="aicom-confirm-actions">
+                <button type="button" class="button" id="aicom-confirm-cancel"><?php esc_html_e( 'Cancel', 'aicom' ); ?></button>
+                <button type="button" class="button button-primary" id="aicom-confirm-ok"><?php esc_html_e( 'Create key', 'aicom' ); ?></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        var overlay  = document.getElementById('aicom-quick-confirm-overlay');
+        var nameEl   = document.getElementById('aicom-confirm-preset-name');
+        var riskEl   = document.getElementById('aicom-confirm-preset-risk');
+        var listEl   = document.getElementById('aicom-confirm-scopes');
+        var input    = document.getElementById('aicom-quick-preset-input');
+        var form     = document.getElementById('aicom-quick-form');
+        var cancelBtn = document.getElementById('aicom-confirm-cancel');
+        var closeBtn  = document.getElementById('aicom-confirm-close');
+        var okBtn     = document.getElementById('aicom-confirm-ok');
+
+        function hide() {
+            overlay.hidden = true;
+            document.removeEventListener('keydown', onEsc);
+        }
+        function show() {
+            overlay.hidden = false;
+            document.addEventListener('keydown', onEsc);
+            setTimeout(function () { okBtn.focus(); }, 30);
+        }
+        function onEsc(e) { if (e.key === 'Escape') hide(); }
+
+        document.querySelectorAll('.aicom-quick-keys-form .aicom-preset-card').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var slug   = btn.dataset.preset;
+                var name   = btn.dataset.presetName;
+                var risk   = btn.dataset.presetRisk;
+                var scopes = [];
+                try { scopes = JSON.parse(btn.dataset.scopes || '[]'); } catch (e) {}
+
+                input.value = slug;
+                nameEl.textContent = name;
+                riskEl.textContent = risk.toUpperCase();
+                riskEl.className = 'aicom-risk-badge aicom-risk-' + risk;
+                listEl.innerHTML = scopes.map(function (s) {
+                    return '<li>' +
+                        '<span class="aicom-confirm-scope-label">' + s.label + '</span>' +
+                        '<span class="aicom-confirm-scope-slug"><code>' + s.slug + '</code></span>' +
+                        '<span class="aicom-risk-badge aicom-risk-' + s.risk + '">' + s.risk.toUpperCase() + '</span>' +
+                    '</li>';
+                }).join('');
+                show();
+            });
+        });
+
+        if (overlay) overlay.addEventListener('click', function (e) { if (e.target === overlay) hide(); });
+        cancelBtn.addEventListener('click', hide);
+        closeBtn.addEventListener('click', hide);
+        okBtn.addEventListener('click', function () { form.submit(); });
+    })();
+    </script>
+
     <!-- Row 1: Stats + Status + Lock -->
     <div class="aicom-dashboard-grid">
 

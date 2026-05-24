@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.5';
+    const DB_VERSION    = '4.6';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -97,6 +97,10 @@ class AICOM_DB {
         }
 
         // v4.5: add skills + skill_revisions tables (handled by dbDelta in create_tables).
+
+        // v4.6: add aicom_hub_pairings + aicom_hub_nonces for the Hub↔Local
+        // management channel (PRD §16). dbDelta in create_tables() handles the
+        // CREATE; nothing to ALTER here.
 
         // v4.4: add tool_class to logs for graph color breakdown.
         if ( version_compare( $current, '4.4', '<' ) ) {
@@ -274,6 +278,31 @@ class AICOM_DB {
             KEY idx_skill_version (skill_id, version)
         ) $charset;";
 
+        // ── Hub Pairings ──────────────────────────────────────────────────
+        // One row per AICOM Hub paired with this site. management_secret is
+        // sodium_crypto_secretbox-encrypted (key = wp_salt('secure_auth')).
+        $sql_hub_pairings = "CREATE TABLE {$wpdb->prefix}aicom_hub_pairings (
+            id                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            hub_id                      VARCHAR(64)     NOT NULL,
+            hub_url                     VARCHAR(255)    NOT NULL,
+            management_key_id           VARCHAR(64)     NOT NULL,
+            management_secret_encrypted LONGTEXT        NOT NULL,
+            paired_at                   DATETIME        NOT NULL,
+            last_seen                   DATETIME        NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY idx_hub (hub_id),
+            KEY idx_key_id (management_key_id)
+        ) $charset;";
+
+        // ── Hub Nonces (replay protection for /management) ────────────────
+        $sql_hub_nonces = "CREATE TABLE {$wpdb->prefix}aicom_hub_nonces (
+            key_id  VARCHAR(64) NOT NULL,
+            nonce   VARCHAR(64) NOT NULL,
+            seen_at DATETIME    NOT NULL,
+            PRIMARY KEY (key_id, nonce),
+            KEY idx_seen (seen_at)
+        ) $charset;";
+
         dbDelta( $sql_keys );
         dbDelta( $sql_logs );
         dbDelta( $sql_backups );
@@ -281,5 +310,7 @@ class AICOM_DB {
         dbDelta( $sql_presets );
         dbDelta( $sql_skills );
         dbDelta( $sql_skill_revisions );
+        dbDelta( $sql_hub_pairings );
+        dbDelta( $sql_hub_nonces );
     }
 }

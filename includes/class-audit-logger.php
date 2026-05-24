@@ -48,8 +48,33 @@ class AICOM_Audit_Logger {
 
         $row = array_merge( $defaults, array_intersect_key( $data, $defaults ) );
         $wpdb->insert( self::table(), $row );
+        $insert_id = (int) $wpdb->insert_id;
 
-        return (int) $wpdb->insert_id;
+        // Critical-event side channel: anything that looks like a thwarted
+        // intrusion attempt is pushed to paired Hubs immediately, so the
+        // central audit dashboard surfaces it before the hourly batch.
+        // The same event also lands in the next batch — Hub dedupes.
+        if ( self::is_urgent_event( $row ) && class_exists( 'AICOM_Hub_Channel' ) ) {
+            AICOM_Hub_Channel::push_event_now( $row );
+        }
+
+        return $insert_id;
+    }
+
+    /**
+     * Decide whether a logged event warrants a real-time push to paired Hubs.
+     * Kept tight: only security-relevant events that an admin would want to see
+     * within seconds, not within the hour.
+     */
+    private static function is_urgent_event( array $row ): bool {
+        static $urgent_status = [
+            'auth_failed',
+            'rate_limited',
+            'blocked_hard_lock',
+            'blocked_soft_lock',
+            'blocked_working_hours',
+        ];
+        return in_array( $row['status'] ?? '', $urgent_status, true );
     }
 
     // ── Read ──────────────────────────────────────────────────────────────

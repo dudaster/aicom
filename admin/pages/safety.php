@@ -270,6 +270,77 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
         </div>
     </div>
 
+    <!-- Hub Pairing (PRD §16.2) -->
+    <?php
+    $pairing_token = ! empty( $_GET['pairing_generated'] ) ? get_transient( 'aicom_new_pairing_token' ) : '';
+    if ( $pairing_token ) {
+        delete_transient( 'aicom_new_pairing_token' );
+    }
+    global $wpdb;
+    $paired_hubs = $wpdb->get_results( "SELECT hub_id, hub_url, paired_at, last_seen FROM {$wpdb->prefix}aicom_hub_pairings ORDER BY paired_at DESC", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+    ?>
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'AICOM Hub Pairing', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo $paired_hubs ? 'aicom-badge-success' : ''; ?>">
+                <?php echo $paired_hubs
+                    ? esc_html( sprintf( _n( '%d paired hub', '%d paired hubs', count( $paired_hubs ), 'aicom' ), count( $paired_hubs ) ) )
+                    : esc_html__( 'Not paired', 'aicom' ); ?>
+            </span>
+        </div>
+        <div class="aicom-card-body">
+            <p style="margin:0 0 14px;color:var(--aicom-text-sm);font-size:0.88em">
+                <?php esc_html_e( 'Generate a one-time pairing token to connect this site to an AICOM Hub. The token is valid for 10 minutes and consumed on first use.', 'aicom' ); ?>
+            </p>
+
+            <?php if ( $pairing_token ) : ?>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:14px">
+                    <p style="margin:0 0 6px;font-size:0.82em;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.5px">
+                        <?php esc_html_e( 'Pairing token — copy now, shown once', 'aicom' ); ?>
+                    </p>
+                    <input type="text" readonly value="<?php echo esc_attr( $pairing_token ); ?>"
+                           onclick="this.select()"
+                           style="width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;padding:9px 12px;border:1.5px solid #bbf7d0;border-radius:7px;background:#fff" />
+                    <p style="margin:8px 0 0;font-size:0.78em;color:#15803d">
+                        <?php esc_html_e( 'Paste this into AICOM Hub → Sites → Pair a site within 10 minutes.', 'aicom' ); ?>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block">
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <input type="hidden" name="action" value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="generate_pairing_token" />
+                <button type="submit" class="button button-primary">
+                    <?php echo $pairing_token ? esc_html__( 'Generate new token', 'aicom' ) : esc_html__( 'Generate pairing token', 'aicom' ); ?>
+                </button>
+            </form>
+
+            <?php if ( $paired_hubs ) : ?>
+                <table class="widefat" style="margin-top:16px">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'Hub ID', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Hub URL', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Paired', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Last seen', 'aicom' ); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $paired_hubs as $h ) : ?>
+                            <tr>
+                                <td><code style="font-size:0.85em"><?php echo esc_html( $h['hub_id'] ); ?></code></td>
+                                <td><a href="<?php echo esc_url( $h['hub_url'] ); ?>" target="_blank" rel="noopener"><?php echo esc_html( $h['hub_url'] ); ?></a></td>
+                                <td><?php echo esc_html( $h['paired_at'] ); ?></td>
+                                <td><?php echo esc_html( $h['last_seen'] ?: '—' ); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
 <?php include AICOM_DIR . 'admin/partials/layout-bottom.php'; ?>
 <?php
 } )();

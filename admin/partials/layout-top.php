@@ -11,6 +11,7 @@ $_aicom_nav = [
     'aicom-modules'    => [ __( 'Modules',    'aicom' ), 'dashicons-grid-view' ],
     'aicom-backups'    => [ __( 'Backups',    'aicom' ), 'dashicons-backup' ],
     'aicom-skills'     => [ __( 'Skills',     'aicom' ), 'dashicons-media-text' ],
+    'aicom-help'       => [ __( 'Help',       'aicom' ), 'dashicons-editor-help' ],
 ];
 ?>
 <div class="wrap aicom-wrap">

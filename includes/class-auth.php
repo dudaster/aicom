@@ -11,6 +11,67 @@ class AICOM_Auth {
     const PREFIX_MARKER = 'aicom_';
     const PREFIX_LEN    = 14; // "aicom_" (6) + 8 random chars
 
+    // ── Authoritative scope vocabulary ────────────────────────────────────
+    /**
+     * The complete, ordered scope tree displayed by the manual API Keys form
+     * and validated against by the Hub management channel. This is the
+     * single source of truth for what permissions a key can hold on this
+     * Local site. Adding a scope here is the only way to make it minteable.
+     *
+     * Shape: [ group_label => [ scope_slug => [ description, risk_level ] ] ]
+     */
+    public static function scope_tree(): array {
+        return [
+            __( 'WordPress Core', 'aicom' ) => [
+                'read.wp'           => [ __( 'Read posts, terms, meta, settings', 'aicom' ), 'low' ],
+                'write.wp.posts'    => [ __( 'Create & edit posts/pages',          'aicom' ), 'med' ],
+                'delete.wp.posts'   => [ __( 'Trash & delete posts',               'aicom' ), 'med' ],
+                'manage.meta'       => [ __( 'Post meta read/write',               'aicom' ), 'med' ],
+                'manage.taxonomies' => [ __( 'Categories, tags, taxonomies',       'aicom' ), 'med' ],
+                'manage.menus'      => [ __( 'Navigation menus',                   'aicom' ), 'med' ],
+            ],
+            __( 'Media & Files', 'aicom' ) => [
+                'manage.media' => [ __( 'Upload & manage media library',          'aicom' ), 'med' ],
+                'manage.files' => [ __( 'Direct file system access',              'aicom' ), 'high' ],
+                'manage.a11y'  => [ __( 'Accessibility audits & alt text fixes',  'aicom' ), 'med' ],
+            ],
+            __( 'Users & Roles', 'aicom' ) => [
+                'read.users'   => [ __( 'List & read user profiles',   'aicom' ), 'med' ],
+                'manage.users' => [ __( 'Create & update users',       'aicom' ), 'high' ],
+                'delete.users' => [ __( 'Delete users',                'aicom' ), 'high' ],
+                'manage.roles' => [ __( 'Manage roles & capabilities', 'aicom' ), 'high' ],
+            ],
+            __( 'Skills', 'aicom' ) => [
+                'read.skills'   => [ __( 'List, search and run Skills',                          'aicom' ), 'low'  ],
+                'manage.skills' => [ __( 'Create, update, archive and delete Skills',            'aicom' ), 'high' ],
+                'learn.skills'  => [ __( 'Suggest and propose Skill updates from sessions',      'aicom' ), 'med'  ],
+            ],
+            __( 'Site Configuration', 'aicom' ) => [
+                'manage.wordpress.settings' => [ __( 'WordPress options/settings',  'aicom' ), 'critical' ],
+                'manage.plugins'            => [ __( 'Plugin management & updates',  'aicom' ), 'critical' ],
+                'manage.backups'            => [ __( 'Backup & restore data',        'aicom' ), 'high' ],
+            ],
+            __( 'Integrations', 'aicom' ) => [
+                'manage.woocommerce.products' => [ __( 'WooCommerce products',     'aicom' ), 'med' ],
+                'manage.woocommerce.settings' => [ __( 'WooCommerce settings',     'aicom' ), 'high' ],
+                'manage.elementor'            => [ __( 'Elementor pages & widgets', 'aicom' ), 'med' ],
+                'manage.polylang'             => [ __( 'Polylang translations',     'aicom' ), 'med' ],
+                'manage.yoast'                => [ __( 'Yoast SEO fields',         'aicom' ), 'med' ],
+                'manage.clautron'             => [ __( 'Clautron blueprints',      'aicom' ), 'med' ],
+            ],
+        ];
+    }
+
+    /** Flattened slug → [description, risk] map. Useful for validation. */
+    public static function scope_flat(): array {
+        return array_merge( ...array_values( self::scope_tree() ) );
+    }
+
+    /** Just the slugs, ordered. Used by validators. */
+    public static function scope_slugs(): array {
+        return array_keys( self::scope_flat() );
+    }
+
     // ── Key Generation ────────────────────────────────────────────────────
 
     /**
@@ -292,6 +353,32 @@ class AICOM_Auth {
         }
 
         return false;
+    }
+
+    /**
+     * Returns true if the key is currently within its configured working hours,
+     * OR the key has no working_hours restriction at all (most keys).
+     *
+     * Mirrors AICOM_Lock_Manager::get_schedule_lock() but scoped per-key.
+     * Stored under restrictions_json.working_hours:
+     *   { enabled, days:[0..6], start:'HH:MM', end:'HH:MM' }
+     */
+    public static function check_working_hours( array $key_record ): bool {
+        $restrictions = json_decode( $key_record['restrictions_json'] ?? '{}', true ) ?: [];
+        $wh = $restrictions['working_hours'] ?? null;
+        if ( empty( $wh ) || empty( $wh['enabled'] ) ) {
+            return true; // no schedule on this key
+        }
+
+        $tz    = wp_timezone();
+        $now   = new DateTimeImmutable( 'now', $tz );
+        $day   = (int) $now->format( 'w' );
+        $time  = $now->format( 'H:i' );
+        $days  = array_map( 'intval', $wh['days'] ?? [] );
+        $start = $wh['start'] ?? '09:00';
+        $end   = $wh['end']   ?? '18:00';
+
+        return in_array( $day, $days, true ) && $time >= $start && $time < $end;
     }
 
     /**
