@@ -26,31 +26,52 @@ $success_pct = $stats['total_today'] > 0
 
     <div class="aicom-page-header">
         <h1><?php esc_html_e( 'Dashboard', 'aicom' ); ?></h1>
-        <p class="aicom-page-desc">AICOM - AI Commander for WordPress &nbsp;&mdash;&nbsp; v<?php echo esc_html( AICOM_VERSION ); ?></p>
     </div>
 
-    <!-- Row 0: Quick API key generation (first 4 presets, low/med risk) -->
+    <?php if ( ! empty( $_GET['onboarded'] ) ) : ?>
+    <div class="aicom-onboarding-banner" id="aicom-onboarding-banner">
+        <div class="aicom-onboarding-banner-mark" aria-hidden="true">✓</div>
+        <div class="aicom-onboarding-banner-text">
+            <strong><?php esc_html_e( 'Your first key is ready.', 'aicom' ); ?></strong>
+            <span><?php esc_html_e( "Open your AI client, paste the snippet from the modal, and try a sentence like \"list my last five published posts.\" Activity will appear in the card below as soon as your agent gets to work.", 'aicom' ); ?></span>
+        </div>
+        <button type="button" class="aicom-onboarding-banner-close" aria-label="<?php esc_attr_e( 'Dismiss', 'aicom' ); ?>" onclick="this.closest('.aicom-onboarding-banner').remove();">&times;</button>
+    </div>
+    <?php endif; ?>
+
+    <!-- Row 0: Task-oriented quick start (mirrors Hub /aicomhub-keys Quick Start) -->
     <?php
-    $quick_presets = array_slice( AICOM_Admin::system_presets(), 0, 4, true );
-    $scope_flat    = AICOM_Auth::scope_flat();
+    $tasks      = AICOM_Admin::task_presets();
+    $scope_flat = AICOM_Auth::scope_flat();
+
+    // Inline SVG icons — line style, currentColor so CSS can recolor.
+    $task_icons = [
+        'pencil' => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>',
+        'search' => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>',
+        'tag'    => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/></svg>',
+        'eye'    => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+        'image'  => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+        'cart'   => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+        'layout' => '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+    ];
     ?>
     <div class="aicom-card aicom-quick-keys">
         <div class="aicom-card-head">
-            <h2 class="aicom-card-title"><?php esc_html_e( 'Quick API key generation', 'aicom' ); ?></h2>
+            <h2 class="aicom-card-title"><?php esc_html_e( 'What kind of power do you want to give your AI Agent?', 'aicom' ); ?></h2>
             <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ); ?>" class="aicom-card-link"><?php esc_html_e( 'More options →', 'aicom' ); ?></a>
         </div>
         <div class="aicom-card-body">
-            <p class="aicom-quick-keys-lede"><?php esc_html_e( 'One click generates a new key with the right scopes already ticked. The label takes the preset name; we add a number if you already have one.', 'aicom' ); ?></p>
+            <p class="aicom-quick-keys-lede"><?php esc_html_e( 'Each card describes a role your AI assistant could play on this site. Pick the one that fits and we will mint a key with the right permissions. You still review and confirm before it is created.', 'aicom' ); ?></p>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="aicom-quick-keys-form" id="aicom-quick-form">
                 <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
                 <input type="hidden" name="action" value="aicom_save">
-                <input type="hidden" name="aicom_action" value="quick_create_key">
-                <input type="hidden" name="preset" id="aicom-quick-preset-input" value="">
-                <div class="aicom-preset-grid">
-                    <?php foreach ( $quick_presets as $slug => $p ) :
+                <input type="hidden" name="aicom_action" value="create_from_task">
+                <input type="hidden" name="task" id="aicom-quick-preset-input" value="">
+                <div class="aicom-task-grid">
+                    <?php foreach ( $tasks as $slug => $t ) :
                         // Build friendly scope labels for the confirm modal.
                         $scope_labels = [];
-                        foreach ( $p['scopes'] as $scope_slug ) {
+                        foreach ( $t['scopes'] as $scope_slug ) {
                             $entry = $scope_flat[ $scope_slug ] ?? null;
                             $scope_labels[] = [
                                 'slug'  => $scope_slug,
@@ -58,25 +79,34 @@ $success_pct = $stats['total_today'] > 0
                                 'risk'  => $entry ? $entry[1] : 'low',
                             ];
                         }
+                        $icon_svg = $task_icons[ $t['icon'] ] ?? '';
                     ?>
                         <button type="button"
-                                class="aicom-preset-card aicom-preset-risk-<?php echo esc_attr( $p['risk'] ); ?>"
+                                class="aicom-task-card"
                                 data-preset="<?php echo esc_attr( $slug ); ?>"
-                                data-preset-name="<?php echo esc_attr( $p['name'] ); ?>"
-                                data-preset-risk="<?php echo esc_attr( $p['risk'] ); ?>"
+                                data-preset-name="<?php echo esc_attr( $t['name'] ); ?>"
+                                data-preset-risk="med"
                                 data-scopes="<?php echo esc_attr( wp_json_encode( $scope_labels ) ); ?>">
-                            <span class="aicom-preset-name"><?php echo esc_html( $p['name'] ); ?></span>
-                            <span class="aicom-preset-desc"><?php echo esc_html( $p['desc'] ); ?></span>
-                            <span class="aicom-preset-count">
+                            <span class="aicom-task-icon" aria-hidden="true"><?php echo $icon_svg; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG ?></span>
+                            <span class="aicom-task-name"><?php echo esc_html( $t['name'] ); ?></span>
+                            <span class="aicom-task-desc"><?php echo esc_html( $t['desc'] ); ?></span>
+                            <span class="aicom-task-meta">
                                 <?php
-                                /* translators: %d: number of scopes */
-                                printf( esc_html( _n( '%d scope', '%d scopes', count( $p['scopes'] ), 'aicom' ) ), count( $p['scopes'] ) );
+                                /* translators: %d: number of permissions */
+                                printf( esc_html( _n( '%d permission', '%d permissions', count( $t['scopes'] ), 'aicom' ) ), count( $t['scopes'] ) );
+                                if ( ! empty( $t['dry_run'] ) ) {
+                                    echo ' · <span class="aicom-task-meta-tag">' . esc_html__( 'dry-run', 'aicom' ) . '</span>';
+                                }
                                 ?>
                             </span>
-                            <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $p['risk'] ); ?>"><?php echo esc_html( strtoupper( $p['risk'] ) ); ?></span>
+                            <span class="aicom-task-cta"><?php esc_html_e( 'use this →', 'aicom' ); ?></span>
                         </button>
                     <?php endforeach; ?>
                 </div>
+                <p class="aicom-task-footer">
+                    <?php esc_html_e( 'Nothing here matches what you need?', 'aicom' ); ?>
+                    <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ); ?>"><?php esc_html_e( 'Build a custom key →', 'aicom' ); ?></a>
+                </p>
             </form>
         </div>
     </div>
@@ -123,7 +153,7 @@ $success_pct = $stats['total_today'] > 0
         }
         function onEsc(e) { if (e.key === 'Escape') hide(); }
 
-        document.querySelectorAll('.aicom-quick-keys-form .aicom-preset-card').forEach(function (btn) {
+        document.querySelectorAll('.aicom-quick-keys-form .aicom-task-card, .aicom-quick-keys-form .aicom-preset-card').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 var slug   = btn.dataset.preset;
                 var name   = btn.dataset.presetName;
@@ -184,30 +214,6 @@ $success_pct = $stats['total_today'] > 0
             </div>
         </div>
 
-        <!-- Server Status -->
-        <div class="aicom-card">
-            <div class="aicom-card-head">
-                <h2 class="aicom-card-title"><?php esc_html_e( 'Server Status', 'aicom' ); ?></h2>
-                <span class="aicom-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
-            </div>
-            <div class="aicom-card-body">
-                <div class="aicom-info-rows">
-                    <div class="aicom-info-row">
-                        <span class="aicom-info-label"><?php esc_html_e( 'WordPress', 'aicom' ); ?></span>
-                        <span class="aicom-info-value"><?php echo esc_html( get_bloginfo( 'version' ) ); ?></span>
-                    </div>
-                    <div class="aicom-info-row">
-                        <span class="aicom-info-label"><?php esc_html_e( 'AICOM Plugin', 'aicom' ); ?></span>
-                        <span class="aicom-info-value"><?php echo esc_html( AICOM_VERSION ); ?></span>
-                    </div>
-                    <div class="aicom-info-row">
-                        <span class="aicom-info-label"><?php esc_html_e( 'PHP', 'aicom' ); ?></span>
-                        <span class="aicom-info-value"><?php echo esc_html( PHP_VERSION ); ?></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Quick Lock Controls -->
         <div class="aicom-card">
             <div class="aicom-card-head">
@@ -247,39 +253,6 @@ $success_pct = $stats['total_today'] > 0
         </div>
 
     </div><!-- .aicom-dashboard-grid -->
-
-    <!-- Row 2: MCP Endpoint — full width so URLs are always readable -->
-    <div class="aicom-card">
-        <div class="aicom-card-head">
-            <h2 class="aicom-card-title"><?php esc_html_e( 'MCP Endpoint', 'aicom' ); ?></h2>
-        </div>
-        <div class="aicom-card-body" style="padding:0">
-            <div class="aicom-endpoint-row">
-                <div class="aicom-endpoint-col">
-                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Primary Endpoint', 'aicom' ); ?></span>
-                    <div class="aicom-endpoint-url-row">
-                        <code class="aicom-endpoint-url"><?php echo esc_html( $mcp_url ); ?></code>
-                        <button class="button button-small aicom-copy-btn" data-target="<?php echo esc_attr( $mcp_url ); ?>"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
-                    </div>
-                </div>
-                <div class="aicom-endpoint-divider"></div>
-                <div class="aicom-endpoint-col">
-                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Fallback Endpoint', 'aicom' ); ?></span>
-                    <div class="aicom-endpoint-url-row">
-                        <code class="aicom-endpoint-url"><?php echo esc_html( $fallback ); ?></code>
-                        <button class="button button-small aicom-copy-btn" data-target="<?php echo esc_attr( $fallback ); ?>"><?php esc_html_e( 'Copy', 'aicom' ); ?></button>
-                    </div>
-                </div>
-                <div class="aicom-endpoint-divider"></div>
-                <div class="aicom-endpoint-col">
-                    <span class="aicom-endpoint-label"><?php esc_html_e( 'Auth Header', 'aicom' ); ?></span>
-                    <div class="aicom-endpoint-url-row">
-                        <code class="aicom-endpoint-url">Authorization: Bearer &lt;api-key&gt;</code>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Row 3: Active Modules -->
     <div class="aicom-card">

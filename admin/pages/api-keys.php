@@ -108,7 +108,7 @@ $keys = $wpdb->get_results(
 
     <!-- Page header -->
     <div class="aicom-page-header">
-        <h1><?php esc_html_e( 'API Keys', 'aicom' ); ?></h1>
+        <h1><?php esc_html_e( 'Connect AI Agents', 'aicom' ); ?></h1>
         <p class="aicom-page-desc"><?php esc_html_e( 'Generate and manage API keys that grant AI agents access to your site via MCP.', 'aicom' ); ?></p>
     </div>
 
@@ -163,7 +163,7 @@ $keys = $wpdb->get_results(
                     <!-- Scopes -->
                     <div class="aicom-field-row">
                         <label class="aicom-field-label">
-                            <?php esc_html_e( 'Scopes', 'aicom' ); ?>
+                            <span class="aicom-term" tabindex="0" data-define="<?php esc_attr_e( 'Permissions you give your agent — what it can read or change. Pick narrow for safety, broad for power.', 'aicom' ); ?>"><?php esc_html_e( 'Scopes', 'aicom' ); ?></span>
                             <small><?php esc_html_e( 'Permissions for this key', 'aicom' ); ?></small>
                         </label>
                         <div class="aicom-field-control">
@@ -407,9 +407,11 @@ $keys = $wpdb->get_results(
     <div class="aicom-tab-bar" id="aicom-tab-bar" data-default="<?php echo esc_attr( $default_tab ); ?>">
         <button type="button" class="aicom-tab-btn" data-tab="generate"><?php esc_html_e( 'Generate New Key', 'aicom' ); ?></button>
         <button type="button" class="aicom-tab-btn" data-tab="connection"><?php esc_html_e( 'Connection Info', 'aicom' ); ?></button>
+        <?php if ( $key_count > 0 ) : ?>
         <button type="button" class="aicom-tab-btn" data-tab="keys">
-            <?php esc_html_e( 'Existing Keys', 'aicom' ); ?><?php if ( $key_count ) : ?><span class="aicom-tab-badge"><?php echo $key_count; ?></span><?php endif; ?>
+            <?php esc_html_e( 'Existing Keys', 'aicom' ); ?><span class="aicom-tab-badge"><?php echo (int) $key_count; ?></span>
         </button>
+        <?php endif; ?>
     </div>
 
     <!-- ══ Tab: Generate New Key ══════════════════════════════════════════ -->
@@ -442,10 +444,11 @@ $keys = $wpdb->get_results(
                                 <small><?php esc_html_e( 'Start from a template', 'aicom' ); ?></small>
                             </label>
                             <div class="aicom-field-control">
+                                <?php $default_preset = 'content-assistant'; $default_scopes = $presets[ $default_preset ]['scopes'] ?? []; ?>
                                 <div class="aicom-preset-grid" id="aicom-preset-grid">
                                     <?php foreach ( $presets as $slug => $p ) : ?>
                                     <button type="button"
-                                            class="aicom-preset-card aicom-preset-risk-<?php echo esc_attr( $p['risk'] ); ?>"
+                                            class="aicom-preset-card aicom-preset-risk-<?php echo esc_attr( $p['risk'] ); ?><?php echo $slug === $default_preset ? ' is-active' : ''; ?>"
                                             data-preset="<?php echo esc_attr( $slug ); ?>"
                                             data-scopes="<?php echo esc_attr( wp_json_encode( $p['scopes'] ) ); ?>">
                                         <span class="aicom-preset-name"><?php echo esc_html( $p['name'] ); ?></span>
@@ -481,7 +484,7 @@ $keys = $wpdb->get_results(
                                     <?php endforeach; ?>
 
                                     <button type="button"
-                                            class="aicom-preset-card aicom-preset-custom is-active"
+                                            class="aicom-preset-card aicom-preset-custom"
                                             data-preset="custom" data-scopes="[]">
                                         <span class="aicom-preset-name"><?php esc_html_e( 'Custom', 'aicom' ); ?></span>
                                         <span class="aicom-preset-desc"><?php esc_html_e( 'Pick scopes manually', 'aicom' ); ?></span>
@@ -497,6 +500,7 @@ $keys = $wpdb->get_results(
                                 <small><?php esc_html_e( 'Permissions for this key', 'aicom' ); ?></small>
                             </label>
                             <div class="aicom-field-control">
+                                <p class="aicom-scope-hint" id="aicom-scope-hint"><?php esc_html_e( 'Scopes are set by the preset above. Tick a checkbox to switch to Custom and edit manually.', 'aicom' ); ?></p>
                                 <input type="text" id="aicom-scope-search" class="regular-text aicom-scope-search"
                                        placeholder="<?php esc_attr_e( 'Search scopes…', 'aicom' ); ?>" autocomplete="off" />
                                 <div id="aicom-scope-tree">
@@ -512,7 +516,8 @@ $keys = $wpdb->get_results(
                                             <label class="aicom-tree-scope-row" data-scope="<?php echo esc_attr( $scope_key ); ?>">
                                                 <input type="checkbox" name="scopes[]"
                                                        value="<?php echo esc_attr( $scope_key ); ?>"
-                                                       class="aicom-scope-cb" />
+                                                       class="aicom-scope-cb"
+                                                       <?php checked( in_array( $scope_key, $default_scopes, true ) ); ?> />
                                                 <span class="aicom-tree-scope-label"><?php echo esc_html( $scope_label ); ?></span>
                                                 <code class="aicom-tree-scope-code"><?php echo esc_html( $scope_key ); ?></code>
                                                 <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $scope_risk ); ?>"><?php echo esc_html( strtoupper( $scope_risk ) ); ?></span>
@@ -534,19 +539,25 @@ $keys = $wpdb->get_results(
                             </div>
                         </div>
 
-                        <!-- IP Allowlist -->
-                        <div class="aicom-field-row">
-                            <label class="aicom-field-label" for="aicom-ip-allowlist">
-                                <?php esc_html_e( 'IP Allowlist', 'aicom' ); ?>
-                                <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
-                            </label>
-                            <div class="aicom-field-control">
-                                <textarea name="ip_allowlist" id="aicom-ip-allowlist" rows="3"
-                                          style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
-                                          placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"></textarea>
-                                <p class="aicom-field-desc"><?php esc_html_e( 'e.g. 203.0.113.5 or 192.168.1.0/24', 'aicom' ); ?></p>
+                        <details class="aicom-advanced">
+                            <summary>
+                                <span><?php esc_html_e( 'Advanced options', 'aicom' ); ?></span>
+                                <span class="aicom-advanced-hint"><?php esc_html_e( 'IP locks, working hours, dry-run, expiry…', 'aicom' ); ?></span>
+                            </summary>
+
+                            <!-- IP Allowlist -->
+                            <div class="aicom-field-row">
+                                <label class="aicom-field-label" for="aicom-ip-allowlist">
+                                    <?php esc_html_e( 'IP Allowlist', 'aicom' ); ?>
+                                    <small><?php esc_html_e( 'Optional', 'aicom' ); ?></small>
+                                </label>
+                                <div class="aicom-field-control">
+                                    <textarea name="ip_allowlist" id="aicom-ip-allowlist" rows="3"
+                                              style="width:100%;max-width:420px;font-family:monospace;font-size:0.85em"
+                                              placeholder="<?php esc_attr_e( 'One IP or CIDR per line. Leave empty to allow all.', 'aicom' ); ?>"></textarea>
+                                    <p class="aicom-field-desc"><?php esc_html_e( 'e.g. 203.0.113.5 or 192.168.1.0/24', 'aicom' ); ?></p>
+                                </div>
                             </div>
-                        </div>
 
                         <!-- IP Auto-Lock -->
                         <div class="aicom-field-row">
@@ -652,6 +663,8 @@ $keys = $wpdb->get_results(
                                 <p class="aicom-field-desc"><?php esc_html_e( 'Key stops working automatically on this date.', 'aicom' ); ?></p>
                             </div>
                         </div>
+
+                        </details>
 
                     </div><!-- /.aicom-form -->
 

@@ -16,7 +16,7 @@ include AICOM_DIR . 'admin/partials/layout-top.php';
 ?>
 
 <div class="aicom-page-header">
-    <h1 class="aicom-page-title"><?php esc_html_e( 'Skills', 'aicom' ); ?></h1>
+    <h1 class="aicom-page-title"><?php esc_html_e( 'Saved Workflows', 'aicom' ); ?></h1>
     <p class="aicom-page-subtitle"><?php esc_html_e( 'Reusable AI procedures — instructions, rules, and workflows your AI agents can discover and execute.', 'aicom' ); ?></p>
 </div>
 

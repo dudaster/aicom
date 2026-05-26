@@ -95,7 +95,7 @@ $type_options = [
 <?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
 
     <div class="aicom-page-header">
-        <h1><?php esc_html_e( 'Backups', 'aicom' ); ?></h1>
+        <h1><?php esc_html_e( 'Snapshots', 'aicom' ); ?></h1>
         <p class="aicom-page-desc"><?php esc_html_e( 'Snapshots of posts and terms created before AI agent edits.', 'aicom' ); ?></p>
     </div>
 

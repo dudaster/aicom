@@ -16,8 +16,51 @@ class AICOM_Admin {
         add_action( 'admin_post_aicom_save', [ $this, 'handle_post' ] );
         add_action( 'admin_notices',         [ $this, 'display_key_notice' ] );
         add_action( 'wp_dashboard_setup',    [ $this, 'register_dashboard_widget' ] );
+        add_action( 'admin_init',            [ $this, 'maybe_redirect_to_onboarding' ] );
+        add_filter( 'admin_body_class',      [ $this, 'maybe_fullscreen_body_class' ] );
         add_filter( 'plugin_action_links_aicom/aicom.php', [ $this, 'plugin_action_links' ] );
         add_action( 'aicom_expire_keys',     [ 'AICOM_Auth', 'expire_overdue_keys' ] );
+    }
+
+    // ── First-run onboarding ─────────────────────────────────────────────
+
+    /**
+     * Tag the body with a class while the onboarding wizard is rendering so
+     * the CSS can hide the WP sidebar / admin bar and give the welcome
+     * screen a focused, standalone feel.
+     */
+    public function maybe_fullscreen_body_class( string $classes ): string {
+        $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
+        if ( $page === 'aicom-onboarding' ) {
+            $classes .= ' aicom-fullscreen';
+        }
+        return $classes;
+    }
+
+    public function maybe_redirect_to_onboarding(): void {
+        // Skip CLI/AJAX/cron and unauthenticated contexts.
+        if ( wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+            return;
+        }
+        if ( ! current_user_can( self::CAPABILITY ) ) {
+            return;
+        }
+        // Once completed, never auto-redirect again.
+        if ( get_option( 'aicom_onboarding_done', false ) ) {
+            return;
+        }
+        $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
+        // Already on the wizard — don't loop.
+        if ( $page === 'aicom-onboarding' ) {
+            return;
+        }
+        // Only intercept when the user clicks into AICOM — don't hijack the
+        // generic WP dashboard or unrelated pages.
+        if ( strpos( $page, 'aicom' ) !== 0 ) {
+            return;
+        }
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom-onboarding' ) );
+        exit;
     }
 
     // ── WP Dashboard Widget (index.php) ───────────────────────────────────
@@ -54,7 +97,7 @@ class AICOM_Admin {
             </div>
 
             <div class="aicom-dash-widget-cta">
-                <a href="<?php echo esc_url( $api_keys_url ); ?>" class="button button-primary button-hero aicom-dash-widget-cta-btn"><?php esc_html_e( 'Create an API key', 'aicom' ); ?></a>
+                <a href="<?php echo esc_url( $api_keys_url ); ?>" class="button button-primary button-hero aicom-dash-widget-cta-btn"><?php esc_html_e( 'Connect AI Agent', 'aicom' ); ?></a>
                 <a href="<?php echo esc_url( $aicom_url ); ?>" class="aicom-dash-widget-cta-aside"><?php esc_html_e( 'or pick a quick preset →', 'aicom' ); ?></a>
             </div>
 
@@ -106,7 +149,7 @@ class AICOM_Admin {
     }
 
     public function plugin_action_links( array $links ): array {
-        $setup_link = '<a href="' . esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ) . '"><strong>Setup API Key</strong></a>';
+        $setup_link = '<a href="' . esc_url( admin_url( 'admin.php?page=aicom-api-keys' ) ) . '"><strong>' . esc_html__( 'Connect AI Agent', 'aicom' ) . '</strong></a>';
         array_unshift( $links, $setup_link );
         return $links;
     }
@@ -129,14 +172,16 @@ class AICOM_Admin {
             80
         );
 
-        add_submenu_page( self::MENU_SLUG, __( 'Dashboard', 'aicom' ),   __( 'Dashboard', 'aicom' ),   self::CAPABILITY, self::MENU_SLUG,              [ $this, 'page_dashboard' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'API Keys', 'aicom' ),    __( 'API Keys', 'aicom' ),    self::CAPABILITY, 'aicom-api-keys',         [ $this, 'page_api_keys' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Audit Logs', 'aicom' ),  __( 'Audit Logs', 'aicom' ),  self::CAPABILITY, 'aicom-audit-logs',       [ $this, 'page_audit_logs' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Safety', 'aicom' ),      __( 'Safety', 'aicom' ),      self::CAPABILITY, 'aicom-safety',           [ $this, 'page_safety' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Modules', 'aicom' ),     __( 'Modules', 'aicom' ),     self::CAPABILITY, 'aicom-modules',          [ $this, 'page_modules' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Backups', 'aicom' ),     __( 'Backups', 'aicom' ),     self::CAPABILITY, 'aicom-backups',          [ $this, 'page_backups' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Skills', 'aicom' ),      __( 'Skills', 'aicom' ),      self::CAPABILITY, 'aicom-skills',           [ $this, 'page_skills' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Help', 'aicom' ),        __( 'Help', 'aicom' ),        self::CAPABILITY, 'aicom-help',             [ $this, 'page_help' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Dashboard', 'aicom' ),                __( 'Dashboard', 'aicom' ),                self::CAPABILITY, self::MENU_SLUG,        [ $this, 'page_dashboard' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Connect AI Agents', 'aicom' ),       __( 'Connect AI Agents', 'aicom' ),        self::CAPABILITY, 'aicom-api-keys',       [ $this, 'page_api_keys' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Activity', 'aicom' ),                __( 'Activity', 'aicom' ),                 self::CAPABILITY, 'aicom-audit-logs',     [ $this, 'page_audit_logs' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Safety', 'aicom' ),                  __( 'Safety', 'aicom' ),                   self::CAPABILITY, 'aicom-safety',         [ $this, 'page_safety' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Capabilities', 'aicom' ),  __( 'Capabilities', 'aicom' ),   self::CAPABILITY, 'aicom-modules',        [ $this, 'page_modules' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Snapshots', 'aicom' ),               __( 'Snapshots', 'aicom' ),                self::CAPABILITY, 'aicom-backups',        [ $this, 'page_backups' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Saved Workflows', 'aicom' ),         __( 'Saved Workflows', 'aicom' ),          self::CAPABILITY, 'aicom-skills',         [ $this, 'page_skills' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Help', 'aicom' ),                    __( 'Help', 'aicom' ),                     self::CAPABILITY, 'aicom-help',           [ $this, 'page_help' ] );
+        // Hidden onboarding wizard — reachable only by direct URL or by maybe_redirect_to_onboarding().
+        add_submenu_page( null, __( 'Welcome to AICOM', 'aicom' ),                   '',                                        self::CAPABILITY, 'aicom-onboarding',     [ $this, 'page_onboarding' ] );
     }
 
     // ── Asset Enqueuing ───────────────────────────────────────────────────
@@ -211,6 +256,11 @@ class AICOM_Admin {
         require AICOM_DIR . 'admin/pages/help.php';
     }
 
+    public function page_onboarding(): void {
+        $this->require_cap();
+        require AICOM_DIR . 'admin/pages/onboarding.php';
+    }
+
     // ── Admin notices (key created / rotated) ─────────────────────────────
 
     public function display_key_notice(): void {
@@ -235,11 +285,41 @@ class AICOM_Admin {
 
         $mcp_url      = get_site_url() . '/wp-json/aicom/v1/mcp';
         $fallback_url = get_site_url() . '/?aicom=1';
-        /* translators: 1: MCP endpoint URL, 2: fallback URL, 3: API key */
-        $agent_text = sprintf(
-            __( "Connect to my WordPress site via MCP:\n\nEndpoint: %1\$s\nFallback: %2\$s\nAuthorization: Bearer %3\$s\n\nUse the endpoint and the Authorization header for every request. If the connection is refused or returns 401, retry the request with real browser headers (User-Agent, Accept, Accept-Language).", 'aicom' ),
-            $mcp_url, $fallback_url, $plain_key
-        );
+        $schema_url   = get_site_url() . '/wp-json/aicom/v1/schema';
+
+        // Per-client paste-ready snippets + plain-English instructions.
+        // The user picks their client and we swap both the instruction line
+        // and the terminal snippet in place. No need to wade through the
+        // generic "Connect to my WordPress site via MCP…" wall of text.
+        $client_recipes = [
+            'claude-desktop' => [
+                'name'    => __( 'Claude Desktop', 'aicom' ),
+                'intro'   => __( 'Open your config file (on macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Paste this into it, save, then restart Claude Desktop.', 'aicom' ),
+                'snippet' => "{\n  \"mcpServers\": {\n    \"aicom\": {\n      \"url\": \"" . $mcp_url . "\",\n      \"headers\": {\n        \"Authorization\": \"Bearer " . $plain_key . "\"\n      }\n    }\n  }\n}",
+            ],
+            'claude-code' => [
+                'name'    => __( 'Claude Code', 'aicom' ),
+                'intro'   => __( 'Open a terminal in any project folder and paste this single command. Claude Code remembers it across sessions.', 'aicom' ),
+                'snippet' => "claude mcp add aicom " . $mcp_url . " \\\n  --transport http \\\n  --header \"Authorization: Bearer " . $plain_key . "\"",
+            ],
+            'cursor' => [
+                'name'    => __( 'Cursor IDE', 'aicom' ),
+                'intro'   => __( 'Create .cursor/mcp.json in your project (or ~/.cursor/mcp.json to share across projects). Paste this, then reload Cursor.', 'aicom' ),
+                'snippet' => "{\n  \"mcpServers\": {\n    \"aicom\": {\n      \"url\": \"" . $mcp_url . "\",\n      \"type\": \"http\",\n      \"headers\": {\n        \"Authorization\": \"Bearer " . $plain_key . "\"\n      }\n    }\n  }\n}",
+            ],
+            'chatgpt' => [
+                'name'    => __( 'ChatGPT (Custom GPT)', 'aicom' ),
+                'intro'   => __( 'Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above.', 'aicom' ),
+                'snippet' => $schema_url,
+            ],
+            'generic' => [
+                'name'    => __( 'Something else', 'aicom' ),
+                'intro'   => __( 'Any MCP-aware client. Endpoint + Bearer header, sample request body below.', 'aicom' ),
+                'snippet' => "POST " . $mcp_url . "\nContent-Type: application/json\nAuthorization: Bearer " . $plain_key . "\n\n{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"wp.posts.list\",\n  \"params\": { \"per_page\": 5 },\n  \"id\": 1\n}",
+            ],
+        ];
+        $client_recipes_json = wp_json_encode( $client_recipes );
+
         $label = $created
             ? __( 'Key created', 'aicom' )
             : __( 'Key rotated', 'aicom' );
@@ -264,18 +344,47 @@ class AICOM_Admin {
                                onclick="this.select()" />
                         <button type="button" class="button aicom-copy-btn" data-target="<?php echo esc_attr( $plain_key ); ?>"><?php esc_html_e( 'Copy Key', 'aicom' ); ?></button>
                     </div>
+                    <div class="aicom-keymodal-test">
+                        <button type="button"
+                                class="button aicom-keymodal-test-btn"
+                                id="aicom-test-connection"
+                                data-key="<?php echo esc_attr( $plain_key ); ?>"
+                                data-mcp="<?php echo esc_attr( $mcp_url ); ?>"
+                                data-fallback="<?php echo esc_attr( $fallback_url ); ?>"
+                                data-label-success="<?php esc_attr_e( 'Your key works.', 'aicom' ); ?>"
+                                data-label-testing="<?php esc_attr_e( 'Testing…', 'aicom' ); ?>"
+                                data-label-default="<?php esc_attr_e( 'Test connection', 'aicom' ); ?>">
+                            <?php esc_html_e( 'Test connection', 'aicom' ); ?>
+                        </button>
+                        <span class="aicom-keymodal-test-result" id="aicom-test-result" aria-live="polite"></span>
+                    </div>
                 </div>
 
                 <div class="aicom-keymodal-field">
-                    <span class="aicom-confirm-scopes-label"><?php esc_html_e( 'What to tell your agent', 'aicom' ); ?></span>
-                    <p class="aicom-keymodal-desc"><?php esc_html_e( "Give this to your AI helper — they'll know what to do with it. No setup required on your end.", 'aicom' ); ?></p>
+                    <span class="aicom-confirm-scopes-label"><?php esc_html_e( 'Now connect your AI client', 'aicom' ); ?></span>
+                    <p class="aicom-keymodal-desc"><?php esc_html_e( "Pick what you use. We'll show you exactly what to paste — no typing required.", 'aicom' ); ?></p>
+
+                    <div class="aicom-keymodal-clients" role="tablist">
+                        <?php $first = true; foreach ( $client_recipes as $key => $r ) : ?>
+                            <button type="button"
+                                    class="aicom-keymodal-client<?php echo $first ? ' is-active' : ''; ?>"
+                                    data-client="<?php echo esc_attr( $key ); ?>"
+                                    role="tab"
+                                    aria-selected="<?php echo $first ? 'true' : 'false'; ?>">
+                                <?php echo esc_html( $r['name'] ); ?>
+                            </button>
+                        <?php $first = false; endforeach; ?>
+                    </div>
+
+                    <p class="aicom-keymodal-client-intro" id="aicom-keymodal-intro"></p>
+
                     <div class="aicom-keymodal-terminal-wrap">
                         <button type="button"
                                 class="aicom-keymodal-terminal-icon"
                                 id="aicom-agent-prompt-copy-icon"
-                                data-target="<?php echo esc_attr( $agent_text ); ?>"
-                                aria-label="<?php esc_attr_e( 'Copy prompt', 'aicom' ); ?>"
-                                title="<?php esc_attr_e( 'Copy prompt', 'aicom' ); ?>">
+                                data-target=""
+                                aria-label="<?php esc_attr_e( 'Copy snippet', 'aicom' ); ?>"
+                                title="<?php esc_attr_e( 'Copy snippet', 'aicom' ); ?>">
                             <svg class="aicom-icon-copy" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <rect x="9" y="9" width="13" height="13" rx="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -284,10 +393,10 @@ class AICOM_Admin {
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </button>
-                        <div class="aicom-keymodal-terminal" id="aicom-agent-prompt"><?php echo esc_html( $agent_text ); ?></div>
+                        <div class="aicom-keymodal-terminal" id="aicom-agent-prompt"></div>
                     </div>
                     <div class="aicom-keymodal-terminal-actions">
-                        <button type="button" class="button aicom-copy-btn" data-target="<?php echo esc_attr( $agent_text ); ?>"><?php esc_html_e( 'Copy prompt', 'aicom' ); ?></button>
+                        <button type="button" class="button" id="aicom-prompt-copy-btn" data-target=""><?php esc_html_e( 'Copy snippet', 'aicom' ); ?></button>
                     </div>
                 </div>
 
@@ -307,26 +416,128 @@ class AICOM_Admin {
             overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
             document.addEventListener('keydown', onEsc);
 
-            // Terminal icon copy — independent of .aicom-copy-btn (jQuery) so SVGs survive
+            // ── Client picker ──────────────────────────────────────────
+            var recipes = <?php echo $client_recipes_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already JSON-encoded for JS ?>;
+            var clientButtons = document.querySelectorAll('.aicom-keymodal-client');
+            var introEl = document.getElementById('aicom-keymodal-intro');
+            var snippetEl = document.getElementById('aicom-agent-prompt');
             var iconBtn = document.getElementById('aicom-agent-prompt-copy-icon');
-            if (iconBtn) {
-                iconBtn.addEventListener('click', function () {
-                    var text = iconBtn.dataset.target || '';
-                    var ok = function () {
-                        iconBtn.classList.add('is-copied');
-                        setTimeout(function () { iconBtn.classList.remove('is-copied'); }, 1500);
-                    };
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(text).then(ok).catch(function () {
-                            var ta = document.createElement('textarea');
-                            ta.value = text;
-                            document.body.appendChild(ta);
-                            ta.select();
-                            try { document.execCommand('copy'); } catch (e) {}
-                            document.body.removeChild(ta);
-                            ok();
+            var copyBtn = document.getElementById('aicom-prompt-copy-btn');
+
+            function render(clientKey) {
+                var r = recipes[clientKey];
+                if (!r) return;
+                clientButtons.forEach(function (b) {
+                    var on = b.dataset.client === clientKey;
+                    b.classList.toggle('is-active', on);
+                    b.setAttribute('aria-selected', on ? 'true' : 'false');
+                });
+                introEl.textContent = r.intro;
+                snippetEl.textContent = r.snippet;
+                if (iconBtn) iconBtn.dataset.target = r.snippet;
+                if (copyBtn) copyBtn.dataset.target = r.snippet;
+                try { localStorage.setItem('aicom_pref_client', clientKey); } catch (e) {}
+            }
+
+            clientButtons.forEach(function (b) {
+                b.addEventListener('click', function () { render(b.dataset.client); });
+            });
+
+            // Restore preferred client, or default to first
+            var pref = null;
+            try { pref = localStorage.getItem('aicom_pref_client'); } catch (e) {}
+            if (pref && recipes[pref]) {
+                render(pref);
+            } else {
+                var firstBtn = document.querySelector('.aicom-keymodal-client.is-active');
+                if (firstBtn) render(firstBtn.dataset.client);
+            }
+
+            // ── Test connection — pings server.status with the new key ───
+            var testBtn = document.getElementById('aicom-test-connection');
+            var testResult = document.getElementById('aicom-test-result');
+            if (testBtn) {
+                testBtn.addEventListener('click', async function () {
+                    var key = testBtn.dataset.key;
+                    var mcp = testBtn.dataset.mcp;
+                    var fallback = testBtn.dataset.fallback;
+                    var lblTesting = testBtn.dataset.labelTesting || 'Testing…';
+                    var lblDefault = testBtn.dataset.labelDefault || 'Test connection';
+                    var lblOk      = testBtn.dataset.labelSuccess || 'Your key works.';
+
+                    function setResult(state, text) {
+                        testResult.className = 'aicom-keymodal-test-result is-' + state;
+                        testResult.textContent = text;
+                    }
+                    function callEndpoint(url) {
+                        return fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + key
+                            },
+                            body: JSON.stringify({ jsonrpc: '2.0', method: 'server.status', id: 1 })
+                        }).then(function (r) {
+                            return r.json().then(function (b) { return { status: r.status, body: b }; });
                         });
                     }
+
+                    testBtn.disabled = true;
+                    var origText = testBtn.textContent;
+                    testBtn.textContent = lblTesting;
+                    setResult('testing', '');
+
+                    try {
+                        var res = await callEndpoint(mcp);
+                        if (res.body && res.body.result) {
+                            setResult('ok', '✓ ' + lblOk);
+                        } else if (res.body && res.body.error && res.body.error.code === 'AUTH_FAILED') {
+                            // Likely Apache stripped the Authorization header — try the fallback.
+                            var res2 = await callEndpoint(fallback);
+                            if (res2.body && res2.body.result) {
+                                setResult('warn', '⚠ Use the fallback URL — your host strips the Authorization header on the primary endpoint.');
+                            } else {
+                                setResult('err', '✗ Authentication failed. Check that the snippet uses the exact key shown above.');
+                            }
+                        } else {
+                            setResult('err', '✗ ' + (res.body && res.body.error && res.body.error.message ? res.body.error.message : 'Unknown error from server.'));
+                        }
+                    } catch (e) {
+                        setResult('err', '✗ Network couldn’t reach the endpoint. Check your site URL is reachable from this browser.');
+                    } finally {
+                        testBtn.disabled = false;
+                        testBtn.textContent = origText;
+                    }
+                });
+            }
+
+            // ── Copy buttons (work with the swapped data-target) ────────
+            function copyText(btn, text, isIcon) {
+                var ok = function () {
+                    btn.classList.add('is-copied');
+                    setTimeout(function () { btn.classList.remove('is-copied'); }, 1500);
+                };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(ok).catch(function () {
+                        var ta = document.createElement('textarea');
+                        ta.value = text;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        try { document.execCommand('copy'); } catch (e) {}
+                        document.body.removeChild(ta);
+                        ok();
+                    });
+                }
+            }
+            if (iconBtn) {
+                iconBtn.addEventListener('click', function () { copyText(iconBtn, iconBtn.dataset.target || '', true); });
+            }
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function () {
+                    var origLabel = copyBtn.textContent;
+                    copyText(copyBtn, copyBtn.dataset.target || '', false);
+                    copyBtn.textContent = '✓ Copied';
+                    setTimeout(function () { copyBtn.textContent = origLabel; }, 1500);
                 });
             }
         })();
@@ -380,6 +591,21 @@ class AICOM_Admin {
                 $preset_slug = sanitize_key( wp_unslash( $_POST['preset'] ?? '' ) );
                 $this->handle_quick_create_key( $preset_slug );
                 break;
+
+            case 'create_from_task':
+                $task_slug = sanitize_key( wp_unslash( $_POST['task'] ?? '' ) );
+                $this->handle_create_from_task( $task_slug );
+                break;
+
+            case 'complete_onboarding':
+                $preset_slug = sanitize_key( wp_unslash( $_POST['preset'] ?? '' ) );
+                $this->handle_complete_onboarding( $preset_slug );
+                break;
+
+            case 'skip_onboarding':
+                update_option( 'aicom_onboarding_done', true );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom' ) );
+                exit;
 
             case 'rotate_key':
                 $this->handle_rotate_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
@@ -651,6 +877,47 @@ class AICOM_Admin {
         exit;
     }
 
+    private function handle_complete_onboarding( string $preset_slug ): void {
+        $presets = self::system_presets();
+        if ( ! isset( $presets[ $preset_slug ] ) ) {
+            // Bad preset — bounce back to step 2 with an error.
+            wp_safe_redirect( admin_url( 'admin.php?page=aicom-onboarding&step=2&error=invalid_preset' ) );
+            exit;
+        }
+        $preset = $presets[ $preset_slug ];
+        $label  = self::next_available_label( 'First Key — ' . $preset['name'] );
+
+        $result = AICOM_Auth::create_key( $label, $preset['scopes'], [], null );
+        set_transient( 'aicom_new_key_' . $result['id'], $result['plain_key'], 120 );
+
+        // Mark onboarding complete so the welcome wizard never reappears.
+        update_option( 'aicom_onboarding_done', true );
+
+        // Land on the AICOM dashboard with the key-created modal open.
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom&created=' . $result['id'] . '&onboarded=1' ) );
+        exit;
+    }
+
+    private function handle_create_from_task( string $task_slug ): void {
+        $tasks = self::task_presets();
+        if ( ! isset( $tasks[ $task_slug ] ) ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=aicom&error=invalid_task' ) );
+            exit;
+        }
+        $task = $tasks[ $task_slug ];
+        $label = self::next_available_label( $task['name'] );
+
+        $restrictions = [];
+        if ( ! empty( $task['dry_run'] ) ) {
+            $restrictions['dry_run_only'] = true;
+        }
+
+        $result = AICOM_Auth::create_key( $label, $task['scopes'], $restrictions, null );
+        set_transient( 'aicom_new_key_' . $result['id'], $result['plain_key'], 60 );
+        wp_safe_redirect( admin_url( 'admin.php?page=aicom&created=' . $result['id'] ) );
+        exit;
+    }
+
     private function handle_quick_create_key( string $preset_slug ): void {
         $presets = self::system_presets();
         if ( ! isset( $presets[ $preset_slug ] ) ) {
@@ -842,6 +1109,59 @@ class AICOM_Admin {
             'days'    => $days ?: [ 1, 2, 3, 4, 5 ],
             'start'   => $start,
             'end'     => $end,
+        ];
+    }
+
+    /**
+     * Task-oriented "quick start" recipes (mirrors AICOM Hub keys → Quick Start).
+     * Each card represents a real-world job the user wants done; the recipe
+     * pre-fills sensible scopes (and dry-run where it's safer) so the user
+     * doesn't have to think in terms of permissions.
+     */
+    public static function task_presets(): array {
+        return [
+            'drafts' => [
+                'icon'    => 'pencil',
+                'name'    => __( 'Drafts new content', 'aicom' ),
+                'desc'    => __( 'Writes posts and pages, sets categories, saves as drafts. Nothing publishes without your nod.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies' ],
+                'dry_run' => false,
+            ],
+            'seo' => [
+                'icon'    => 'search',
+                'name'    => __( 'Polishes SEO across the site', 'aicom' ),
+                'desc'    => __( 'Reads and improves Yoast meta titles, descriptions, and Open Graph fields.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'manage.yoast' ],
+                'dry_run' => false,
+            ],
+            'a11y' => [
+                'icon'    => 'image',
+                'name'    => __( 'Keeps the media library tidy', 'aicom' ),
+                'desc'    => __( 'Adds alt text to your images, runs accessibility audits, helps describe what each picture shows.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'manage.media', 'manage.a11y' ],
+                'dry_run' => false,
+            ],
+            'pages' => [
+                'icon'    => 'layout',
+                'name'    => __( 'Designs pages in Elementor', 'aicom' ),
+                'desc'    => __( 'Edits existing Elementor pages, duplicates templates, swaps copy across widgets in one go.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media' ],
+                'dry_run' => false,
+            ],
+            'shop' => [
+                'icon'    => 'cart',
+                'name'    => __( 'Manages your shop', 'aicom' ),
+                'desc'    => __( 'WooCommerce products, prices, stock, attributes. Tells you what looks off and offers fixes.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'manage.woocommerce.products' ],
+                'dry_run' => true,
+            ],
+            'observer' => [
+                'icon'    => 'eye',
+                'name'    => __( 'Just watches', 'aicom' ),
+                'desc'    => __( 'Read-only access to everything — content, users, settings. Cannot change a thing. Safest mode.', 'aicom' ),
+                'scopes'  => [ 'read.wp', 'read.users' ],
+                'dry_run' => false,
+            ],
         ];
     }
 

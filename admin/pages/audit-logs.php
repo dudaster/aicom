@@ -114,7 +114,7 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
 
     <div class="aicom-page-header">
         <h1>
-            <?php esc_html_e( 'Audit Logs', 'aicom' ); ?>
+            <?php esc_html_e( 'Activity', 'aicom' ); ?>
             <?php if ( $active_tab_norm === 'logs' ) : ?>
             <span class="aicom-count">(<?php echo number_format( $total ); ?> <?php esc_html_e( 'total', 'aicom' ); ?>)</span>
             <?php endif; ?>
@@ -441,9 +441,7 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                 </tbody>
             </table>
 
-            <?php if ( $num_pages > 1 ) : ?>
-            <div style="padding:12px 16px;border-top:1px solid var(--aicom-border-light);display:flex;gap:4px;align-items:center">
-                <?php
+            <?php if ( $num_pages > 1 ) :
                 $pagination_args = array_filter( [
                     'page'       => 'aicom-audit-logs',
                     'tab'        => 'logs',
@@ -456,13 +454,56 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                     'date_to'    => $filter_to,
                 ] );
                 $base = admin_url( 'admin.php' ) . '?' . http_build_query( $pagination_args );
-                for ( $p = 1; $p <= $num_pages; $p++ ) :
-                    $url = $base . '&paged=' . $p;
-                    $cls = $p === $page_num ? 'button button-primary button-small' : 'button button-small';
-                ?>
-                <a href="<?php echo esc_url( $url ); ?>" class="<?php echo esc_attr( $cls ); ?>"><?php echo (int) $p; ?></a>
-                <?php endfor; ?>
-            </div>
+                $page_url = fn( $p ) => $base . '&paged=' . (int) $p;
+
+                // Build the page list with ellipsis. Always show first + last,
+                // current and its immediate neighbours; collapse gaps with "…".
+                $pages_to_show = [];
+                if ( $num_pages <= 7 ) {
+                    for ( $i = 1; $i <= $num_pages; $i++ ) { $pages_to_show[] = $i; }
+                } else {
+                    $pages_to_show[] = 1;
+                    if ( $page_num - 1 > 2 ) { $pages_to_show[] = '…'; }
+                    for ( $i = max( 2, $page_num - 1 ); $i <= min( $num_pages - 1, $page_num + 1 ); $i++ ) {
+                        $pages_to_show[] = $i;
+                    }
+                    if ( $page_num + 1 < $num_pages - 1 ) { $pages_to_show[] = '…'; }
+                    $pages_to_show[] = $num_pages;
+                }
+            ?>
+            <nav class="aicom-pagination" role="navigation" aria-label="<?php esc_attr_e( 'Pagination', 'aicom' ); ?>">
+                <?php if ( $page_num > 1 ) : ?>
+                    <a class="aicom-pagination-step" href="<?php echo esc_url( $page_url( $page_num - 1 ) ); ?>" rel="prev" aria-label="<?php esc_attr_e( 'Previous page', 'aicom' ); ?>">
+                        <span aria-hidden="true">‹</span> <?php esc_html_e( 'Back', 'aicom' ); ?>
+                    </a>
+                <?php else : ?>
+                    <span class="aicom-pagination-step is-disabled" aria-disabled="true">
+                        <span aria-hidden="true">‹</span> <?php esc_html_e( 'Back', 'aicom' ); ?>
+                    </span>
+                <?php endif; ?>
+
+                <span class="aicom-pagination-pages">
+                    <?php foreach ( $pages_to_show as $entry ) : ?>
+                        <?php if ( $entry === '…' ) : ?>
+                            <span class="aicom-pagination-gap" aria-hidden="true">…</span>
+                        <?php elseif ( (int) $entry === (int) $page_num ) : ?>
+                            <span class="aicom-pagination-num is-current" aria-current="page"><?php echo (int) $entry; ?></span>
+                        <?php else : ?>
+                            <a class="aicom-pagination-num" href="<?php echo esc_url( $page_url( $entry ) ); ?>"><?php echo (int) $entry; ?></a>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                </span>
+
+                <?php if ( $page_num < $num_pages ) : ?>
+                    <a class="aicom-pagination-step" href="<?php echo esc_url( $page_url( $page_num + 1 ) ); ?>" rel="next" aria-label="<?php esc_attr_e( 'Next page', 'aicom' ); ?>">
+                        <?php esc_html_e( 'Next', 'aicom' ); ?> <span aria-hidden="true">›</span>
+                    </a>
+                <?php else : ?>
+                    <span class="aicom-pagination-step is-disabled" aria-disabled="true">
+                        <?php esc_html_e( 'Next', 'aicom' ); ?> <span aria-hidden="true">›</span>
+                    </span>
+                <?php endif; ?>
+            </nav>
             <?php endif; ?>
         <?php endif; ?>
         </div>

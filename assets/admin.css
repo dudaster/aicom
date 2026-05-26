@@ -787,6 +787,178 @@ button.aicom-preset-card {
     -webkit-appearance: none;
 }
 
+/* ── Pagination — Activity logs ──────────────────────────────────────── */
+.aicom-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 16px 18px;
+    border-top: 1px solid var(--aicom-border-light);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.92em;
+}
+.aicom-pagination-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    color: var(--aicom-text-md);
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background .12s, color .12s;
+}
+.aicom-pagination-step:hover {
+    background: var(--aicom-bg);
+    color: var(--aicom-ink);
+}
+.aicom-pagination-step.is-disabled {
+    color: var(--aicom-text-xs);
+    cursor: not-allowed;
+    opacity: .6;
+}
+.aicom-pagination-pages {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 6px;
+}
+.aicom-pagination-num {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--aicom-text-md);
+    text-decoration: none;
+    border-radius: 5px;
+    font-variant-numeric: tabular-nums;
+    transition: background .12s, color .12s;
+}
+.aicom-pagination-num:hover {
+    background: var(--aicom-bg);
+    color: var(--aicom-ink);
+}
+.aicom-pagination-num.is-current {
+    background: var(--aicom-ink);
+    color: #fff;
+    font-weight: 600;
+    cursor: default;
+}
+.aicom-pagination-gap {
+    width: 22px;
+    text-align: center;
+    color: var(--aicom-text-xs);
+    user-select: none;
+}
+
+/* ── Capabilities — use-case groups ──────────────────────────────────── */
+.aicom-cap-group { margin-bottom: 16px; }
+.aicom-cap-group .aicom-card-head {
+    align-items: flex-start;
+    gap: 16px;
+}
+.aicom-cap-group-lede {
+    margin: 4px 0 0;
+    font-size: 0.88em;
+    color: var(--aicom-text-md);
+    font-style: italic;
+    line-height: 1.5;
+    max-width: 56ch;
+}
+
+/* ── Key modal — test connection ─────────────────────────────────────── */
+.aicom-keymodal-test {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+.aicom-keymodal-test-btn {
+    border-radius: 6px;
+}
+.aicom-keymodal-test-result {
+    font-size: 0.88em;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 0;
+}
+.aicom-keymodal-test-result.is-ok    { color: #15803d; }
+.aicom-keymodal-test-result.is-warn  { color: #92400e; }
+.aicom-keymodal-test-result.is-err   { color: #b91c1c; }
+.aicom-keymodal-test-result.is-testing { color: var(--aicom-text-sm); font-style: italic; }
+
+/* ── Generate Key — scope-tree-from-preset hint ──────────────────────── */
+.aicom-scope-hint {
+    margin: 0 0 10px;
+    padding: 8px 12px;
+    font-size: 0.84em;
+    color: var(--aicom-text-md);
+    background: var(--aicom-bg);
+    border-left: 3px solid var(--aicom-primary);
+    border-radius: 3px;
+}
+
+/* ── Post-onboarding success banner ──────────────────────────────────── */
+.aicom-onboarding-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 18px;
+    margin: 0 0 18px;
+    background: linear-gradient(90deg, rgba(34, 197, 94, .12) 0%, var(--aicom-bg) 60%);
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #15803d;
+    border-radius: 8px;
+    animation: aicomBannerIn .35s ease-out;
+}
+@keyframes aicomBannerIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+}
+.aicom-onboarding-banner-mark {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #15803d;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+.aicom-onboarding-banner-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+    font-size: 0.93em;
+    line-height: 1.5;
+    color: var(--aicom-text-md);
+}
+.aicom-onboarding-banner-text strong {
+    color: var(--aicom-ink);
+    font-weight: 700;
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 24;
+    font-size: 1.08em;
+}
+.aicom-onboarding-banner-close {
+    background: none;
+    border: none;
+    color: var(--aicom-text-sm);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+    flex-shrink: 0;
+}
+.aicom-onboarding-banner-close:hover { color: var(--aicom-ink); }
+
 /* ── Dashboard: Quick API key generation ─────────────────────────────── */
 .aicom-quick-keys { margin-bottom: 16px; }
 .aicom-quick-keys-lede {
@@ -806,6 +978,97 @@ button.aicom-preset-card {
 @media (max-width: 560px) {
     .aicom-quick-keys-form .aicom-preset-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Task-oriented cards (Hub-style, adapted for local single-site) ─── */
+.aicom-task-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+}
+@media (max-width: 1100px) {
+    .aicom-task-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .aicom-task-grid { grid-template-columns: 1fr; }
+}
+.aicom-task-card {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--aicom-surface);
+    border: 1px solid var(--aicom-border);
+    border-radius: 10px;
+    padding: 20px 22px 18px;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color .14s, box-shadow .14s, transform .14s, background .14s;
+    position: relative;
+}
+.aicom-task-card:hover {
+    border-color: var(--aicom-primary-lt);
+    box-shadow: 0 6px 20px rgba(22, 24, 29, .06);
+    transform: translateY(-2px);
+}
+.aicom-task-card:hover .aicom-task-cta {
+    color: var(--aicom-primary);
+}
+.aicom-task-icon {
+    color: var(--aicom-primary);
+    margin-bottom: 6px;
+    display: inline-flex;
+}
+.aicom-task-name {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 24;
+    font-weight: 500;
+    font-size: 1.05em;
+    color: var(--aicom-ink);
+    line-height: 1.25;
+}
+.aicom-task-desc {
+    font-size: 0.88em;
+    line-height: 1.55;
+    color: var(--aicom-text-md);
+    flex: 1;
+}
+.aicom-task-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72em;
+    color: var(--aicom-text-sm);
+    letter-spacing: 0.02em;
+    margin-top: 6px;
+}
+.aicom-task-meta-tag {
+    background: var(--aicom-primary-lt);
+    color: var(--aicom-primary-dk);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+.aicom-task-cta {
+    color: var(--aicom-primary-dk);
+    font-size: 0.85em;
+    margin-top: 8px;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+    transition: color .15s;
+}
+.aicom-task-footer {
+    margin: 6px 0 0;
+    font-size: 0.88em;
+    color: var(--aicom-text-sm);
+}
+.aicom-task-footer a {
+    color: var(--aicom-primary-dk);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.aicom-task-footer a:hover { color: var(--aicom-primary); }
 
 /* ── Confirm modal (Quick key generation) ────────────────────────────── */
 .aicom-confirm-overlay {
@@ -2410,3 +2673,388 @@ p.aicom-session-desc {
     justify-content: center;
     flex-shrink: 0;
 }
+
+/* ── Generate Key — Advanced options disclosure ──────────────────────── */
+.aicom-advanced {
+    margin: 16px 0 0;
+    padding: 0;
+    border-top: 1px dashed var(--aicom-border);
+}
+.aicom-advanced > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 0 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    color: var(--aicom-text-md);
+    transition: color .15s;
+}
+.aicom-advanced > summary::-webkit-details-marker { display: none; }
+.aicom-advanced > summary::before {
+    content: '▸';
+    color: var(--aicom-primary);
+    font-size: 0.85em;
+    line-height: 1;
+    transform: translateY(-1px);
+    transition: transform .15s;
+}
+.aicom-advanced[open] > summary::before { transform: rotate(90deg) translateX(-1px); }
+.aicom-advanced > summary > span:first-of-type {
+    font-weight: 700;
+    font-size: 0.95em;
+    color: var(--aicom-ink);
+}
+.aicom-advanced-hint {
+    font-size: 0.83em;
+    color: var(--aicom-text-sm);
+    font-style: italic;
+}
+.aicom-advanced > summary:hover > span:first-of-type { color: var(--aicom-primary-dk); }
+
+/* ── Key modal — client picker chips ─────────────────────────────────── */
+.aicom-keymodal-clients {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 8px 0 14px;
+}
+.aicom-keymodal-client {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--aicom-text-md);
+    background: var(--aicom-bg);
+    border: 1px solid var(--aicom-border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: background .12s, color .12s, border-color .12s;
+}
+.aicom-keymodal-client:hover {
+    background: #fff;
+    border-color: var(--aicom-primary-lt);
+    color: var(--aicom-ink);
+}
+.aicom-keymodal-client.is-active {
+    background: var(--aicom-ink);
+    border-color: var(--aicom-ink);
+    color: #fff;
+}
+.aicom-keymodal-client-intro {
+    margin: 0 0 10px;
+    font-size: 0.93em;
+    line-height: 1.55;
+    color: var(--aicom-text-md);
+}
+
+/* ── Glossary tooltip — inline jargon explainer ──────────────────────── */
+.aicom-term {
+    position: relative;
+    border-bottom: 1px dotted var(--aicom-text-sm);
+    cursor: help;
+    transition: border-color .15s, color .15s;
+}
+.aicom-term:hover,
+.aicom-term:focus {
+    outline: none;
+    border-bottom-color: var(--aicom-primary);
+    color: var(--aicom-primary-dk);
+}
+
+/* ── Primary CTAs — unify to brand ink across AICOM pages ────────────── */
+/* Scoped to .aicom-wrap so other plugins keep their native WP-blue buttons. */
+.aicom-wrap .button-primary,
+.aicom-wrap .wp-core-ui .button-primary,
+.aicom-onboarding .button-primary,
+.aicom-onboarding .wp-core-ui .button-primary {
+    background: var(--aicom-ink);
+    border-color: var(--aicom-ink);
+    color: #fff;
+    text-shadow: none;
+    box-shadow: 0 1px 0 rgba(22, 24, 29, .15);
+    transition: background .15s, transform .12s;
+}
+.aicom-wrap .button-primary:hover,
+.aicom-wrap .button-primary:focus,
+.aicom-onboarding .button-primary:hover,
+.aicom-onboarding .button-primary:focus {
+    background: #2a2d33;
+    border-color: #2a2d33;
+    color: #fff;
+}
+.aicom-wrap .button-primary:active,
+.aicom-onboarding .button-primary:active {
+    background: var(--aicom-ink);
+    transform: translateY(1px);
+}
+.aicom-wrap .button-primary:disabled,
+.aicom-wrap .button-primary[disabled],
+.aicom-onboarding .button-primary:disabled {
+    background: var(--aicom-text-xs) !important;
+    border-color: var(--aicom-text-xs) !important;
+    color: rgba(255,255,255,.7) !important;
+}
+.aicom-term::before {
+    content: attr(data-define);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    width: max-content;
+    max-width: 260px;
+    background: var(--aicom-ink);
+    color: #f5f1e8;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82em;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 5px;
+    box-shadow: 0 4px 12px rgba(22, 24, 29, .15);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s, transform .15s;
+    white-space: normal;
+    text-align: left;
+    z-index: 100;
+}
+.aicom-term:hover::before,
+.aicom-term:focus::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ── Onboarding wizard ───────────────────────────────────────────────── */
+
+/* Fullscreen welcome — hide WP admin chrome while wizard is showing. */
+body.aicom-fullscreen #wpadminbar,
+body.aicom-fullscreen #adminmenuback,
+body.aicom-fullscreen #adminmenuwrap,
+body.aicom-fullscreen #wpfooter {
+    display: none !important;
+}
+body.aicom-fullscreen #wpcontent {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+body.aicom-fullscreen #wpbody-content {
+    padding-bottom: 60px;
+}
+html.wp-toolbar { padding-top: 0; }
+body.aicom-fullscreen.wp-toolbar { padding-top: 0; }
+body.aicom-fullscreen {
+    background: var(--aicom-bg);
+    min-height: 100vh;
+}
+
+.aicom-onboarding {
+    max-width: 720px;
+    margin: 60px auto 60px;
+    padding: 40px 36px 36px;
+    background: var(--aicom-surface);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(22, 24, 29, .08);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--aicom-text-md);
+}
+.aicom-onboarding-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+.aicom-onboarding-logo { height: 36px; width: auto; }
+.aicom-onboarding-progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+.aicom-onboarding-pill {
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    border-radius: 50%;
+    text-align: center;
+    background: var(--aicom-bg);
+    color: var(--aicom-text-sm);
+    font-size: 0.78em;
+    font-weight: 700;
+    border: 1px solid var(--aicom-border);
+}
+.aicom-onboarding-pill.is-active {
+    background: var(--aicom-primary);
+    color: #fff;
+    border-color: var(--aicom-primary);
+}
+.aicom-onboarding-pill.is-done {
+    background: #15803d;
+    color: #fff;
+    border-color: #15803d;
+}
+.aicom-onboarding-pill-line {
+    width: 30px;
+    height: 1px;
+    background: var(--aicom-border);
+}
+.aicom-onboarding h1 {
+    font-family: 'Fraunces', serif;
+    font-variation-settings: "opsz" 96;
+    font-weight: 500;
+    font-size: 2rem;
+    color: var(--aicom-ink);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+}
+.aicom-onboarding h1 em {
+    font-style: italic;
+    color: var(--aicom-primary);
+    font-weight: 400;
+}
+.aicom-onboarding h2 {
+    margin: 28px 0 6px;
+    font-size: 0.85em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--aicom-text-sm);
+    font-family: 'JetBrains Mono', monospace;
+}
+.aicom-onboarding-lede {
+    margin: 0 0 8px;
+    font-size: 1.02em;
+    line-height: 1.55;
+    color: var(--aicom-text-md);
+}
+.aicom-onboarding-sub {
+    margin: 0 0 16px;
+    font-size: 0.92em;
+    color: var(--aicom-text-sm);
+}
+.aicom-onboarding-clients {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+}
+.aicom-onboarding-client {
+    background: var(--aicom-surface);
+    border: 1.5px solid var(--aicom-border);
+    border-radius: 8px;
+    padding: 14px 14px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: inherit;
+    color: inherit;
+    transition: border-color .12s, box-shadow .12s, transform .12s, background .12s;
+}
+.aicom-onboarding-client:hover {
+    border-color: var(--aicom-primary-lt);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(22, 24, 29, .06);
+}
+.aicom-onboarding-client.is-active {
+    background: #fff;
+    border-color: var(--aicom-primary);
+    box-shadow: 0 0 0 4px rgba(232, 93, 44, .10), 0 8px 18px rgba(22, 24, 29, .07);
+}
+.aicom-onboarding-client-name {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1em;
+    color: var(--aicom-ink);
+}
+.aicom-onboarding-client-tag {
+    font-size: 0.82em;
+    color: var(--aicom-text-sm);
+}
+/* Onboarding step 2 reuses the same .aicom-preset-card markup as the
+   Dashboard Quick Generation. Layout overrides put the cards in a single
+   column with a few small tweaks. */
+.aicom-onboarding-preset-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 18px 0 16px;
+}
+.aicom-onboarding-preset-label {
+    cursor: pointer;
+    transition: border-color .12s, box-shadow .12s, background .12s, transform .12s;
+}
+.aicom-onboarding-preset-label > input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.aicom-onboarding-preset-label:hover {
+    border-color: var(--aicom-primary-lt);
+    transform: translateY(-1px);
+}
+.aicom-onboarding-preset-label:has(input[type="radio"]:checked) {
+    border-color: var(--aicom-primary);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(232, 93, 44, .10);
+    transform: translateY(-1px);
+}
+.aicom-onboarding-tip {
+    margin: 18px 0 0;
+    padding: 12px 14px;
+    background: var(--aicom-bg);
+    border-left: 3px solid var(--aicom-primary);
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--aicom-text-md);
+    font-style: italic;
+}
+.aicom-onboarding-error {
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border-left: 3px solid #dc2626;
+    border-radius: 4px;
+    color: #991b1b;
+    font-size: 0.92em;
+}
+.aicom-onboarding-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
+    gap: 12px;
+}
+.aicom-onboarding-actions .button-hero {
+    background: var(--aicom-ink);
+    border-color: var(--aicom-ink);
+    color: #fff;
+    text-shadow: none;
+    box-shadow: 0 1px 0 rgba(22, 24, 29, .12);
+    font-size: 14px;
+    padding: 0 20px;
+    min-height: 38px;
+    line-height: 36px;
+    border-radius: 6px;
+}
+.aicom-onboarding-actions .button-hero:hover,
+.aicom-onboarding-actions .button-hero:focus {
+    background: #2a2d33;
+    border-color: #2a2d33;
+    color: #fff;
+}
+.aicom-onboarding-skip,
+.aicom-onboarding-back {
+    background: none;
+    border: none;
+    color: var(--aicom-text-sm);
+    font-size: 0.9em;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+    padding: 6px 0;
+}
+.aicom-onboarding-skip:hover,
+.aicom-onboarding-back:hover { color: var(--aicom-primary-dk); }
+.aicom-onboarding-form { margin: 0; }

@@ -13,39 +13,64 @@ foreach ( $all_tools as $tool_meta ) {
 }
 
 $module_info = [
-    'wp_core'     => [ 'label' => __( 'WordPress Core',  'aicom' ), 'description' => __( 'Posts, pages, custom post types, taxonomies, meta, options.',                           'aicom' ), 'required' => null,                        'icon' => 'dashicons-wordpress' ],
-    'media'       => [ 'label' => __( 'Media & Files',    'aicom' ), 'description' => __( 'WordPress media library, file upload/list/delete (with allowlist).',                    'aicom' ), 'required' => null,                        'icon' => 'dashicons-format-image' ],
-    'users'       => [ 'label' => __( 'Users & Roles',    'aicom' ), 'description' => __( 'User management, role assignment, capabilities. Anti-lockout guards included.',          'aicom' ), 'required' => null,                        'icon' => 'dashicons-admin-users' ],
-    'backup'      => [ 'label' => __( 'Backup & Restore', 'aicom' ), 'description' => __( 'Post/term/Elementor backups stored in database. Per-request restore.',                   'aicom' ), 'required' => null,                        'icon' => 'dashicons-backup' ],
-    'woocommerce' => [ 'label' => __( 'WooCommerce',      'aicom' ), 'description' => __( 'Products, categories, attributes, stock, price, settings.',                             'aicom' ), 'required' => __( 'WooCommerce plugin', 'aicom' ),        'icon' => 'dashicons-cart' ],
-    'elementor'   => [ 'label' => __( 'Elementor',        'aicom' ), 'description' => __( 'Programmatic widget editing via _elementor_data. Batch text update, backup/restore.',   'aicom' ), 'required' => __( 'Elementor plugin', 'aicom' ),          'icon' => 'dashicons-layout' ],
-    'polylang'    => [ 'label' => __( 'Polylang',         'aicom' ), 'description' => __( 'Language assignment, translation linking for posts and terms.',                          'aicom' ), 'required' => __( 'Polylang plugin', 'aicom' ),           'icon' => 'dashicons-translation' ],
-    'ecs'         => [ 'label' => __( 'ECS',              'aicom' ), 'description' => __( 'Ele Custom Skin — loop skins, color schemes, container layouts for Elementor.',          'aicom' ), 'required' => __( 'ECS plugin', 'aicom' ),                'icon' => 'dashicons-admin-customizer' ],
-    'yoast'       => [ 'label' => __( 'Yoast SEO',        'aicom' ), 'description' => __( 'SEO meta, Open Graph, Twitter Card, sitemap, breadcrumbs per post and term.',           'aicom' ), 'required' => __( 'Yoast SEO plugin', 'aicom' ),          'icon' => 'dashicons-chart-bar' ],
-    'clautron'    => [ 'label' => __( 'Clautron',         'aicom' ), 'description' => __( 'Blueprint and capability management — catalog, primitives, compile, smoke test.',        'aicom' ), 'required' => __( 'Clautron plugin', 'aicom' ),           'icon' => 'dashicons-superhero' ],
+    'wp_core'     => [ 'group' => 'content',    'label' => __( 'WordPress Core',  'aicom' ), 'description' => __( 'Posts, pages, custom post types, taxonomies, meta, options.',                           'aicom' ), 'required' => null,                                       'icon' => 'dashicons-wordpress' ],
+    'yoast'       => [ 'group' => 'content',    'label' => __( 'Yoast SEO',        'aicom' ), 'description' => __( 'SEO meta, Open Graph, Twitter Card, sitemap, breadcrumbs per post and term.',           'aicom' ), 'required' => __( 'Yoast SEO plugin', 'aicom' ),          'icon' => 'dashicons-chart-bar' ],
+    'media'       => [ 'group' => 'media',      'label' => __( 'Media & Files',    'aicom' ), 'description' => __( 'WordPress media library, file upload/list/delete (with allowlist).',                    'aicom' ), 'required' => null,                                       'icon' => 'dashicons-format-image' ],
+    'elementor'   => [ 'group' => 'layout',     'label' => __( 'Elementor',        'aicom' ), 'description' => __( 'Programmatic widget editing via _elementor_data. Batch text update, backup/restore.',   'aicom' ), 'required' => __( 'Elementor plugin', 'aicom' ),          'icon' => 'dashicons-layout' ],
+    'ecs'         => [ 'group' => 'layout',     'label' => __( 'ECS',              'aicom' ), 'description' => __( 'Ele Custom Skin — loop skins, color schemes, container layouts for Elementor.',          'aicom' ), 'required' => __( 'ECS plugin', 'aicom' ),                'icon' => 'dashicons-admin-customizer' ],
+    'polylang'    => [ 'group' => 'layout',     'label' => __( 'Polylang',         'aicom' ), 'description' => __( 'Language assignment, translation linking for posts and terms.',                          'aicom' ), 'required' => __( 'Polylang plugin', 'aicom' ),           'icon' => 'dashicons-translation' ],
+    'woocommerce' => [ 'group' => 'shop',       'label' => __( 'WooCommerce',      'aicom' ), 'description' => __( 'Products, categories, attributes, stock, price, settings.',                             'aicom' ), 'required' => __( 'WooCommerce plugin', 'aicom' ),        'icon' => 'dashicons-cart' ],
+    'users'       => [ 'group' => 'maintenance','label' => __( 'Users & Roles',    'aicom' ), 'description' => __( 'User management, role assignment, capabilities. Anti-lockout guards included.',          'aicom' ), 'required' => null,                                       'icon' => 'dashicons-admin-users' ],
+    'backup'      => [ 'group' => 'maintenance','label' => __( 'Backup & Restore', 'aicom' ), 'description' => __( 'Post/term/Elementor backups stored in database. Per-request restore.',                   'aicom' ), 'required' => null,                                       'icon' => 'dashicons-backup' ],
+    'clautron'    => [ 'group' => 'agent',      'label' => __( 'Clautron',         'aicom' ), 'description' => __( 'Blueprint and capability management — catalog, primitives, compile, smoke test.',        'aicom' ), 'required' => __( 'Clautron plugin', 'aicom' ),           'icon' => 'dashicons-superhero' ],
 ];
+
+$group_meta = [
+    'content'     => [ 'label' => __( 'Writing & Content',      'aicom' ), 'lede' => __( 'Drafting posts, editing pages, managing categories, polishing SEO metadata.', 'aicom' ) ],
+    'media'       => [ 'label' => __( 'Media & Files',          'aicom' ), 'lede' => __( 'Image library, accessibility (alt text), and selective file system access.', 'aicom' ) ],
+    'layout'      => [ 'label' => __( 'Pages & Layout',         'aicom' ), 'lede' => __( 'Page builders, design systems and translation tooling for layout-heavy work.', 'aicom' ) ],
+    'shop'        => [ 'label' => __( 'Shop & Commerce',        'aicom' ), 'lede' => __( 'WooCommerce store: products, prices, stock, taxonomies.', 'aicom' ) ],
+    'maintenance' => [ 'label' => __( 'Site Maintenance',       'aicom' ), 'lede' => __( 'User accounts, snapshots, restore. The plumbing.', 'aicom' ) ],
+    'agent'       => [ 'label' => __( 'AI Agent Tooling',       'aicom' ), 'lede' => __( 'Capabilities your agents create and discover — blueprints, primitives, smoke tests.', 'aicom' ) ],
+];
+
+// Pre-bucket modules by group for the rendering loop below.
+$by_group = [];
+foreach ( $module_info as $slug => $info ) {
+    $by_group[ $info['group'] ][ $slug ] = $info;
+}
 ?>
 <?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
 
     <div class="aicom-page-header">
-        <h1><?php esc_html_e( 'Modules', 'aicom' ); ?></h1>
-        <p class="aicom-page-desc"><?php esc_html_e( 'Active modules and all registered MCP tools with their scopes and classes.', 'aicom' ); ?></p>
+        <h1><?php esc_html_e( 'Capabilities', 'aicom' ); ?></h1>
+        <p class="aicom-page-desc"><?php esc_html_e( "Everything your AI agent can do, grouped by what it's good at. Modules that depend on a parent plugin will say so.", 'aicom' ); ?></p>
     </div>
 
-    <!-- Module Cards -->
-    <div class="aicom-card">
+    <!-- Module Cards — grouped by use case -->
+    <?php foreach ( $group_meta as $group_key => $g ) :
+        if ( empty( $by_group[ $group_key ] ) ) continue;
+        $group_active = 0;
+        foreach ( $by_group[ $group_key ] as $slug => $_info ) {
+            if ( str_starts_with( $module_status[ $slug ] ?? 'inactive', 'active' ) ) { $group_active++; }
+        }
+    ?>
+    <div class="aicom-card aicom-cap-group">
         <div class="aicom-card-head">
-            <h2 class="aicom-card-title"><?php esc_html_e( 'Installed Modules', 'aicom' ); ?></h2>
+            <div>
+                <h2 class="aicom-card-title"><?php echo esc_html( $g['label'] ); ?></h2>
+                <p class="aicom-cap-group-lede"><?php echo esc_html( $g['lede'] ); ?></p>
+            </div>
             <span style="font-size:0.8em;color:var(--aicom-text-sm)">
                 <?php
-                /* translators: %d: number of active modules */
-                printf( esc_html( _n( '%d active', '%d active', count( $active_modules ), 'aicom' ) ), count( $active_modules ) );
+                /* translators: %1$d: active modules, %2$d: total modules in group */
+                printf( esc_html__( '%1$d of %2$d active', 'aicom' ), $group_active, count( $by_group[ $group_key ] ) );
                 ?>
             </span>
         </div>
         <div class="aicom-card-body">
             <div class="aicom-modules-grid">
-            <?php foreach ( $module_info as $slug => $info ) :
+            <?php foreach ( $by_group[ $group_key ] as $slug => $info ) :
                 $status     = $module_status[ $slug ] ?? 'inactive';
                 $is_active  = str_starts_with( $status, 'active' );
                 $card_class = $is_active ? 'aicom-module-card-active' : 'aicom-module-card-inactive';
@@ -94,6 +119,7 @@ $module_info = [
             </div>
         </div>
     </div>
+    <?php endforeach; ?>
 
     <!-- Tool Registry -->
     <div class="aicom-card">

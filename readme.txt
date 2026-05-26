@@ -1,9 +1,9 @@
 === AICOM - AI Commander ===
 Contributors: dudaster
-Tags: mcp, ai, automation, rest-api, ai-agent, claude, claude-code, openclaw, accessibility, yoast, codex
+Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.7.0
+Stable tag: 3.8.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,25 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.8.0 =
+
+**New**
+
+* First-run onboarding wizard — fullscreen welcome that picks your AI client, picks a preset, and mints your first key in two clicks.
+* Help page with an interactive prompt builder, per-client setup snippets (Claude Desktop, Claude Code, Cursor, ChatGPT, n8n, generic OpenAPI), and a friendly FAQ.
+* WordPress dashboard widget — sits in /wp-admin, surfaces a "Connect AI Agent" CTA, your last five sessions, and a shortcut to the Help guide.
+* Per-key Working Hours — restrict any individual API key to a daily time window, independent of the site-wide Safety schedule.
+* Task-oriented quick start cards on the AICOM dashboard — describe the role your assistant plays ("Drafts new content", "Polishes SEO", "Just watches"…) and mint a key with the right permissions.
+
+**Polish**
+
+* Renamed pages for clarity: Connect AI Agents, Activity, Capabilities, Snapshots, Saved Workflows.
+* Key Created modal: client picker that swaps the paste-ready snippet, Test Connection button that validates the key end-to-end, terminal-style box with floating copy icon, friendlier copy throughout.
+* Generate Key form: Content Assistant pre-selected by default, advanced options (IP allowlist, Working Hours, dry-run, expiry) tucked behind a disclosure.
+* Confirm dialog before quick-key generation with a per-scope risk preview.
+* Capabilities page reorganised into use-case groups (Writing & Content, Media & Files, Pages & Layout, Shop & Commerce, Site Maintenance, AI Agent Tooling).
+* Activity logs: classic Back · 1 2 3 … N · Next pagination, glossary tooltips on jargon (scopes, locks), brand-aligned primary buttons, post-onboarding success banner, "Existing Keys" tab hidden when no keys exist.
 
 = 3.7.0 =
 

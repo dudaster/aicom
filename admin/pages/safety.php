@@ -83,7 +83,7 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
 
                     <div class="aicom-field-row">
                         <label class="aicom-field-label" for="aicom-soft-lock">
-                            <?php esc_html_e( 'Soft Lock', 'aicom' ); ?>
+                            <span class="aicom-term" tabindex="0" data-define="<?php esc_attr_e( 'Agents can read and browse the site but cannot create, change, or delete anything. Safe pause button.', 'aicom' ); ?>"><?php esc_html_e( 'Soft Lock', 'aicom' ); ?></span>
                             <small><?php esc_html_e( 'Read-only mode', 'aicom' ); ?></small>
                         </label>
                         <div class="aicom-field-control">
@@ -100,7 +100,7 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
 
                     <div class="aicom-field-row">
                         <label class="aicom-field-label" for="aicom-hard-lock">
-                            <?php esc_html_e( 'Hard Lock', 'aicom' ); ?>
+                            <span class="aicom-term" tabindex="0" data-define="<?php esc_attr_e( 'Total freeze. Only server.status responds. Agents are blocked from doing anything. Use when something feels wrong.', 'aicom' ); ?>"><?php esc_html_e( 'Hard Lock', 'aicom' ); ?></span>
                             <small><?php esc_html_e( 'Emergency freeze', 'aicom' ); ?></small>
                         </label>
                         <div class="aicom-field-control">

@@ -4,14 +4,14 @@ defined( 'ABSPATH' ) || exit;
 $_aicom_current_page = sanitize_key( wp_unslash( $_GET['page'] ?? 'aicom' ) );
 
 $_aicom_nav = [
-    'aicom'            => [ __( 'Dashboard',  'aicom' ), 'dashicons-dashboard' ],
-    'aicom-api-keys'   => [ __( 'API Keys',   'aicom' ), 'dashicons-lock' ],
-    'aicom-audit-logs' => [ __( 'Audit Logs', 'aicom' ), 'dashicons-list-view' ],
-    'aicom-safety'     => [ __( 'Safety',     'aicom' ), 'dashicons-shield' ],
-    'aicom-modules'    => [ __( 'Modules',    'aicom' ), 'dashicons-grid-view' ],
-    'aicom-backups'    => [ __( 'Backups',    'aicom' ), 'dashicons-backup' ],
-    'aicom-skills'     => [ __( 'Skills',     'aicom' ), 'dashicons-media-text' ],
-    'aicom-help'       => [ __( 'Help',       'aicom' ), 'dashicons-editor-help' ],
+    'aicom'            => [ __( 'Dashboard',               'aicom' ), 'dashicons-dashboard' ],
+    'aicom-api-keys'   => [ __( 'Connect AI Agents',       'aicom' ), 'dashicons-lock' ],
+    'aicom-audit-logs' => [ __( 'Activity',                'aicom' ), 'dashicons-list-view' ],
+    'aicom-safety'     => [ __( 'Safety',                  'aicom' ), 'dashicons-shield' ],
+    'aicom-modules'    => [ __( 'Capabilities',            'aicom' ), 'dashicons-grid-view' ],
+    'aicom-backups'    => [ __( 'Snapshots',               'aicom' ), 'dashicons-backup' ],
+    'aicom-skills'     => [ __( 'Saved Workflows',         'aicom' ), 'dashicons-media-text' ],
+    'aicom-help'       => [ __( 'Help',                    'aicom' ), 'dashicons-editor-help' ],
 ];
 ?>
 <div class="wrap aicom-wrap">
