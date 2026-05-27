@@ -1312,6 +1312,17 @@ button.aicom-preset-card {
     flex-shrink: 0;
     align-self: flex-start;
 }
+.aicom-keymodal-discard-form { margin: 0; }
+.aicom-keymodal-discard {
+    color: #6b7280;
+    background: transparent;
+    border-color: #e5e7eb;
+}
+.aicom-keymodal-discard:hover {
+    color: #b91c1c;
+    border-color: #b91c1c;
+    background: #fef2f2;
+}
 
 .aicom-preset-user-badge {
     font-size: 0.65em;

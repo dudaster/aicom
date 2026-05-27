@@ -292,6 +292,17 @@ class AICOM_Admin {
         // and the terminal snippet in place. No need to wade through the
         // generic "Connect to my WordPress site via MCP…" wall of text.
         $client_recipes = [
+            'general' => [
+                'name'    => __( 'General', 'aicom' ),
+                'intro'   => __( 'Paste this into any MCP-aware AI agent. Tells it where the site is, how to authenticate, and a fallback if the primary endpoint is refused.', 'aicom' ),
+                'snippet' => sprintf(
+                    /* translators: 1: MCP endpoint URL, 2: fallback URL, 3: API key */
+                    __( "Connect to my WordPress site via MCP:\n\nEndpoint: %1\$s\nFallback: %2\$s\nAuthorization: Bearer %3\$s\n\nUse the endpoint and the Authorization header for every request. If the connection is refused or returns 401, retry the request with real browser headers (User-Agent, Accept, Accept-Language).", 'aicom' ),
+                    $mcp_url,
+                    $fallback_url,
+                    $plain_key
+                ),
+            ],
             'claude-desktop' => [
                 'name'    => __( 'Claude Desktop', 'aicom' ),
                 'intro'   => __( 'Open your config file (on macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Paste this into it, save, then restart Claude Desktop.', 'aicom' ),
@@ -401,6 +412,17 @@ class AICOM_Admin {
                 </div>
 
                 <div class="aicom-confirm-actions">
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="aicom-keymodal-discard-form" style="margin-right:auto;">
+                        <?php wp_nonce_field( self::NONCE_ACTION ); ?>
+                        <input type="hidden" name="action" value="aicom_save" />
+                        <input type="hidden" name="aicom_action" value="revoke_key" />
+                        <input type="hidden" name="key_id" value="<?php echo (int) $new_key_id; ?>" />
+                        <button type="submit"
+                                class="button aicom-keymodal-discard"
+                                data-confirm="<?php esc_attr_e( 'Throw this key away? It will be revoked permanently.', 'aicom' ); ?>">
+                            <?php esc_html_e( 'Discard key', 'aicom' ); ?>
+                        </button>
+                    </form>
                     <button id="aicom-key-modal-done" type="button" class="button button-primary"><?php esc_html_e( 'Done', 'aicom' ); ?></button>
                 </div>
             </div>
@@ -415,6 +437,15 @@ class AICOM_Admin {
             document.getElementById('aicom-key-modal-done').addEventListener('click', closeModal);
             overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
             document.addEventListener('keydown', onEsc);
+
+            var discardBtn = overlay.querySelector('.aicom-keymodal-discard');
+            if (discardBtn) {
+                discardBtn.addEventListener('click', function (e) {
+                    if (!window.confirm(discardBtn.dataset.confirm)) {
+                        e.preventDefault();
+                    }
+                });
+            }
 
             // ── Client picker ──────────────────────────────────────────
             var recipes = <?php echo $client_recipes_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already JSON-encoded for JS ?>;
