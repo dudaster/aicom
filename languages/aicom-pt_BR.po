@@ -154,7 +154,7 @@ msgstr "Claude Desktop"
 
 #: admin/class-admin.php:297
 msgid "Open your config file (on macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Paste this into it, save, then restart Claude Desktop."
-msgstr "Abra seu arquivo de configuração (no macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Cole isto nele, salve e reinicie o Claude Desktop."
+msgstr "Abra seu arquivo de configuração (no macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Cole isto lá, salve e reinicie o Claude Desktop."
 
 #: admin/class-admin.php:301
 #: admin/pages/help.php:107
@@ -174,7 +174,7 @@ msgstr "Cursor IDE"
 
 #: admin/class-admin.php:307
 msgid "Create .cursor/mcp.json in your project (or ~/.cursor/mcp.json to share across projects). Paste this, then reload Cursor."
-msgstr "Crie .cursor/mcp.json no seu projeto (ou ~/.cursor/mcp.json para compartilhar entre projetos). Cole isto e então recarregue o Cursor."
+msgstr "Crie .cursor/mcp.json no seu projeto (ou ~/.cursor/mcp.json para compartilhar entre projetos). Cole isto e recarregue o Cursor."
 
 #: admin/class-admin.php:311
 #: admin/pages/onboarding.php:28
@@ -183,7 +183,7 @@ msgstr "ChatGPT (Custom GPT)"
 
 #: admin/class-admin.php:312
 msgid "Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above."
-msgstr "Abra o builder de Custom GPT, adicione uma Action e cole esta URL. Defina a Autenticação como API Key → Bearer e então cole a chave acima."
+msgstr "Abra o builder de Custom GPT, adicione uma Action e cole esta URL. Defina a Autenticação como API Key → Bearer e cole a chave acima."
 
 #: admin/class-admin.php:316
 #: admin/pages/onboarding.php:32
@@ -1340,7 +1340,7 @@ msgstr "Sua primeira chave está pronta."
 
 #: admin/pages/dashboard.php:36
 msgid "Open your AI client, paste the snippet from the modal, and try a sentence like \"list my last five published posts.\" Activity will appear in the card below as soon as your agent gets to work."
-msgstr "Abra seu cliente de IA, cole o trecho do modal e experimente uma frase como \"liste meus últimos cinco posts publicados.\" A atividade vai aparecer no card abaixo assim que seu agente começar a trabalhar."
+msgstr "Abra seu cliente de IA, cole o snippet do modal e experimente uma frase como \"liste meus últimos cinco posts publicados.\" A atividade vai aparecer no card abaixo assim que seu agente começar a trabalhar."
 
 #: admin/pages/dashboard.php:38
 msgid "Dismiss"
@@ -1356,7 +1356,7 @@ msgstr "Mais opções →"
 
 #: admin/pages/dashboard.php:64
 msgid "Each card describes a role your AI assistant could play on this site. Pick the one that fits and we will mint a key with the right permissions. You still review and confirm before it is created."
-msgstr "Cada card descreve um papel que seu assistente de IA pode desempenhar neste site. Escolha o que se encaixa e vamos gerar uma chave com as permissões certas. Você ainda revisa e confirma antes que ela seja criada."
+msgstr "Cada card descreve um papel que seu assistente de IA pode assumir neste site. Escolha o que combina melhor e vamos gerar uma chave com as permissões certas. Você ainda revisa e confirma antes que ela seja criada."
 
 #. translators: %d: number of permissions
 #. translators: %d: number of scopes
@@ -1551,7 +1551,7 @@ msgstr "Ajude os leitores de tela"
 
 #: admin/pages/help.php:42
 msgid "You ask for a quick site report on images without descriptions, then have the ten most-viewed ones described kindly. Before and after, side by side, for your taste."
-msgstr "Você pede um relatório rápido do site sobre imagens sem descrição e então pede que as dez mais vistas sejam descritas com carinho. Antes e depois, lado a lado, para você avaliar."
+msgstr "Você pede um relatório rápido do site sobre imagens sem descrição e depois pede descrições cuidadosas para as dez mais vistas. Antes e depois, lado a lado, para você avaliar."
 
 #: admin/pages/help.php:45
 msgid "Run accessibility audits"
@@ -1636,7 +1636,7 @@ msgstr "Salve uma rotina para depois"
 
 #: admin/pages/help.php:84
 msgid "You walk your helper through a workflow once — and ask them to save the steps as a recipe you can call back next week with one sentence."
-msgstr "Você guia seu assistente por um workflow uma vez — e pede para ele salvar os passos como uma receita que você pode chamar de volta na próxima semana com uma única frase."
+msgstr "Você guia seu assistente por um workflow uma única vez — e pede para ele salvar os passos como uma receita que você pode chamar de novo na semana seguinte com uma única frase."
 
 #: admin/pages/help.php:87
 msgid "Create and update skills"
@@ -1644,7 +1644,7 @@ msgstr "Criar e atualizar skills"
 
 #: admin/pages/help.php:89
 msgid "Every Monday I publish a product review. Watch what I do this morning, then save the workflow as a skill called Weekly product review. Next time, when I ask for it by name, you'll know exactly what to do."
-msgstr "Toda segunda-feira eu publico uma resenha de produto. Observe o que eu faço esta manhã e então salve o workflow como uma skill chamada Resenha semanal de produto. Na próxima vez, quando eu pedir pelo nome, você vai saber exatamente o que fazer."
+msgstr "Toda segunda-feira eu publico uma resenha de produto. Observe o que eu faço esta manhã e salve o workflow como uma skill chamada Resenha semanal de produto. Na próxima vez, quando eu pedir pelo nome, você vai saber exatamente o que fazer."
 
 #: admin/pages/help.php:92
 msgid "a one-line rewind"
@@ -1660,7 +1660,7 @@ msgstr "Você pede que tudo de uma sessão específica seja colocado de volta co
 
 #: admin/pages/help.php:99
 msgid "Yesterday's session called \"Bulk SEO update\" went a little too far. Restore everything from that session to where it was before. Show me a list of what you put back."
-msgstr "A sessão de ontem chamada \"Atualização em massa de SEO\" foi um pouco longe demais. Restaure tudo daquela sessão para onde estava antes. Me mostre uma lista do que você colocou de volta."
+msgstr "A sessão de ontem chamada \"Atualização em massa de SEO\" foi um pouco longe demais. Restaure tudo daquela sessão para o estado anterior. Me mostre uma lista do que foi restaurado."
 
 #: admin/pages/help.php:108
 msgid "in your terminal"
@@ -1736,7 +1736,7 @@ msgstr "Funciona com Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilo
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
-msgstr "Uma cartinha para começar"
+msgstr "Uma mensagem curta para começar"
 
 #: admin/pages/help.php:167
 #: admin/pages/onboarding.php:59
@@ -1749,7 +1749,7 @@ msgstr "Puxe uma cadeira."
 
 #: admin/pages/help.php:171
 msgid "AICOM is a quiet bridge between the AI you already pay for and the website you love. Your helper does the typing; you keep an eye on things from the kitchen. Pick a thing you'd like done below — we'll write the words for you to pass along."
-msgstr "O AICOM é uma ponte discreta entre a IA que você já paga e o site que você ama. Seu assistente faz a digitação; você fica de olho desde a cozinha. Escolha uma tarefa abaixo — vamos escrever as palavras para você repassar."
+msgstr "O AICOM é uma ponte discreta entre a IA que você já paga e o site que você ama. Seu assistente digita; você acompanha tudo de longe. Escolha uma tarefa abaixo — nós escrevemos as palavras para você repassar."
 
 #: admin/pages/help.php:174
 msgid "— a short read, maybe four minutes"
@@ -1763,7 +1763,7 @@ msgstr "Faça um passe de visitante."
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr "Passe pela <a href=\"%s\">gaveta de chaves</a> e escolha um conjunto inicial. Marque as permissões que sugerimos logo abaixo. Copie o passe no momento em que ele aparecer — ele não vai aparecer de novo."
+msgstr "Passe pela <a href=\"%s\">gaveta de chaves</a> e escolha um conjunto inicial. Marque as permissões sugeridas logo abaixo. Copie o passe assim que ele aparecer — ele não será mostrado de novo."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
@@ -1771,7 +1771,7 @@ msgstr "Mostre o caminho para entrar."
 
 #: admin/pages/help.php:201
 msgid "You don't have to write a single line yourself. Further down, pick which AI helper you use — we have the exact text already written for it. Tap copy, paste it where your helper expects, done."
-msgstr "Você não precisa escrever uma única linha. Mais abaixo, escolha qual assistente de IA você usa — temos o texto exato já escrito para ele. Toque em copiar, cole onde seu assistente espera, pronto."
+msgstr "Você não precisa escrever uma única linha. Mais abaixo, escolha qual assistente de IA você usa — o texto exato já está pronto. Toque em Copiar, cole onde o assistente espera e pronto."
 
 #: admin/pages/help.php:206
 msgid "Tell them what's on your mind."
@@ -1787,15 +1787,15 @@ msgstr "O pequeno builder"
 
 #: admin/pages/help.php:222
 msgid "Pick a thing you'd like done. We'll write it for you."
-msgstr "Escolha uma coisa que você gostaria de fazer. Vamos escrever para você."
+msgstr "Escolha algo que você quer fazer. A gente escreve para você."
 
 #: admin/pages/help.php:223
 msgid "Tap a card. We'll show you which permissions to tick when you make the pass, and we'll write a sentence you can copy straight into your helper's chat window."
-msgstr "Toque num card. Vamos mostrar quais permissões marcar quando você fizer o passe, e vamos escrever uma frase que você pode copiar direto para a janela de chat do seu assistente."
+msgstr "Toque num card. Vamos mostrar quais permissões marcar ao criar o passe e escrever uma frase que você pode copiar direto para a janela de chat do seu assistente."
 
 #: admin/pages/help.php:236
 msgid "tap to use this →"
-msgstr "toque para usar este →"
+msgstr "toque para usar isto →"
 
 #: admin/pages/help.php:244
 msgid "When you make the pass, tick these"
@@ -1807,7 +1807,7 @@ msgstr "Abrir a gaveta de chaves →"
 
 #: admin/pages/help.php:252
 msgid "And paste this into your helper"
-msgstr "E cole isto no seu assistente"
+msgstr "E cole isto no chat do seu assistente"
 
 #: admin/pages/help.php:269
 msgid "The wiring"
@@ -1815,7 +1815,7 @@ msgstr "A fiação"
 
 #: admin/pages/help.php:272
 msgid "Telling your helper where the door is."
-msgstr "Dizendo ao seu assistente onde fica a porta."
+msgstr "Mostrando ao seu assistente onde fica a porta."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
@@ -1860,7 +1860,7 @@ msgstr "Isso vai me custar um pouco cada vez que fizer algo?"
 
 #: admin/pages/help.php:347
 msgid "No. AICOM is free. Your helper uses the AI subscription you already pay for — whatever Claude or ChatGPT charges you each month — and nothing extra slips in on top."
-msgstr "Não. O AICOM é gratuito. Seu assistente usa a assinatura de IA que você já paga — seja o que o Claude ou o ChatGPT cobrar de você por mês — e nada a mais é cobrado em cima."
+msgstr "Não. O AICOM é gratuito. Seu assistente usa a assinatura de IA que você já paga — o que o Claude ou o ChatGPT já cobra de você por mês — e nada extra entra por fora."
 
 #: admin/pages/help.php:351
 msgid "Is it really safe to let a helper into the site?"
@@ -1868,16 +1868,16 @@ msgstr "É realmente seguro deixar um assistente entrar no site?"
 
 #: admin/pages/help.php:352
 msgid "Safer than giving someone your password. Every pass has only the powers you grant. You can freeze the whole site with one click. Working Hours can lock helpers out at night. Everything they do is written down and reversible. You are always in charge."
-msgstr "Mais seguro do que dar sua senha para alguém. Cada passe só tem os poderes que você concede. Você pode congelar o site inteiro com um clique. O Horário de trabalho pode trancar os assistentes do lado de fora à noite. Tudo o que eles fazem fica registrado e é reversível. Você está sempre no comando."
+msgstr "Mais seguro do que dar sua senha para alguém. Cada passe só tem os poderes que você concede. Você pode congelar o site inteiro com um clique. O Horário de trabalho pode bloquear os assistentes à noite. Tudo o que eles fazem fica registrado e pode ser revertido. Você está sempre no comando."
 
 #: admin/pages/help.php:356
 msgid "I shared a pass and now I'd like it back."
-msgstr "Compartilhei um passe e agora quero ele de volta."
+msgstr "Compartilhei um passe e agora quero pegá-lo de volta."
 
 #: admin/pages/help.php:361
 #, php-format
 msgid "Open <a href=\"%s\">the keys drawer</a>, find the row, click the small action menu and choose <strong>Revoke</strong>. Gone in a blink. To pause it instead, pick <strong>Suspend</strong> — that one is reversible."
-msgstr "Abra <a href=\"%s\">a gaveta de chaves</a>, encontre a linha, clique no pequeno menu de ações e escolha <strong>Revogar</strong>. Some num piscar. Para pausar em vez disso, escolha <strong>Suspender</strong> — essa é reversível."
+msgstr "Abra <a href=\"%s\">a gaveta de chaves</a>, encontre a linha, clique no pequeno menu de ações e escolha <strong>Revogar</strong>. Desaparece num piscar. Para apenas pausar, escolha <strong>Suspender</strong> — essa opção é reversível."
 
 #: admin/pages/help.php:370
 msgid "My helper keeps getting 401 or 403. What's wrong?"
@@ -1901,7 +1901,7 @@ msgstr "Meu assistente diz \"nenhuma sessão ativa\". O que é isso?"
 
 #: admin/pages/help.php:386
 msgid "Anything that changes things wants to be wrapped in a named session — that's what lets you undo a whole afternoon's work with one button later. Just tell your helper \"Open a session called X, then go ahead.\" Read-only tasks don't need a session."
-msgstr "Qualquer coisa que altera precisa estar envolvida numa sessão nomeada — é isso que permite desfazer uma tarde inteira de trabalho com um botão depois. Apenas diga ao seu assistente \"Abra uma sessão chamada X e então prossiga.\" Tarefas somente leitura não precisam de sessão."
+msgstr "Qualquer alteração precisa ficar dentro de uma sessão com nome — é isso que permite desfazer uma tarde inteira de trabalho com um botão depois. Basta dizer ao seu assistente: \"Abra uma sessão chamada X e então prossiga.\" Tarefas somente leitura não precisam de sessão."
 
 #: admin/pages/help.php:390
 msgid "How do I tidy up old snapshots?"
@@ -1927,7 +1927,7 @@ msgstr "E se em algum momento algo parecer estranho —"
 #: admin/pages/help.php:420
 #, php-format
 msgid "the <a href=\"%s\">Safety</a> page is your kill switch. Three clicks and the whole place freezes. Nothing destructive can happen without your explicit yes."
-msgstr "a página <a href=\"%s\">Segurança</a> é seu botão de emergência. Três cliques e o lugar inteiro congela. Nada destrutivo pode acontecer sem o seu sim explícito."
+msgstr "a página <a href=\"%s\">Segurança</a> é seu kill switch. Três cliques e o site inteiro congela. Nada destrutivo pode acontecer sem o seu sim explícito."
 
 #: admin/pages/help.php:426
 msgid "Now — try a sentence and see."

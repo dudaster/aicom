@@ -1756,7 +1756,7 @@ msgstr "Trage-ți un scaun."
 
 #: admin/pages/help.php:171
 msgid "AICOM is a quiet bridge between the AI you already pay for and the website you love. Your helper does the typing; you keep an eye on things from the kitchen. Pick a thing you'd like done below — we'll write the words for you to pass along."
-msgstr "AICOM e o punte liniștită între AI-ul pentru care plătești deja și site-ul pe care îl iubești. Ajutorul tău se ocupă de tastat; tu ții cu ochii pe lucruri din bucătărie. Alege ceva ce-ai vrea să se facă mai jos — îți scriem noi cuvintele pe care să le trimiți mai departe."
+msgstr "AICOM e o punte liniștită între AI-ul pentru care plătești deja și site-ul pe care îl iubești. Ajutorul tău se ocupă de tastat; tu stai cu ochii pe treburile din bucătărie. Alege ceva ce-ai vrea să se facă mai jos — îți scriem noi cuvintele pe care să le trimiți mai departe."
 
 #: admin/pages/help.php:174
 msgid "— a short read, maybe four minutes"
