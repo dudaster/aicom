@@ -1,397 +1,391 @@
-# Copyright (C) 2026 dudaster
-# This file is distributed under the GPL-2.0-or-later.
+# Translation of Plugins - AICOM - AI Commander in German
+# This file is distributed under the same license as the Plugins - AICOM - AI Commander package.
 msgid ""
 msgstr ""
-"Project-Id-Version: AICOM - AI Commander 3.8.1\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/aicom\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"PO-Revision-Date: 2026-05-27 09:00:00+0000\n"
+"Last-Translator: AICOM Team <dudaster@gmail.com>\n"
+"Language-Team: German <de@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-05-27T08:07:58+00:00\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"X-Generator: WP-CLI 2.12.0\n"
-"X-Domain: aicom\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Poedit 3.4\n"
+"Language: de_DE\n"
+"Project-Id-Version: AICOM - AI Commander 3.8.1\n"
 
 #. Plugin Name of the plugin
-#: aicom.php
 msgid "AICOM - AI Commander"
-msgstr ""
+msgstr "AICOM - AI Commander"
 
 #. Plugin URI of the plugin
-#: aicom.php
 msgid "https://wordpress.org/plugins/aicom/"
-msgstr ""
+msgstr "https://wordpress.org/plugins/aicom/"
 
 #. Description of the plugin
-#: aicom.php
 msgid "Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control."
-msgstr ""
+msgstr "Nutze dein AI-Abo, um WordPress zu verwalten: erstelle Elementor-Seiten, aktualisiere Inhalte, automatisiere Aufgaben und behalte die volle Kontrolle."
 
 #. Author of the plugin
-#: aicom.php
 msgid "dudaster"
-msgstr ""
+msgstr "dudaster"
 
 #. Author URI of the plugin
-#: aicom.php
 msgid "https://profiles.wordpress.org/dudaster/"
-msgstr ""
+msgstr "https://profiles.wordpress.org/dudaster/"
 
 #: admin/class-admin.php:74
 msgid "AICOM — AI Commander"
-msgstr ""
+msgstr "AICOM — AI Commander"
 
 #: admin/class-admin.php:96
 msgid "AI Commander for WordPress"
-msgstr ""
+msgstr "AI Commander für WordPress"
 
 #: admin/class-admin.php:100
 #: admin/class-admin.php:152
 msgid "Connect AI Agent"
-msgstr ""
+msgstr "AI-Agent verbinden"
 
 #: admin/class-admin.php:101
 msgid "or pick a quick preset →"
-msgstr ""
+msgstr "oder wähle ein schnelles Preset →"
 
 #: admin/class-admin.php:106
 msgid "Today's activity"
-msgstr ""
+msgstr "Aktivität von heute"
 
 #: admin/class-admin.php:107
 msgid "View all →"
-msgstr ""
+msgstr "Alle ansehen →"
 
 #: admin/class-admin.php:111
 msgid "No sessions yet. Generate a key and try a sentence — your activity will land here."
-msgstr ""
+msgstr "Noch keine Sitzungen. Erstelle einen Schlüssel und probiere einen Satz — deine Aktivität erscheint hier."
 
 #: admin/class-admin.php:115
 msgid "Untitled session"
-msgstr ""
+msgstr "Sitzung ohne Titel"
 
 #. translators: %s = relative time
 #: admin/class-admin.php:119
 #, php-format
 msgid "%s ago"
-msgstr ""
+msgstr "vor %s"
 
 #. translators: %d: number of requests
 #: admin/class-admin.php:129
 #, php-format
 msgid "%d request"
 msgid_plural "%d requests"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Anfrage"
+msgstr[1] "%d Anfragen"
 
 #: admin/class-admin.php:144
 msgid "New here? Read the four-minute guide."
-msgstr ""
+msgstr "Neu hier? Lies die Vier-Minuten-Anleitung."
 
 #: admin/class-admin.php:166
 #: admin/class-admin.php:167
 msgid "aicom"
-msgstr ""
+msgstr "aicom"
 
 #: admin/class-admin.php:175
 #: admin/pages/backups.php:113
 #: admin/pages/dashboard.php:28
 #: admin/partials/layout-top.php:7
 msgid "Dashboard"
-msgstr ""
+msgstr "Dashboard"
 
 #: admin/class-admin.php:176
 #: admin/pages/api-keys.php:111
 #: admin/partials/layout-top.php:8
 msgid "Connect AI Agents"
-msgstr ""
+msgstr "AI-Agents verbinden"
 
 #: admin/class-admin.php:177
 #: admin/pages/audit-logs.php:117
 #: admin/pages/audit-logs.php:162
 #: admin/partials/layout-top.php:9
 msgid "Activity"
-msgstr ""
+msgstr "Aktivität"
 
 #: admin/class-admin.php:178
 #: admin/partials/layout-top.php:10
 msgid "Safety"
-msgstr ""
+msgstr "Sicherheit"
 
 #: admin/class-admin.php:179
 #: admin/pages/modules.php:46
 #: admin/partials/layout-top.php:11
 msgid "Capabilities"
-msgstr ""
+msgstr "Fähigkeiten"
 
 #: admin/class-admin.php:180
 #: admin/pages/backups.php:98
 #: admin/partials/layout-top.php:12
 msgid "Snapshots"
-msgstr ""
+msgstr "Snapshots"
 
 #: admin/class-admin.php:181
 #: admin/pages/skills.php:19
 #: admin/partials/layout-top.php:13
 msgid "Saved Workflows"
-msgstr ""
+msgstr "Gespeicherte Workflows"
 
 #: admin/class-admin.php:182
 #: admin/partials/layout-top.php:14
 msgid "Help"
-msgstr ""
+msgstr "Hilfe"
 
 #: admin/class-admin.php:184
 msgid "Welcome to AICOM"
-msgstr ""
+msgstr "Willkommen bei AICOM"
 
 #: admin/class-admin.php:296
 #: admin/pages/help.php:114
 #: admin/pages/onboarding.php:16
 msgid "Claude Desktop"
-msgstr ""
+msgstr "Claude Desktop"
 
 #: admin/class-admin.php:297
 msgid "Open your config file (on macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Paste this into it, save, then restart Claude Desktop."
-msgstr ""
+msgstr "Öffne deine Konfigurationsdatei (auf macOS: ~/Library/Application Support/Claude/claude_desktop_config.json). Füge dies ein, speichere und starte Claude Desktop neu."
 
 #: admin/class-admin.php:301
 #: admin/pages/help.php:107
 #: admin/pages/onboarding.php:20
 msgid "Claude Code"
-msgstr ""
+msgstr "Claude Code"
 
 #: admin/class-admin.php:302
 msgid "Open a terminal in any project folder and paste this single command. Claude Code remembers it across sessions."
-msgstr ""
+msgstr "Öffne ein Terminal in einem beliebigen Projektordner und füge diesen einen Befehl ein. Claude Code merkt es sich über Sitzungen hinweg."
 
 #: admin/class-admin.php:306
 #: admin/pages/help.php:121
 #: admin/pages/onboarding.php:24
 msgid "Cursor IDE"
-msgstr ""
+msgstr "Cursor IDE"
 
 #: admin/class-admin.php:307
 msgid "Create .cursor/mcp.json in your project (or ~/.cursor/mcp.json to share across projects). Paste this, then reload Cursor."
-msgstr ""
+msgstr "Erstelle .cursor/mcp.json in deinem Projekt (oder ~/.cursor/mcp.json zur projektübergreifenden Nutzung). Füge dies ein und lade Cursor neu."
 
 #: admin/class-admin.php:311
 #: admin/pages/onboarding.php:28
 msgid "ChatGPT (Custom GPT)"
-msgstr ""
+msgstr "ChatGPT (Custom GPT)"
 
 #: admin/class-admin.php:312
 msgid "Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above."
-msgstr ""
+msgstr "Öffne den Custom-GPT-Builder, füge eine Action hinzu und füge diese URL ein. Stelle Authentication auf API Key → Bearer und füge den Schlüssel von oben ein."
 
 #: admin/class-admin.php:316
 #: admin/pages/onboarding.php:32
 msgid "Something else"
-msgstr ""
+msgstr "Etwas anderes"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr ""
+msgstr "Jeder MCP-fähige Client. Endpoint + Bearer-Header, Beispielanfrage unten."
 
 #: admin/class-admin.php:324
 msgid "Key created"
-msgstr ""
+msgstr "Schlüssel erstellt"
 
 #: admin/class-admin.php:325
 msgid "Key rotated"
-msgstr ""
+msgstr "Schlüssel rotiert"
 
 #: admin/class-admin.php:329
 #: admin/pages/dashboard.php:117
 msgid "Close"
-msgstr ""
+msgstr "Schließen"
 
 #: admin/class-admin.php:333
 msgid "Copy it now — won't be shown again"
-msgstr ""
+msgstr "Kopiere ihn jetzt — er wird nicht erneut angezeigt"
 
 #: admin/class-admin.php:336
 msgid "Your new API key"
-msgstr ""
+msgstr "Dein neuer API-Schlüssel"
 
 #: admin/class-admin.php:339
 msgid "API Key"
-msgstr ""
+msgstr "API-Schlüssel"
 
 #: admin/class-admin.php:345
 msgid "Copy Key"
-msgstr ""
+msgstr "Schlüssel kopieren"
 
 #: admin/class-admin.php:354
 msgid "Your key works."
-msgstr ""
+msgstr "Dein Schlüssel funktioniert."
 
 #: admin/class-admin.php:355
 msgid "Testing…"
-msgstr ""
+msgstr "Teste…"
 
 #: admin/class-admin.php:356
 #: admin/class-admin.php:357
 msgid "Test connection"
-msgstr ""
+msgstr "Verbindung testen"
 
 #: admin/class-admin.php:364
 msgid "Now connect your AI client"
-msgstr ""
+msgstr "Verbinde nun deinen AI-Client"
 
 #: admin/class-admin.php:365
 msgid "Pick what you use. We'll show you exactly what to paste — no typing required."
-msgstr ""
+msgstr "Wähle, was du nutzt. Wir zeigen dir genau, was du einfügen musst — kein Tippen nötig."
 
 #: admin/class-admin.php:386
 #: admin/class-admin.php:387
 #: admin/class-admin.php:399
 msgid "Copy snippet"
-msgstr ""
+msgstr "Snippet kopieren"
 
 #: admin/class-admin.php:404
 msgid "Done"
-msgstr ""
+msgstr "Fertig"
 
 #: admin/class-admin.php:552
 msgid "You do not have permission to perform this action."
-msgstr ""
+msgstr "Du hast keine Berechtigung, diese Aktion auszuführen."
 
 #: admin/class-admin.php:1049
 msgid "Read-only"
-msgstr ""
+msgstr "Schreibgeschützt"
 
 #: admin/class-admin.php:1052
 msgid "Safe browsing only"
-msgstr ""
+msgstr "Nur sicheres Browsen"
 
 #: admin/class-admin.php:1055
 msgid "Content Assistant"
-msgstr ""
+msgstr "Content-Assistent"
 
 #: admin/class-admin.php:1058
 msgid "Write & publish content"
-msgstr ""
+msgstr "Inhalte schreiben & veröffentlichen"
 
 #: admin/class-admin.php:1061
 msgid "Elementor Editor"
-msgstr ""
+msgstr "Elementor-Editor"
 
 #: admin/class-admin.php:1064
 msgid "Build Elementor pages"
-msgstr ""
+msgstr "Elementor-Seiten bauen"
 
 #: admin/class-admin.php:1067
 msgid "WooCommerce Catalog"
-msgstr ""
+msgstr "WooCommerce-Katalog"
 
 #: admin/class-admin.php:1070
 msgid "Manage products"
-msgstr ""
+msgstr "Produkte verwalten"
 
 #: admin/class-admin.php:1073
 #: admin/pages/modules.php:33
 msgid "Site Maintenance"
-msgstr ""
+msgstr "Website-Wartung"
 
 #: admin/class-admin.php:1076
 msgid "Updates, backups, settings"
-msgstr ""
+msgstr "Updates, Backups, Einstellungen"
 
 #: admin/class-admin.php:1079
 msgid "Full Admin"
-msgstr ""
+msgstr "Voll-Admin"
 
 #: admin/class-admin.php:1082
 msgid "All permissions"
-msgstr ""
+msgstr "Alle Berechtigungen"
 
 #: admin/class-admin.php:1125
 msgid "Drafts new content"
-msgstr ""
+msgstr "Entwirft neue Inhalte"
 
 #: admin/class-admin.php:1126
 msgid "Writes posts and pages, sets categories, saves as drafts. Nothing publishes without your nod."
-msgstr ""
+msgstr "Schreibt Beiträge und Seiten, setzt Kategorien, speichert als Entwürfe. Nichts wird ohne dein Nicken veröffentlicht."
 
 #: admin/class-admin.php:1132
 msgid "Polishes SEO across the site"
-msgstr ""
+msgstr "Poliert SEO auf der gesamten Website"
 
 #: admin/class-admin.php:1133
 msgid "Reads and improves Yoast meta titles, descriptions, and Open Graph fields."
-msgstr ""
+msgstr "Liest und verbessert Yoast-Metatitel, -Beschreibungen und Open-Graph-Felder."
 
 #: admin/class-admin.php:1139
 msgid "Keeps the media library tidy"
-msgstr ""
+msgstr "Hält die Medienbibliothek aufgeräumt"
 
 #: admin/class-admin.php:1140
 msgid "Adds alt text to your images, runs accessibility audits, helps describe what each picture shows."
-msgstr ""
+msgstr "Fügt Alt-Texte zu deinen Bildern hinzu, führt Barrierefreiheits-Audits durch und hilft zu beschreiben, was jedes Bild zeigt."
 
 #: admin/class-admin.php:1146
 msgid "Designs pages in Elementor"
-msgstr ""
+msgstr "Gestaltet Seiten in Elementor"
 
 #: admin/class-admin.php:1147
 msgid "Edits existing Elementor pages, duplicates templates, swaps copy across widgets in one go."
-msgstr ""
+msgstr "Bearbeitet bestehende Elementor-Seiten, dupliziert Vorlagen und tauscht Texte über mehrere Widgets in einem Rutsch."
 
 #: admin/class-admin.php:1153
 msgid "Manages your shop"
-msgstr ""
+msgstr "Verwaltet deinen Shop"
 
 #: admin/class-admin.php:1154
 msgid "WooCommerce products, prices, stock, attributes. Tells you what looks off and offers fixes."
-msgstr ""
+msgstr "WooCommerce-Produkte, Preise, Lagerbestand, Attribute. Sagt dir, was komisch aussieht, und schlägt Lösungen vor."
 
 #: admin/class-admin.php:1160
 msgid "Just watches"
-msgstr ""
+msgstr "Schaut nur zu"
 
 #: admin/class-admin.php:1161
 msgid "Read-only access to everything — content, users, settings. Cannot change a thing. Safest mode."
-msgstr ""
+msgstr "Schreibgeschützter Zugriff auf alles — Inhalte, Benutzer, Einstellungen. Kann nichts ändern. Sicherster Modus."
 
 #: admin/class-admin.php:1598
 msgid "You do not have permission to access this page."
-msgstr ""
+msgstr "Du hast keine Berechtigung, auf diese Seite zuzugreifen."
 
 #: admin/pages/api-keys.php:31
 msgid "Sun"
-msgstr ""
+msgstr "So"
 
 #: admin/pages/api-keys.php:32
 msgid "Mon"
-msgstr ""
+msgstr "Mo"
 
 #: admin/pages/api-keys.php:33
 msgid "Tue"
-msgstr ""
+msgstr "Di"
 
 #: admin/pages/api-keys.php:34
 msgid "Wed"
-msgstr ""
+msgstr "Mi"
 
 #: admin/pages/api-keys.php:35
 msgid "Thu"
-msgstr ""
+msgstr "Do"
 
 #: admin/pages/api-keys.php:36
 msgid "Fri"
-msgstr ""
+msgstr "Fr"
 
 #: admin/pages/api-keys.php:37
 msgid "Sat"
-msgstr ""
+msgstr "Sa"
 
 #: admin/pages/api-keys.php:42
 #: admin/pages/safety.php:191
 msgid "Working Hours"
-msgstr ""
+msgstr "Arbeitszeiten"
 
 #: admin/pages/api-keys.php:42
 #: admin/pages/api-keys.php:204
@@ -400,117 +394,117 @@ msgstr ""
 #: admin/pages/api-keys.php:566
 #: admin/pages/api-keys.php:658
 msgid "Optional"
-msgstr ""
+msgstr "Optional"
 
 #: admin/pages/api-keys.php:46
 msgid "Restrict this key to a daily time window"
-msgstr ""
+msgstr "Diesen Schlüssel auf ein tägliches Zeitfenster beschränken"
 
 #: admin/pages/api-keys.php:50
 msgid "Days"
-msgstr ""
+msgstr "Tage"
 
 #: admin/pages/api-keys.php:60
 msgid "From"
-msgstr ""
+msgstr "Von"
 
 #: admin/pages/api-keys.php:63
 #: admin/pages/audit-logs.php:384
 #: admin/pages/safety.php:196
 msgid "to"
-msgstr ""
+msgstr "bis"
 
 #. translators: %s = site timezone
 #: admin/pages/api-keys.php:72
 #, php-format
 msgid "Requests outside this window return 403. Site timezone: %s"
-msgstr ""
+msgstr "Anfragen außerhalb dieses Fensters geben 403 zurück. Zeitzone der Website: %s"
 
 #: admin/pages/api-keys.php:112
 msgid "Generate and manage API keys that grant AI agents access to your site via MCP."
-msgstr ""
+msgstr "Erstelle und verwalte API-Schlüssel, die AI-Agents per MCP Zugang zu deiner Website gewähren."
 
 #: admin/pages/api-keys.php:148
 msgid "Edit Key:"
-msgstr ""
+msgstr "Schlüssel bearbeiten:"
 
 #: admin/pages/api-keys.php:150
 msgid "← Back to keys"
-msgstr ""
+msgstr "← Zurück zu den Schlüsseln"
 
 #: admin/pages/api-keys.php:166
 msgid "Permissions you give your agent — what it can read or change. Pick narrow for safety, broad for power."
-msgstr ""
+msgstr "Berechtigungen, die du deinem Agent gibst — was er lesen oder ändern kann. Wähle eng für Sicherheit, breit für Macht."
 
 #: admin/pages/api-keys.php:166
 #: admin/pages/api-keys.php:499
 #: admin/pages/api-keys.php:740
 msgid "Scopes"
-msgstr ""
+msgstr "Scopes"
 
 #: admin/pages/api-keys.php:167
 #: admin/pages/api-keys.php:500
 msgid "Permissions for this key"
-msgstr ""
+msgstr "Berechtigungen für diesen Schlüssel"
 
 #: admin/pages/api-keys.php:171
 #: admin/pages/api-keys.php:505
 msgid "Search scopes…"
-msgstr ""
+msgstr "Scopes suchen…"
 
 #: admin/pages/api-keys.php:203
 #: admin/pages/api-keys.php:657
 msgid "Expiry Date"
-msgstr ""
+msgstr "Ablaufdatum"
 
 #: admin/pages/api-keys.php:210
 msgid "Leave empty to remove expiry."
-msgstr ""
+msgstr "Leer lassen, um den Ablauf zu entfernen."
 
 #: admin/pages/api-keys.php:217
 #: admin/pages/api-keys.php:551
 msgid "IP Allowlist"
-msgstr ""
+msgstr "IP-Erlaubnisliste"
 
 #: admin/pages/api-keys.php:223
 #: admin/pages/api-keys.php:557
 msgid "One IP or CIDR per line. Leave empty to allow all."
-msgstr ""
+msgstr "Eine IP oder CIDR pro Zeile. Leer lassen, um alle zu erlauben."
 
 #: admin/pages/api-keys.php:230
 #: admin/pages/api-keys.php:565
 msgid "IP Auto-Lock"
-msgstr ""
+msgstr "IP-Auto-Sperre"
 
 #: admin/pages/api-keys.php:235
 #: admin/pages/api-keys.php:571
 msgid "Bind key to the first IP that uses it"
-msgstr ""
+msgstr "Schlüssel an die erste IP binden, die ihn nutzt"
 
 #. translators: 1: IP address, 2: UTC datetime
 #: admin/pages/api-keys.php:241
 #, php-format
 msgid "Locked to %1$s since %2$s UTC"
-msgstr ""
+msgstr "Gesperrt auf %1$s seit %2$s UTC"
 
 #: admin/pages/api-keys.php:248
 msgid "Waiting for first use — IP will be bound on next request."
-msgstr ""
+msgstr "Warte auf erste Nutzung — IP wird bei der nächsten Anfrage gebunden."
 
 #: admin/pages/api-keys.php:261
 #: admin/pages/api-keys.php:581
 msgid "Resource Restrictions"
-msgstr ""
+msgstr "Ressourcen-Einschränkungen"
 
 #: admin/pages/api-keys.php:268
 #: admin/pages/api-keys.php:585
 msgid "Limit which WordPress resources this key can access. Restrictions are enforced per-call — leave a field empty to allow all values of that type."
-msgstr ""
+msgstr "Lege fest, auf welche WordPress-Ressourcen dieser Schlüssel zugreifen darf. Einschränkungen werden pro Aufruf erzwungen — lass ein Feld leer, um alle Werte dieses Typs zu erlauben."
 
 #: admin/pages/api-keys.php:272
 #: admin/pages/api-keys.php:589
 msgid "Post Types"
-msgstr ""
+msgstr "Post-Typen"
 
 #: admin/pages/api-keys.php:273
 #: admin/pages/api-keys.php:281
@@ -519,7 +513,7 @@ msgstr ""
 #: admin/pages/api-keys.php:314
 #: admin/pages/audit-logs.php:264
 msgid "Active"
-msgstr ""
+msgstr "Aktiv"
 
 #: admin/pages/api-keys.php:273
 #: admin/pages/api-keys.php:281
@@ -532,7 +526,7 @@ msgstr ""
 #: admin/pages/api-keys.php:614
 #: admin/pages/api-keys.php:631
 msgid "Inactive"
-msgstr ""
+msgstr "Inaktiv"
 
 #: admin/pages/api-keys.php:276
 #: admin/pages/api-keys.php:284
@@ -543,153 +537,153 @@ msgstr ""
 #: admin/pages/api-keys.php:609
 #: admin/pages/api-keys.php:617
 msgid "One per line · empty = allow all"
-msgstr ""
+msgstr "Einer pro Zeile · leer = alle erlauben"
 
 #: admin/pages/api-keys.php:280
 #: admin/pages/api-keys.php:597
 msgid "Taxonomies"
-msgstr ""
+msgstr "Taxonomien"
 
 #: admin/pages/api-keys.php:288
 #: admin/pages/api-keys.php:605
 msgid "Meta Keys"
-msgstr ""
+msgstr "Meta-Schlüssel"
 
 #: admin/pages/api-keys.php:296
 #: admin/pages/api-keys.php:613
 msgid "WP Options"
-msgstr ""
+msgstr "WP-Optionen"
 
 #: admin/pages/api-keys.php:304
 #: admin/pages/api-keys.php:621
 msgid "File Paths"
-msgstr ""
+msgstr "Dateipfade"
 
 #: admin/pages/api-keys.php:305
 msgid "Paths set"
-msgstr ""
+msgstr "Pfade gesetzt"
 
 #: admin/pages/api-keys.php:305
 #: admin/pages/api-keys.php:622
 msgid "All blocked"
-msgstr ""
+msgstr "Alle blockiert"
 
 #: admin/pages/api-keys.php:308
 #: admin/pages/api-keys.php:625
 msgid "Empty = BLOCK all file operations. Add allowed directory prefixes, one per line."
-msgstr ""
+msgstr "Leer = ALLE Dateioperationen BLOCKIEREN. Füge erlaubte Verzeichnis-Präfixe hinzu, eines pro Zeile."
 
 #: admin/pages/api-keys.php:313
 #: admin/pages/api-keys.php:630
 msgid "Languages"
-msgstr ""
+msgstr "Sprachen"
 
 #: admin/pages/api-keys.php:317
 #: admin/pages/api-keys.php:634
 msgid "One language code per line · empty = allow all"
-msgstr ""
+msgstr "Ein Sprachcode pro Zeile · leer = alle erlauben"
 
 #: admin/pages/api-keys.php:328
 #: admin/pages/api-keys.php:645
 msgid "Dry-Run Only"
-msgstr ""
+msgstr "Nur Dry-Run"
 
 #: admin/pages/api-keys.php:332
 #: admin/pages/api-keys.php:649
 msgid "Force all write operations to dry-run mode for this key"
-msgstr ""
+msgstr "Alle Schreiboperationen für diesen Schlüssel in den Dry-Run-Modus zwingen"
 
 #: admin/pages/api-keys.php:339
 msgid "Rotate Secret"
-msgstr ""
+msgstr "Geheimnis rotieren"
 
 #: admin/pages/api-keys.php:343
 msgid "Generate a new API key secret (old key stops working immediately)"
-msgstr ""
+msgstr "Ein neues API-Schlüssel-Geheimnis erzeugen (alter Schlüssel funktioniert sofort nicht mehr)"
 
 #: admin/pages/api-keys.php:351
 msgid "Save Changes"
-msgstr ""
+msgstr "Änderungen speichern"
 
 #: admin/pages/api-keys.php:364
 msgid "Key revoked."
-msgstr ""
+msgstr "Schlüssel widerrufen."
 
 #: admin/pages/api-keys.php:367
 msgid "Key suspended — access blocked until unsuspended."
-msgstr ""
+msgstr "Schlüssel ausgesetzt — Zugriff blockiert, bis er reaktiviert wird."
 
 #: admin/pages/api-keys.php:370
 msgid "Key unsuspended — access restored."
-msgstr ""
+msgstr "Schlüssel reaktiviert — Zugriff wiederhergestellt."
 
 #: admin/pages/api-keys.php:374
 msgid "Key updated."
-msgstr ""
+msgstr "Schlüssel aktualisiert."
 
 #. translators: %s: list of scope names
 #: admin/pages/api-keys.php:377
 #, php-format
 msgid "Added: %s."
-msgstr ""
+msgstr "Hinzugefügt: %s."
 
 #. translators: %s: list of scope names
 #: admin/pages/api-keys.php:381
 #, php-format
 msgid "Removed: %s."
-msgstr ""
+msgstr "Entfernt: %s."
 
 #: admin/pages/api-keys.php:384
 msgid " Secret rotated — see new key above."
-msgstr ""
+msgstr " Geheimnis rotiert — siehe neuen Schlüssel oben."
 
 #: admin/pages/api-keys.php:390
 msgid "Key archived."
-msgstr ""
+msgstr "Schlüssel archiviert."
 
 #: admin/pages/api-keys.php:393
 msgid "Key unarchived — now suspended."
-msgstr ""
+msgstr "Schlüssel aus Archiv geholt — jetzt ausgesetzt."
 
 #: admin/pages/api-keys.php:396
 msgid "IP lock reset — the key will bind to the next connecting IP."
-msgstr ""
+msgstr "IP-Sperre zurückgesetzt — der Schlüssel wird sich an die nächste verbindende IP binden."
 
 #: admin/pages/api-keys.php:408
 msgid "Generate New Key"
-msgstr ""
+msgstr "Neuen Schlüssel erzeugen"
 
 #: admin/pages/api-keys.php:409
 #: admin/pages/api-keys.php:683
 msgid "Connection Info"
-msgstr ""
+msgstr "Verbindungsinfo"
 
 #: admin/pages/api-keys.php:412
 #: admin/pages/api-keys.php:718
 msgid "Existing Keys"
-msgstr ""
+msgstr "Vorhandene Schlüssel"
 
 #: admin/pages/api-keys.php:431
 #: admin/pages/api-keys.php:737
 msgid "Label"
-msgstr ""
+msgstr "Bezeichnung"
 
 #: admin/pages/api-keys.php:432
 msgid "Display name for logs"
-msgstr ""
+msgstr "Anzeigename für Logs"
 
 #: admin/pages/api-keys.php:436
 msgid "e.g. OpenClaw Production"
-msgstr ""
+msgstr "z. B. OpenClaw Production"
 
 #: admin/pages/api-keys.php:443
 #: admin/pages/dashboard.php:120
 msgid "Preset"
-msgstr ""
+msgstr "Preset"
 
 #: admin/pages/api-keys.php:444
 msgid "Start from a template"
-msgstr ""
+msgstr "Mit einer Vorlage starten"
 
 #: admin/pages/api-keys.php:456
 #: admin/pages/api-keys.php:470
@@ -697,82 +691,82 @@ msgstr ""
 #, php-format
 msgid "%d scope"
 msgid_plural "%d scopes"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Scope"
+msgstr[1] "%d Scopes"
 
 #: admin/pages/api-keys.php:471
 #: admin/pages/api-keys.php:489
 msgid "Custom"
-msgstr ""
+msgstr "Benutzerdefiniert"
 
 #: admin/pages/api-keys.php:475
 msgid "Rename"
-msgstr ""
+msgstr "Umbenennen"
 
 #: admin/pages/api-keys.php:478
 msgid "Duplicate"
-msgstr ""
+msgstr "Duplizieren"
 
 #: admin/pages/api-keys.php:481
 #: admin/pages/backups.php:333
 #: admin/pages/skills.php:403
 msgid "Delete"
-msgstr ""
+msgstr "Löschen"
 
 #: admin/pages/api-keys.php:490
 msgid "Pick scopes manually"
-msgstr ""
+msgstr "Scopes manuell wählen"
 
 #: admin/pages/api-keys.php:503
 msgid "Scopes are set by the preset above. Tick a checkbox to switch to Custom and edit manually."
-msgstr ""
+msgstr "Scopes werden vom Preset oben gesetzt. Aktiviere eine Checkbox, um zu Benutzerdefiniert zu wechseln und manuell zu bearbeiten."
 
 #: admin/pages/api-keys.php:532
 msgid "+ Save as preset"
-msgstr ""
+msgstr "+ Als Preset speichern"
 
 #: admin/pages/api-keys.php:534
 msgid "Preset name…"
-msgstr ""
+msgstr "Preset-Name…"
 
 #: admin/pages/api-keys.php:535
 #: admin/pages/backups.php:246
 msgid "Save"
-msgstr ""
+msgstr "Speichern"
 
 #: admin/pages/api-keys.php:536
 #: admin/pages/dashboard.php:127
 #: admin/pages/skills.php:305
 msgid "Cancel"
-msgstr ""
+msgstr "Abbrechen"
 
 #: admin/pages/api-keys.php:544
 msgid "Advanced options"
-msgstr ""
+msgstr "Erweiterte Optionen"
 
 #: admin/pages/api-keys.php:545
 msgid "IP locks, working hours, dry-run, expiry…"
-msgstr ""
+msgstr "IP-Sperren, Arbeitszeiten, Dry-Run, Ablauf…"
 
 #: admin/pages/api-keys.php:558
 msgid "e.g. 203.0.113.5 or 192.168.1.0/24"
-msgstr ""
+msgstr "z. B. 203.0.113.5 oder 192.168.1.0/24"
 
 #: admin/pages/api-keys.php:573
 msgid "On first use the connecting IP is recorded and all subsequent requests must come from that IP. Use \"Reset IP lock\" in the key menu to rebind."
-msgstr ""
+msgstr "Bei der ersten Nutzung wird die verbindende IP aufgezeichnet, und alle folgenden Anfragen müssen von dieser IP kommen. Nutze „IP-Sperre zurücksetzen“ im Schlüsselmenü, um neu zu binden."
 
 #: admin/pages/api-keys.php:663
 msgid "Key stops working automatically on this date."
-msgstr ""
+msgstr "Schlüssel funktioniert ab diesem Datum automatisch nicht mehr."
 
 #: admin/pages/api-keys.php:672
 msgid "Generate Key"
-msgstr ""
+msgstr "Schlüssel erzeugen"
 
 #: admin/pages/api-keys.php:692
 msgid "Primary Endpoint"
-msgstr ""
+msgstr "Primärer Endpoint"
 
 #: admin/pages/api-keys.php:694
 #: admin/pages/api-keys.php:699
@@ -780,584 +774,584 @@ msgstr ""
 #: admin/pages/help.php:255
 #: admin/pages/help.php:323
 msgid "Copy"
-msgstr ""
+msgstr "Kopieren"
 
 #: admin/pages/api-keys.php:697
 msgid "Fallback Endpoint"
-msgstr ""
+msgstr "Fallback-Endpoint"
 
 #: admin/pages/api-keys.php:702
 msgid "Authentication"
-msgstr ""
+msgstr "Authentifizierung"
 
 #: admin/pages/api-keys.php:706
 msgid "Apache Note"
-msgstr ""
+msgstr "Apache-Hinweis"
 
 #: admin/pages/api-keys.php:720
 #, php-format
 msgid "%d key"
 msgid_plural "%d keys"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Schlüssel"
+msgstr[1] "%d Schlüssel"
 
 #: admin/pages/api-keys.php:724
 msgid "Hide archived"
-msgstr ""
+msgstr "Archivierte ausblenden"
 
 #: admin/pages/api-keys.php:726
 msgid "Show archived"
-msgstr ""
+msgstr "Archivierte anzeigen"
 
 #: admin/pages/api-keys.php:732
 msgid "No API keys yet. Generate your first key on the Generate tab."
-msgstr ""
+msgstr "Noch keine API-Schlüssel. Erzeuge deinen ersten Schlüssel auf dem Tab Erzeugen."
 
 #: admin/pages/api-keys.php:738
 msgid "Prefix"
-msgstr ""
+msgstr "Präfix"
 
 #: admin/pages/api-keys.php:739
 #: admin/pages/audit-logs.php:295
 #: admin/pages/audit-logs.php:414
 #: admin/pages/skills.php:323
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: admin/pages/api-keys.php:741
 msgid "Expires"
-msgstr ""
+msgstr "Läuft ab"
 
 #: admin/pages/api-keys.php:742
 msgid "Last Used"
-msgstr ""
+msgstr "Zuletzt genutzt"
 
 #: admin/pages/api-keys.php:743
 msgid "Created"
-msgstr ""
+msgstr "Erstellt"
 
 #. translators: 1: IP, 2: UTC datetime
 #: admin/pages/api-keys.php:774
 #, php-format
 msgid "IP-locked to %1$s since %2$s UTC"
-msgstr ""
+msgstr "IP-gesperrt auf %1$s seit %2$s UTC"
 
 #: admin/pages/api-keys.php:777
 msgid "IP-locked"
-msgstr ""
+msgstr "IP-gesperrt"
 
 #: admin/pages/api-keys.php:780
 msgid "IP Auto-Lock active — waiting for first use"
-msgstr ""
+msgstr "IP-Auto-Sperre aktiv — warte auf erste Nutzung"
 
 #: admin/pages/api-keys.php:780
 msgid "IP-unlocked"
-msgstr ""
+msgstr "IP-entsperrt"
 
 #: admin/pages/api-keys.php:786
 msgid "none"
-msgstr ""
+msgstr "keine"
 
 #: admin/pages/api-keys.php:802
 #: admin/pages/skills.php:326
 #: admin/pages/skills.php:345
 msgid "Actions"
-msgstr ""
+msgstr "Aktionen"
 
 #: admin/pages/api-keys.php:807
 msgid "Edit scopes"
-msgstr ""
+msgstr "Scopes bearbeiten"
 
 #: admin/pages/api-keys.php:816
 msgid "Reset IP lock? The next request will re-bind to a new IP."
-msgstr ""
+msgstr "IP-Sperre zurücksetzen? Die nächste Anfrage wird neu an eine IP gebunden."
 
 #: admin/pages/api-keys.php:817
 msgid "Reset IP lock"
-msgstr ""
+msgstr "IP-Sperre zurücksetzen"
 
 #: admin/pages/api-keys.php:828
 msgid "Rotate this key? The old key stops working immediately."
-msgstr ""
+msgstr "Diesen Schlüssel rotieren? Der alte Schlüssel funktioniert sofort nicht mehr."
 
 #: admin/pages/api-keys.php:829
 msgid "Rotate key"
-msgstr ""
+msgstr "Schlüssel rotieren"
 
 #: admin/pages/api-keys.php:839
 msgid "Suspend"
-msgstr ""
+msgstr "Aussetzen"
 
 #: admin/pages/api-keys.php:848
 #: admin/pages/api-keys.php:880
 msgid "Revoke this key? This cannot be undone."
-msgstr ""
+msgstr "Diesen Schlüssel widerrufen? Das kann nicht rückgängig gemacht werden."
 
 #: admin/pages/api-keys.php:849
 #: admin/pages/api-keys.php:881
 msgid "Revoke"
-msgstr ""
+msgstr "Widerrufen"
 
 #: admin/pages/api-keys.php:860
 msgid "Unsuspend"
-msgstr ""
+msgstr "Reaktivieren"
 
 #: admin/pages/api-keys.php:871
 #: admin/pages/skills.php:390
 msgid "Archive"
-msgstr ""
+msgstr "Archivieren"
 
 #: admin/pages/api-keys.php:891
 msgid "Unarchive"
-msgstr ""
+msgstr "Aus Archiv holen"
 
 #: admin/pages/audit-logs.php:22
 #: admin/pages/backups.php:67
 msgid "Public"
-msgstr ""
+msgstr "Öffentlich"
 
 #: admin/pages/audit-logs.php:23
 #: admin/pages/backups.php:68
 msgid "Discovery"
-msgstr ""
+msgstr "Discovery"
 
 #: admin/pages/audit-logs.php:24
 #: admin/pages/backups.php:69
 msgid "Read"
-msgstr ""
+msgstr "Lesen"
 
 #: admin/pages/audit-logs.php:25
 #: admin/pages/backups.php:70
 msgid "Write"
-msgstr ""
+msgstr "Schreiben"
 
 #: admin/pages/audit-logs.php:26
 #: admin/pages/backups.php:71
 msgid "Destructive"
-msgstr ""
+msgstr "Destruktiv"
 
 #: admin/pages/audit-logs.php:27
 #: admin/pages/backups.php:72
 msgid "Admin Sensitive"
-msgstr ""
+msgstr "Admin-sensibel"
 
 #: admin/pages/audit-logs.php:102
 msgid "Today"
-msgstr ""
+msgstr "Heute"
 
 #: admin/pages/audit-logs.php:103
 msgid "Last 7 Days"
-msgstr ""
+msgstr "Letzte 7 Tage"
 
 #: admin/pages/audit-logs.php:104
 msgid "Last 30 Days"
-msgstr ""
+msgstr "Letzte 30 Tage"
 
 #: admin/pages/audit-logs.php:105
 msgid "This Year"
-msgstr ""
+msgstr "Dieses Jahr"
 
 #: admin/pages/audit-logs.php:106
 msgid "Custom Range"
-msgstr ""
+msgstr "Benutzerdefinierter Bereich"
 
 #: admin/pages/audit-logs.php:107
 msgid "All Time"
-msgstr ""
+msgstr "Gesamtzeit"
 
 #: admin/pages/audit-logs.php:119
 #: admin/pages/audit-logs.php:246
 #: admin/pages/backups.php:282
 msgid "total"
-msgstr ""
+msgstr "gesamt"
 
 #: admin/pages/audit-logs.php:122
 msgid "Every MCP request logged with key, tool, result, and duration."
-msgstr ""
+msgstr "Jede MCP-Anfrage wird mit Schlüssel, Tool, Ergebnis und Dauer protokolliert."
 
 #. translators: %d: number of backups restored
 #: admin/pages/audit-logs.php:130
 #, php-format
 msgid "%d backup restored."
 msgid_plural "%d backups restored."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Backup wiederhergestellt."
+msgstr[1] "%d Backups wiederhergestellt."
 
 #: admin/pages/audit-logs.php:136
 msgid "Could not restore session — invalid session ID."
-msgstr ""
+msgstr "Sitzung konnte nicht wiederhergestellt werden — ungültige Sitzungs-ID."
 
 #: admin/pages/audit-logs.php:143
 #: admin/pages/audit-logs.php:245
 msgid "Sessions"
-msgstr ""
+msgstr "Sitzungen"
 
 #: admin/pages/audit-logs.php:144
 msgid "Logs"
-msgstr ""
+msgstr "Logs"
 
 #: admin/pages/audit-logs.php:165
 msgid "Show all"
-msgstr ""
+msgstr "Alle anzeigen"
 
 #: admin/pages/audit-logs.php:173
 #: admin/pages/audit-logs.php:175
 msgid "Older"
-msgstr ""
+msgstr "Ältere"
 
 #: admin/pages/audit-logs.php:189
 msgid "Newer"
-msgstr ""
+msgstr "Neuere"
 
 #: admin/pages/audit-logs.php:191
 msgid "Newest"
-msgstr ""
+msgstr "Neueste"
 
 #: admin/pages/audit-logs.php:202
 #: admin/pages/audit-logs.php:267
 msgid "requests"
-msgstr ""
+msgstr "Anfragen"
 
 #: admin/pages/audit-logs.php:251
 msgid "No sessions found."
-msgstr ""
+msgstr "Keine Sitzungen gefunden."
 
 #: admin/pages/audit-logs.php:267
 msgid "backups"
-msgstr ""
+msgstr "Backups"
 
 #. translators: %d: backup count
 #: admin/pages/audit-logs.php:277
 #, php-format
 msgid "Restore %d backup(s) from this session? This will overwrite current content."
-msgstr ""
+msgstr "%d Backup(s) aus dieser Sitzung wiederherstellen? Dies überschreibt die aktuellen Inhalte."
 
 #: admin/pages/audit-logs.php:278
 #: admin/pages/skills.php:379
 msgid "Restore"
-msgstr ""
+msgstr "Wiederherstellen"
 
 #: admin/pages/audit-logs.php:292
 #: admin/pages/audit-logs.php:412
 msgid "Time"
-msgstr ""
+msgstr "Zeit"
 
 #: admin/pages/audit-logs.php:293
 #: admin/pages/audit-logs.php:413
 #: admin/pages/backups.php:297
 msgid "Tool"
-msgstr ""
+msgstr "Tool"
 
 #: admin/pages/audit-logs.php:294
 #: admin/pages/backups.php:298
 #: admin/pages/modules.php:141
 msgid "Class"
-msgstr ""
+msgstr "Klasse"
 
 #: admin/pages/audit-logs.php:296
 #: admin/pages/audit-logs.php:415
 msgid "Duration"
-msgstr ""
+msgstr "Dauer"
 
 #: admin/pages/audit-logs.php:297
 #: admin/pages/audit-logs.php:418
 #: admin/pages/backups.php:296
 msgid "Target"
-msgstr ""
+msgstr "Ziel"
 
 #: admin/pages/audit-logs.php:336
 #: admin/pages/audit-logs.php:388
 #: admin/pages/backups.php:272
 #: admin/pages/skills.php:262
 msgid "Filter"
-msgstr ""
+msgstr "Filter"
 
 #: admin/pages/audit-logs.php:338
 msgid "Reset filters"
-msgstr ""
+msgstr "Filter zurücksetzen"
 
 #: admin/pages/audit-logs.php:346
 msgid "Tool name…"
-msgstr ""
+msgstr "Tool-Name…"
 
 #: admin/pages/audit-logs.php:351
 msgid "All Statuses"
-msgstr ""
+msgstr "Alle Status"
 
 #: admin/pages/audit-logs.php:357
 msgid "All Keys"
-msgstr ""
+msgstr "Alle Schlüssel"
 
 #: admin/pages/audit-logs.php:365
 msgid "IP address…"
-msgstr ""
+msgstr "IP-Adresse…"
 
 #: admin/pages/audit-logs.php:368
 msgid "All Sessions"
-msgstr ""
+msgstr "Alle Sitzungen"
 
 #: admin/pages/audit-logs.php:397
 msgid "Log Entries"
-msgstr ""
+msgstr "Log-Einträge"
 
 #. translators: %s: formatted number
 #: admin/pages/audit-logs.php:401
 #, php-format
 msgid "%s result"
 msgid_plural "%s results"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s Ergebnis"
+msgstr[1] "%s Ergebnisse"
 
 #: admin/pages/audit-logs.php:407
 msgid "No log entries found for the selected filters."
-msgstr ""
+msgstr "Keine Log-Einträge für die ausgewählten Filter gefunden."
 
 #: admin/pages/audit-logs.php:416
 msgid "Key"
-msgstr ""
+msgstr "Schlüssel"
 
 #: admin/pages/audit-logs.php:417
 msgid "IP"
-msgstr ""
+msgstr "IP"
 
 #: admin/pages/audit-logs.php:474
 msgid "Pagination"
-msgstr ""
+msgstr "Paginierung"
 
 #: admin/pages/audit-logs.php:476
 msgid "Previous page"
-msgstr ""
+msgstr "Vorherige Seite"
 
 #: admin/pages/audit-logs.php:477
 #: admin/pages/audit-logs.php:481
 #: admin/pages/onboarding.php:118
 msgid "Back"
-msgstr ""
+msgstr "Zurück"
 
 #: admin/pages/audit-logs.php:498
 msgid "Next page"
-msgstr ""
+msgstr "Nächste Seite"
 
 #: admin/pages/audit-logs.php:499
 #: admin/pages/audit-logs.php:503
 #: admin/pages/skills.php:422
 msgid "Next"
-msgstr ""
+msgstr "Weiter"
 
 #: admin/pages/backups.php:19
 msgid "Last 24 hours"
-msgstr ""
+msgstr "Letzte 24 Stunden"
 
 #: admin/pages/backups.php:20
 msgid "Last 7 days"
-msgstr ""
+msgstr "Letzte 7 Tage"
 
 #: admin/pages/backups.php:21
 msgid "Last 30 days"
-msgstr ""
+msgstr "Letzte 30 Tage"
 
 #: admin/pages/backups.php:22
 msgid "Last year"
-msgstr ""
+msgstr "Letztes Jahr"
 
 #: admin/pages/backups.php:89
 msgid "All Types"
-msgstr ""
+msgstr "Alle Typen"
 
 #: admin/pages/backups.php:90
 msgid "Post"
-msgstr ""
+msgstr "Beitrag"
 
 #: admin/pages/backups.php:91
 msgid "Term"
-msgstr ""
+msgstr "Term"
 
 #: admin/pages/backups.php:92
 msgid "Elementor Page"
-msgstr ""
+msgstr "Elementor-Seite"
 
 #: admin/pages/backups.php:99
 msgid "Snapshots of posts and terms created before AI agent edits."
-msgstr ""
+msgstr "Snapshots von Beiträgen und Terms, erstellt vor Änderungen durch AI-Agents."
 
 #: admin/pages/backups.php:103
 msgid "Backup deleted."
-msgstr ""
+msgstr "Backup gelöscht."
 
 #: admin/pages/backups.php:106
 msgid "Cleanup settings saved."
-msgstr ""
+msgstr "Aufräum-Einstellungen gespeichert."
 
 #: admin/pages/backups.php:117
 #: admin/pages/backups.php:207
 msgid "Cleanup Settings"
-msgstr ""
+msgstr "Aufräum-Einstellungen"
 
 #: admin/pages/backups.php:121
 #: admin/pages/backups.php:281
 msgid "Backup Snapshots"
-msgstr ""
+msgstr "Backup-Snapshots"
 
 #: admin/pages/backups.php:130
 msgid "Overview"
-msgstr ""
+msgstr "Übersicht"
 
 #: admin/pages/backups.php:137
 msgid "Total backups"
-msgstr ""
+msgstr "Backups gesamt"
 
 #: admin/pages/backups.php:142
 msgid "Total storage used"
-msgstr ""
+msgstr "Speicher belegt gesamt"
 
 #. translators: %d: days
 #: admin/pages/backups.php:150
 #: admin/pages/backups.php:156
 #, php-format
 msgid "Delete after %d days"
-msgstr ""
+msgstr "Nach %d Tagen löschen"
 
 #. translators: %d: MB
 #: admin/pages/backups.php:153
 #: admin/pages/backups.php:158
 #, php-format
 msgid "Cap at %d MB"
-msgstr ""
+msgstr "Bei %d MB begrenzen"
 
 #: admin/pages/backups.php:160
 msgid "No auto-cleanup"
-msgstr ""
+msgstr "Kein Auto-Aufräumen"
 
 #: admin/pages/backups.php:164
 msgid "Auto-cleanup"
-msgstr ""
+msgstr "Auto-Aufräumen"
 
 #: admin/pages/backups.php:166
 msgid "Configure"
-msgstr ""
+msgstr "Konfigurieren"
 
 #: admin/pages/backups.php:178
 msgid "Backup Activity"
-msgstr ""
+msgstr "Backup-Aktivität"
 
 #: admin/pages/backups.php:184
 msgid "Period"
-msgstr ""
+msgstr "Zeitraum"
 
 #: admin/pages/backups.php:185
 msgid "Backups created"
-msgstr ""
+msgstr "Erstellte Backups"
 
 #: admin/pages/backups.php:186
 msgid "Storage added"
-msgstr ""
+msgstr "Hinzugefügter Speicher"
 
 #: admin/pages/backups.php:208
 msgid "Runs daily via cron. Set 0 to disable."
-msgstr ""
+msgstr "Läuft täglich per Cron. Auf 0 setzen, um zu deaktivieren."
 
 #: admin/pages/backups.php:220
 msgid "days"
-msgstr ""
+msgstr "Tage"
 
 #: admin/pages/backups.php:223
 msgid "Max age"
-msgstr ""
+msgstr "Maximales Alter"
 
 #: admin/pages/backups.php:225
 msgid "Backups older than this number of days are permanently deleted by the daily cron. Set 0 to keep backups indefinitely."
-msgstr ""
+msgstr "Backups, die älter sind als diese Anzahl Tage, werden vom täglichen Cron endgültig gelöscht. Auf 0 setzen, um Backups unbegrenzt zu behalten."
 
 #: admin/pages/backups.php:236
 msgid "Max size"
-msgstr ""
+msgstr "Maximale Größe"
 
 #: admin/pages/backups.php:238
 msgid "When the total size of all backup payloads exceeds this limit, the oldest backups are deleted first until the limit is met. Set 0 to disable size capping."
-msgstr ""
+msgstr "Wenn die Gesamtgröße aller Backup-Payloads dieses Limit überschreitet, werden zuerst die ältesten Backups gelöscht, bis das Limit erreicht ist. Auf 0 setzen, um die Größenbegrenzung zu deaktivieren."
 
 #: admin/pages/backups.php:257
 msgid "Filters"
-msgstr ""
+msgstr "Filter"
 
 #: admin/pages/backups.php:259
 #: admin/pages/skills.php:264
 msgid "Reset"
-msgstr ""
+msgstr "Zurücksetzen"
 
 #: admin/pages/backups.php:287
 msgid "No backups found for the selected type."
-msgstr ""
+msgstr "Keine Backups für den ausgewählten Typ gefunden."
 
 #: admin/pages/backups.php:287
 msgid "No backups found."
-msgstr ""
+msgstr "Keine Backups gefunden."
 
 #: admin/pages/backups.php:293
 msgid "ID"
-msgstr ""
+msgstr "ID"
 
 #: admin/pages/backups.php:294
 msgid "Date"
-msgstr ""
+msgstr "Datum"
 
 #: admin/pages/backups.php:295
 #: admin/pages/skills.php:116
 #: admin/pages/skills.php:322
 msgid "Type"
-msgstr ""
+msgstr "Typ"
 
 #: admin/pages/backups.php:299
 msgid "Session"
-msgstr ""
+msgstr "Sitzung"
 
 #: admin/pages/backups.php:300
 msgid "Size"
-msgstr ""
+msgstr "Größe"
 
 #: admin/pages/backups.php:333
 msgid "Delete this backup? This cannot be undone."
-msgstr ""
+msgstr "Dieses Backup löschen? Das kann nicht rückgängig gemacht werden."
 
 #: admin/pages/dashboard.php:12
 #: admin/pages/safety.php:8
 msgid "Hard Lock Active"
-msgstr ""
+msgstr "Hard Lock aktiv"
 
 #: admin/pages/dashboard.php:15
 #: admin/pages/safety.php:12
 msgid "Soft Lock Active"
-msgstr ""
+msgstr "Soft Lock aktiv"
 
 #: admin/pages/dashboard.php:18
 #: admin/pages/safety.php:16
 #: admin/pages/safety.php:244
 msgid "Unlocked"
-msgstr ""
+msgstr "Entsperrt"
 
 #: admin/pages/dashboard.php:35
 msgid "Your first key is ready."
-msgstr ""
+msgstr "Dein erster Schlüssel ist bereit."
 
 #: admin/pages/dashboard.php:36
 msgid "Open your AI client, paste the snippet from the modal, and try a sentence like \"list my last five published posts.\" Activity will appear in the card below as soon as your agent gets to work."
-msgstr ""
+msgstr "Öffne deinen AI-Client, füge das Snippet aus dem Modal ein und probiere einen Satz wie „liste meine letzten fünf veröffentlichten Beiträge.“ Aktivität erscheint in der Karte unten, sobald dein Agent loslegt."
 
 #: admin/pages/dashboard.php:38
 msgid "Dismiss"
-msgstr ""
+msgstr "Ausblenden"
 
 #: admin/pages/dashboard.php:60
 msgid "What kind of power do you want to give your AI Agent?"
-msgstr ""
+msgstr "Welche Art von Macht möchtest du deinem AI-Agent geben?"
 
 #: admin/pages/dashboard.php:61
 msgid "More options →"
-msgstr ""
+msgstr "Mehr Optionen →"
 
 #: admin/pages/dashboard.php:64
 msgid "Each card describes a role your AI assistant could play on this site. Pick the one that fits and we will mint a key with the right permissions. You still review and confirm before it is created."
-msgstr ""
+msgstr "Jede Karte beschreibt eine Rolle, die dein AI-Assistent auf dieser Website übernehmen könnte. Wähle die passende, und wir prägen einen Schlüssel mit den richtigen Berechtigungen. Du prüfst und bestätigst weiterhin, bevor er erstellt wird."
 
 #. translators: %d: number of permissions
 #. translators: %d: number of scopes
@@ -1366,69 +1360,69 @@ msgstr ""
 #, php-format
 msgid "%d permission"
 msgid_plural "%d permissions"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Berechtigung"
+msgstr[1] "%d Berechtigungen"
 
 #: admin/pages/dashboard.php:98
 msgid "dry-run"
-msgstr ""
+msgstr "dry-run"
 
 #: admin/pages/dashboard.php:102
 msgid "use this →"
-msgstr ""
+msgstr "diese nutzen →"
 
 #: admin/pages/dashboard.php:107
 msgid "Nothing here matches what you need?"
-msgstr ""
+msgstr "Nichts hier passt zu dem, was du brauchst?"
 
 #: admin/pages/dashboard.php:108
 msgid "Build a custom key →"
-msgstr ""
+msgstr "Eigenen Schlüssel bauen →"
 
 #: admin/pages/dashboard.php:118
 msgid "You're about to create a key with:"
-msgstr ""
+msgstr "Du bist dabei, einen Schlüssel zu erstellen mit:"
 
 #: admin/pages/dashboard.php:124
 msgid "Scopes included"
-msgstr ""
+msgstr "Enthaltene Scopes"
 
 #: admin/pages/dashboard.php:128
 msgid "Create key"
-msgstr ""
+msgstr "Schlüssel erstellen"
 
 #: admin/pages/dashboard.php:192
 msgid "Today's Activity"
-msgstr ""
+msgstr "Aktivität von heute"
 
 #: admin/pages/dashboard.php:193
 msgid "View log →"
-msgstr ""
+msgstr "Log ansehen →"
 
 #: admin/pages/dashboard.php:199
 msgid "Total"
-msgstr ""
+msgstr "Gesamt"
 
 #: admin/pages/dashboard.php:203
 msgid "Success"
-msgstr ""
+msgstr "Erfolg"
 
 #: admin/pages/dashboard.php:207
 msgid "Errors"
-msgstr ""
+msgstr "Fehler"
 
 #: admin/pages/dashboard.php:211
 msgid "Blocked"
-msgstr ""
+msgstr "Blockiert"
 
 #: admin/pages/dashboard.php:220
 #: admin/pages/safety.php:72
 msgid "Lock Controls"
-msgstr ""
+msgstr "Sperren-Steuerung"
 
 #: admin/pages/dashboard.php:221
 msgid "Details →"
-msgstr ""
+msgstr "Details →"
 
 #: admin/pages/dashboard.php:233
 #: admin/pages/dashboard.php:249
@@ -1436,11 +1430,11 @@ msgstr ""
 #: admin/pages/safety.php:86
 #: admin/pages/safety.php:245
 msgid "Soft Lock"
-msgstr ""
+msgstr "Soft Lock"
 
 #: admin/pages/dashboard.php:234
 msgid "(blocks write/destructive)"
-msgstr ""
+msgstr "(blockiert Schreib-/destruktive Aktionen)"
 
 #: admin/pages/dashboard.php:239
 #: admin/pages/dashboard.php:250
@@ -1448,51 +1442,51 @@ msgstr ""
 #: admin/pages/safety.php:103
 #: admin/pages/safety.php:246
 msgid "Hard Lock"
-msgstr ""
+msgstr "Hard Lock"
 
 #: admin/pages/dashboard.php:240
 msgid "(allows only server.status)"
-msgstr ""
+msgstr "(erlaubt nur server.status)"
 
 #: admin/pages/dashboard.php:243
 msgid "Hard Lock overrides Soft Lock."
-msgstr ""
+msgstr "Hard Lock setzt Soft Lock außer Kraft."
 
 #: admin/pages/dashboard.php:246
 msgid "Apply"
-msgstr ""
+msgstr "Anwenden"
 
 #: admin/pages/dashboard.php:249
 msgid "blocks all write and delete tools — agents can only read."
-msgstr ""
+msgstr "blockiert alle Schreib- und Lösch-Tools — Agents können nur lesen."
 
 #: admin/pages/dashboard.php:250
 msgid "stops everything, except"
-msgstr ""
+msgstr "stoppt alles, außer"
 
 #: admin/pages/dashboard.php:260
 msgid "Active Modules"
-msgstr ""
+msgstr "Aktive Module"
 
 #. translators: %d: number of active modules
 #: admin/pages/dashboard.php:265
 #, php-format
 msgid "%d active"
 msgid_plural "%d active"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d aktiv"
+msgstr[1] "%d aktiv"
 
 #: admin/pages/help.php:18
 msgid "a long-postponed post"
-msgstr ""
+msgstr "ein lange aufgeschobener Beitrag"
 
 #: admin/pages/help.php:19
 msgid "Write something fresh"
-msgstr ""
+msgstr "Schreib etwas Frisches"
 
 #: admin/pages/help.php:20
 msgid "On a slow Tuesday afternoon, you ask for a starter guide to be drafted and tucked into the right category — checklist at the end, friendly tone — saved as a draft for you to look over later."
-msgstr ""
+msgstr "An einem ruhigen Dienstagnachmittag bittest du um einen Einsteiger-Leitfaden, der entworfen und in die richtige Kategorie einsortiert wird — Checkliste am Ende, freundlicher Ton — als Entwurf gespeichert, damit du ihn später durchsehen kannst."
 
 #: admin/pages/help.php:22
 #: admin/pages/help.php:33
@@ -1503,620 +1497,620 @@ msgstr ""
 #: admin/pages/help.php:86
 #: admin/pages/help.php:96
 msgid "Read posts and pages"
-msgstr ""
+msgstr "Beiträge und Seiten lesen"
 
 #: admin/pages/help.php:23
 #: admin/pages/help.php:56
 msgid "Create and edit posts"
-msgstr ""
+msgstr "Beiträge erstellen und bearbeiten"
 
 #: admin/pages/help.php:24
 msgid "Edit page settings (categories, tags)"
-msgstr ""
+msgstr "Seiten-Einstellungen bearbeiten (Kategorien, Schlagwörter)"
 
 #: admin/pages/help.php:26
 msgid "Draft me a 600-word starter guide about indoor plants for beginners. Friendly tone, ending with a five-point checklist. Save it as a draft under the Gardening category, and let me know when it's ready."
-msgstr ""
+msgstr "Entwirf mir einen 600-Wörter-Einsteiger-Leitfaden über Zimmerpflanzen für Anfänger. Freundlicher Ton, endend mit einer Fünf-Punkte-Checkliste. Speichere ihn als Entwurf in der Kategorie Gartenarbeit und sag mir Bescheid, wenn er fertig ist."
 
 #: admin/pages/help.php:29
 msgid "three years of forgotten captions"
-msgstr ""
+msgstr "drei Jahre vergessener Bildunterschriften"
 
 #: admin/pages/help.php:30
 msgid "Tidy up the SEO"
-msgstr ""
+msgstr "Räum das SEO auf"
 
 #: admin/pages/help.php:31
 msgid "You ask for a quiet audit of the last twenty posts — anything with a short title or missing description — and the helper writes new ones, applies them, and shows you a summary."
-msgstr ""
+msgstr "Du bittest um eine stille Prüfung der letzten zwanzig Beiträge — alles mit kurzem Titel oder fehlender Beschreibung — und der Helfer schreibt neue, wendet sie an und zeigt dir eine Zusammenfassung."
 
 #: admin/pages/help.php:34
 msgid "Read SEO fields (Yoast)"
-msgstr ""
+msgstr "SEO-Felder lesen (Yoast)"
 
 #: admin/pages/help.php:35
 msgid "Update SEO fields (Yoast)"
-msgstr ""
+msgstr "SEO-Felder aktualisieren (Yoast)"
 
 #: admin/pages/help.php:37
 msgid "Have a look at our last twenty published posts. Find anything with a missing meta description or a title under thirty characters. Write better ones, apply them, and show me a short summary of what changed."
-msgstr ""
+msgstr "Schau dir unsere letzten zwanzig veröffentlichten Beiträge an. Finde alles mit fehlender Meta-Beschreibung oder einem Titel unter dreißig Zeichen. Schreib bessere, wende sie an und zeig mir eine kurze Zusammenfassung der Änderungen."
 
 #: admin/pages/help.php:40
 msgid "the tab you keep meaning to open"
-msgstr ""
+msgstr "der Tab, den du immer öffnen willst"
 
 #: admin/pages/help.php:41
 msgid "Help the screen readers"
-msgstr ""
+msgstr "Hilf den Screenreadern"
 
 #: admin/pages/help.php:42
 msgid "You ask for a quick site report on images without descriptions, then have the ten most-viewed ones described kindly. Before and after, side by side, for your taste."
-msgstr ""
+msgstr "Du bittest um einen schnellen Website-Bericht zu Bildern ohne Beschreibungen und lässt dann die zehn meistangesehenen freundlich beschreiben. Vorher und nachher, nebeneinander, nach deinem Geschmack."
 
 #: admin/pages/help.php:45
 msgid "Run accessibility audits"
-msgstr ""
+msgstr "Barrierefreiheits-Audits durchführen"
 
 #: admin/pages/help.php:46
 msgid "Manage the media library"
-msgstr ""
+msgstr "Medienbibliothek verwalten"
 
 #: admin/pages/help.php:48
 msgid "Run a site-wide accessibility report. Find the images that are missing descriptions. Write thoughtful descriptions for the ten most-viewed ones, show me before and after, then save the changes."
-msgstr ""
+msgstr "Führe einen websiteweiten Barrierefreiheitsbericht durch. Finde die Bilder, denen Beschreibungen fehlen. Schreibe durchdachte Beschreibungen für die zehn meistangesehenen, zeig mir vorher und nachher und speichere dann die Änderungen."
 
 #: admin/pages/help.php:51
 msgid "a new page, three sentences"
-msgstr ""
+msgstr "eine neue Seite, drei Sätze"
 
 #: admin/pages/help.php:52
 msgid "Spin up a new page"
-msgstr ""
+msgstr "Eine neue Seite hochziehen"
 
 #: admin/pages/help.php:53
 msgid "You ask for a copy of an existing page, with one headline swapped — and a new landing exists by the time the kettle is full."
-msgstr ""
+msgstr "Du bittest um eine Kopie einer bestehenden Seite, mit einer ausgetauschten Überschrift — und eine neue Landingpage existiert, bis der Wasserkocher voll ist."
 
 #: admin/pages/help.php:57
 msgid "Edit Elementor pages"
-msgstr ""
+msgstr "Elementor-Seiten bearbeiten"
 
 #: admin/pages/help.php:59
 msgid "Make a copy of the Services page. Call the copy Pricing. Change the big headline to \"Plans that grow with you.\" Leave everything else exactly as it was. Save it as a draft."
-msgstr ""
+msgstr "Mach eine Kopie der Seite „Services“. Nenne die Kopie „Preise“. Ändere die große Überschrift in „Pläne, die mit dir wachsen.“ Lass alles andere genau so, wie es war. Speichere sie als Entwurf."
 
 #: admin/pages/help.php:62
 msgid "the shelf that quietly emptied"
-msgstr ""
+msgstr "das Regal, das sich stillschweigend geleert hat"
 
 #: admin/pages/help.php:63
 msgid "Mind the shop"
-msgstr ""
+msgstr "Kümmer dich um den Shop"
 
 #: admin/pages/help.php:64
 msgid "You ask for a list of products that have been out of stock for a month or more, each one quietly moved to draft with a note."
-msgstr ""
+msgstr "Du bittest um eine Liste von Produkten, die seit einem Monat oder länger nicht auf Lager sind, jedes davon still in den Entwurf verschoben mit einer Notiz."
 
 #: admin/pages/help.php:67
 msgid "Manage WooCommerce products"
-msgstr ""
+msgstr "WooCommerce-Produkte verwalten"
 
 #: admin/pages/help.php:69
 msgid "List products that have been out of stock for more than thirty days. For each one, change the status to draft and add a short note explaining why."
-msgstr ""
+msgstr "Liste Produkte auf, die seit mehr als dreißig Tagen nicht auf Lager sind. Ändere für jedes den Status auf Entwurf und füge eine kurze Notiz mit Begründung hinzu."
 
 #: admin/pages/help.php:72
 msgid "a just-in-case net"
-msgstr ""
+msgstr "ein Sicherheitsnetz für alle Fälle"
 
 #: admin/pages/help.php:73
 msgid "Take a snapshot first"
-msgstr ""
+msgstr "Mach erst einen Snapshot"
 
 #: admin/pages/help.php:74
 msgid "Before you let your helper change anything, you ask for snapshots of the pages that matter. So you can sleep — and ship."
-msgstr ""
+msgstr "Bevor du deinen Helfer etwas ändern lässt, bittest du um Snapshots der wichtigen Seiten. Damit du schlafen — und ausliefern — kannst."
 
 #: admin/pages/help.php:77
 #: admin/pages/help.php:97
 msgid "Take and restore snapshots"
-msgstr ""
+msgstr "Snapshots erstellen und wiederherstellen"
 
 #: admin/pages/help.php:79
 msgid "Before you touch anything: take a snapshot of the home page and our three landing pages. Save the session as \"Before launch\" so I can roll back the whole thing later if I need to."
-msgstr ""
+msgstr "Bevor du irgendetwas anfasst: erstelle einen Snapshot der Startseite und unserer drei Landingpages. Speichere die Sitzung als „Vor Launch“, damit ich später bei Bedarf alles zurückrollen kann."
 
 #: admin/pages/help.php:82
 msgid "watch, then remember"
-msgstr ""
+msgstr "zuschauen, dann merken"
 
 #: admin/pages/help.php:83
 msgid "Save a routine for later"
-msgstr ""
+msgstr "Eine Routine für später speichern"
 
 #: admin/pages/help.php:84
 msgid "You walk your helper through a workflow once — and ask them to save the steps as a recipe you can call back next week with one sentence."
-msgstr ""
+msgstr "Du führst deinen Helfer einmal durch einen Workflow — und bittest ihn, die Schritte als Rezept zu speichern, das du nächste Woche mit einem Satz wieder abrufen kannst."
 
 #: admin/pages/help.php:87
 msgid "Create and update skills"
-msgstr ""
+msgstr "Skills erstellen und aktualisieren"
 
 #: admin/pages/help.php:89
 msgid "Every Monday I publish a product review. Watch what I do this morning, then save the workflow as a skill called Weekly product review. Next time, when I ask for it by name, you'll know exactly what to do."
-msgstr ""
+msgstr "Jeden Montag veröffentliche ich eine Produktrezension. Schau zu, was ich heute Morgen mache, und speichere den Workflow dann als Skill namens „Wöchentliche Produktrezension“. Wenn ich es nächstes Mal beim Namen nenne, weißt du genau, was zu tun ist."
 
 #: admin/pages/help.php:92
 msgid "a one-line rewind"
-msgstr ""
+msgstr "ein Einzeiler-Rücklauf"
 
 #: admin/pages/help.php:93
 msgid "Undo an afternoon's work"
-msgstr ""
+msgstr "Die Arbeit eines Nachmittags rückgängig machen"
 
 #: admin/pages/help.php:94
 msgid "You ask for everything from a particular session to be put back as it was. Calm returns. The audit log keeps the receipts."
-msgstr ""
+msgstr "Du bittest darum, alles aus einer bestimmten Sitzung wieder so zu setzen, wie es war. Ruhe kehrt zurück. Das Audit-Log bewahrt die Belege auf."
 
 #: admin/pages/help.php:99
 msgid "Yesterday's session called \"Bulk SEO update\" went a little too far. Restore everything from that session to where it was before. Show me a list of what you put back."
-msgstr ""
+msgstr "Die gestrige Sitzung mit dem Namen „Bulk-SEO-Update“ ist ein bisschen zu weit gegangen. Stelle alles aus dieser Sitzung dorthin zurück, wo es vorher war. Zeig mir eine Liste, was du zurückgesetzt hast."
 
 #: admin/pages/help.php:108
 msgid "in your terminal"
-msgstr ""
+msgstr "in deinem Terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr ""
+msgstr "In einem Terminal, in einem beliebigen Projektordner — füge dies ein und tausche deinen Pass aus."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
-msgstr ""
+msgstr "Dann in einem beliebigen Chat: „Zeig mir meine letzten zehn veröffentlichten Beiträge über aicom.“"
 
 #: admin/pages/help.php:115
 msgid "in your config file"
-msgstr ""
+msgstr "in deiner Konfigurationsdatei"
 
 #: admin/pages/help.php:116
 msgid "Open the config file (on a Mac, that's ~/Library/Application Support/Claude/claude_desktop_config.json) and paste this in. Restart the app."
-msgstr ""
+msgstr "Öffne die Konfigurationsdatei (auf einem Mac ist das ~/Library/Application Support/Claude/claude_desktop_config.json) und füge dies ein. Starte die App neu."
 
 #: admin/pages/help.php:122
 msgid "in .cursor/mcp.json"
-msgstr ""
+msgstr "in .cursor/mcp.json"
 
 #: admin/pages/help.php:123
 msgid "Create .cursor/mcp.json in your project (or ~/.cursor/mcp.json for every project) and paste this in. Reload Cursor."
-msgstr ""
+msgstr "Erstelle .cursor/mcp.json in deinem Projekt (oder ~/.cursor/mcp.json für jedes Projekt) und füge dies ein. Lade Cursor neu."
 
 #: admin/pages/help.php:128
 msgid "ChatGPT"
-msgstr ""
+msgstr "ChatGPT"
 
 #: admin/pages/help.php:129
 msgid "Custom GPT · Actions"
-msgstr ""
+msgstr "Custom GPT · Actions"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr ""
+msgstr "Füge im Custom-GPT-Builder eine Action hinzu und richte sie auf diese URL. Wähle bei Authentication API Key → Bearer und füge deinen Pass ein."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
-msgstr ""
+msgstr "Alle 170+ Tools werden automatisch für dich erkannt."
 
 #: admin/pages/help.php:135
 msgid "n8n, Make, Zapier"
-msgstr ""
+msgstr "n8n, Make, Zapier"
 
 #: admin/pages/help.php:136
 msgid "plain HTTP node"
-msgstr ""
+msgstr "einfacher HTTP-Knoten"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr ""
+msgstr "Ein einfacher HTTP-Knoten erledigt die Arbeit — füge diese Vorlage hinein und tausche deinen Pass aus."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
-msgstr ""
+msgstr "Andere OpenAPI-Helfer"
 
 #: admin/pages/help.php:143
 msgid "Dify, Flowise, LangChain…"
-msgstr ""
+msgstr "Dify, Flowise, LangChain…"
 
 #: admin/pages/help.php:144
 msgid "Point your tool at this OpenAPI schema URL with Bearer auth, and all the tools are discovered for you."
-msgstr ""
+msgstr "Richte dein Tool auf diese OpenAPI-Schema-URL mit Bearer-Auth, und alle Tools werden für dich erkannt."
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr ""
+msgstr "Funktioniert mit Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — allem, was OpenAPI 3.0 spricht."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
-msgstr ""
+msgstr "Ein kurzer Brief zum Start"
 
 #: admin/pages/help.php:167
 #: admin/pages/onboarding.php:59
 msgid "Welcome in."
-msgstr ""
+msgstr "Komm rein."
 
 #: admin/pages/help.php:168
 msgid "Pull up a chair."
-msgstr ""
+msgstr "Setz dich."
 
 #: admin/pages/help.php:171
 msgid "AICOM is a quiet bridge between the AI you already pay for and the website you love. Your helper does the typing; you keep an eye on things from the kitchen. Pick a thing you'd like done below — we'll write the words for you to pass along."
-msgstr ""
+msgstr "AICOM ist eine leise Brücke zwischen der AI, für die du schon bezahlst, und der Website, die du liebst. Dein Helfer tippt; du behältst die Dinge von der Küche aus im Auge. Wähle unten etwas, das erledigt werden soll — wir schreiben dir die Worte, die du weitergibst."
 
 #: admin/pages/help.php:174
 msgid "— a short read, maybe four minutes"
-msgstr ""
+msgstr "— eine kurze Lektüre, vielleicht vier Minuten"
 
 #: admin/pages/help.php:185
 msgid "Make a visitor's pass."
-msgstr ""
+msgstr "Mach einen Besucherpass."
 
 #. translators: %s = link to API Keys page
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr ""
+msgstr "Schau in <a href=\"%s\">der Schlüsselschublade</a> vorbei und wähle ein Starterset. Hake die Berechtigungen ab, die wir gleich unten vorschlagen. Kopiere den Pass in dem Moment, in dem er erscheint — er zeigt sein Gesicht kein zweites Mal."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
-msgstr ""
+msgstr "Bitte sie herein."
 
 #: admin/pages/help.php:201
 msgid "You don't have to write a single line yourself. Further down, pick which AI helper you use — we have the exact text already written for it. Tap copy, paste it where your helper expects, done."
-msgstr ""
+msgstr "Du musst keine einzige Zeile selbst schreiben. Weiter unten wählst du, welchen AI-Helfer du nutzt — wir haben den genauen Text dafür bereits geschrieben. Tippe auf Kopieren, füge ihn dort ein, wo dein Helfer ihn erwartet, fertig."
 
 #: admin/pages/help.php:206
 msgid "Tell them what's on your mind."
-msgstr ""
+msgstr "Sag ihnen, was dir auf dem Herzen liegt."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr ""
+msgstr "Keine Zauberworte zu lernen. Nutze den kleinen Builder unten: tippe auf eine Karte, kopiere den Satz, den er für dich schreibt, und füge ihn in deinen Helfer ein. Den Rest übernehmen sie."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
-msgstr ""
+msgstr "Der kleine Builder"
 
 #: admin/pages/help.php:222
 msgid "Pick a thing you'd like done. We'll write it for you."
-msgstr ""
+msgstr "Wähle etwas, das erledigt werden soll. Wir schreiben es für dich."
 
 #: admin/pages/help.php:223
 msgid "Tap a card. We'll show you which permissions to tick when you make the pass, and we'll write a sentence you can copy straight into your helper's chat window."
-msgstr ""
+msgstr "Tippe auf eine Karte. Wir zeigen dir, welche Berechtigungen du beim Anlegen des Passes ankreuzen sollst, und schreiben einen Satz, den du direkt in das Chatfenster deines Helfers kopieren kannst."
 
 #: admin/pages/help.php:236
 msgid "tap to use this →"
-msgstr ""
+msgstr "tippen, um dies zu nutzen →"
 
 #: admin/pages/help.php:244
 msgid "When you make the pass, tick these"
-msgstr ""
+msgstr "Wenn du den Pass machst, hake diese ab"
 
 #: admin/pages/help.php:247
 msgid "Open the keys drawer →"
-msgstr ""
+msgstr "Schlüsselschublade öffnen →"
 
 #: admin/pages/help.php:252
 msgid "And paste this into your helper"
-msgstr ""
+msgstr "Und füge dies in deinen Helfer ein"
 
 #: admin/pages/help.php:269
 msgid "The wiring"
-msgstr ""
+msgstr "Die Verkabelung"
 
 #: admin/pages/help.php:272
 msgid "Telling your helper where the door is."
-msgstr ""
+msgstr "Deinem Helfer sagen, wo die Tür ist."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr ""
+msgstr "Kein Tippen nötig. Finde deinen Helfer in der Liste unten, tippe auf Kopieren und füge den Text genau dort ein, wo er danach fragt. Wir haben alles für dich geschrieben — die richtige Adresse, die richtige Begrüßung, die richtige Form. Die zwei Notizen darunter sind nur zur Referenz, falls du neugierig bist."
 
 #: admin/pages/help.php:278
 msgid "The address"
-msgstr ""
+msgstr "Die Adresse"
 
 #: admin/pages/help.php:282
 msgid "The greeting"
-msgstr ""
+msgstr "Die Begrüßung"
 
 #: admin/pages/help.php:283
 msgid "Authorization: Bearer <your-key>"
-msgstr ""
+msgstr "Authorization: Bearer <your-key>"
 
 #: admin/pages/help.php:291
 #, php-format
 msgid "If the address above gives trouble (some hosts rewrite things in odd ways), this one is a faithful backup: <code>%s</code>"
-msgstr ""
+msgstr "Wenn die obige Adresse Probleme macht (manche Hoster schreiben Dinge auf seltsame Weise um), ist diese hier ein treues Backup: <code>%s</code>"
 
 #: admin/pages/help.php:314
 msgid "Where this goes"
-msgstr ""
+msgstr "Wohin das gehört"
 
 #: admin/pages/help.php:320
 msgid "Paste-ready text"
-msgstr ""
+msgstr "Einfügebereit"
 
 #: admin/pages/help.php:337
 msgid "Quiet questions"
-msgstr ""
+msgstr "Leise Fragen"
 
 #: admin/pages/help.php:340
 msgid "Things folks have asked us."
-msgstr ""
+msgstr "Dinge, die Leute uns gefragt haben."
 
 #: admin/pages/help.php:346
 msgid "Will this cost me a bit every time it does something?"
-msgstr ""
+msgstr "Kostet mich das jedes Mal etwas, wenn es etwas tut?"
 
 #: admin/pages/help.php:347
 msgid "No. AICOM is free. Your helper uses the AI subscription you already pay for — whatever Claude or ChatGPT charges you each month — and nothing extra slips in on top."
-msgstr ""
+msgstr "Nein. AICOM ist kostenlos. Dein Helfer nutzt das AI-Abo, das du bereits bezahlst — was auch immer Claude oder ChatGPT dir monatlich berechnen — und nichts Zusätzliches kommt obendrauf."
 
 #: admin/pages/help.php:351
 msgid "Is it really safe to let a helper into the site?"
-msgstr ""
+msgstr "Ist es wirklich sicher, einen Helfer auf die Website zu lassen?"
 
 #: admin/pages/help.php:352
 msgid "Safer than giving someone your password. Every pass has only the powers you grant. You can freeze the whole site with one click. Working Hours can lock helpers out at night. Everything they do is written down and reversible. You are always in charge."
-msgstr ""
+msgstr "Sicherer, als jemandem dein Passwort zu geben. Jeder Pass hat nur die Befugnisse, die du erteilst. Du kannst die gesamte Website mit einem Klick einfrieren. Arbeitszeiten können Helfer nachts aussperren. Alles, was sie tun, wird aufgeschrieben und ist umkehrbar. Du hast immer das Sagen."
 
 #: admin/pages/help.php:356
 msgid "I shared a pass and now I'd like it back."
-msgstr ""
+msgstr "Ich habe einen Pass geteilt und möchte ihn jetzt zurück."
 
 #: admin/pages/help.php:361
 #, php-format
 msgid "Open <a href=\"%s\">the keys drawer</a>, find the row, click the small action menu and choose <strong>Revoke</strong>. Gone in a blink. To pause it instead, pick <strong>Suspend</strong> — that one is reversible."
-msgstr ""
+msgstr "Öffne <a href=\"%s\">die Schlüsselschublade</a>, finde die Zeile, klicke auf das kleine Aktionsmenü und wähle <strong>Widerrufen</strong>. Im Nu weg. Um stattdessen zu pausieren, wähle <strong>Aussetzen</strong> — das ist umkehrbar."
 
 #: admin/pages/help.php:370
 msgid "My helper keeps getting 401 or 403. What's wrong?"
-msgstr ""
+msgstr "Mein Helfer bekommt ständig 401 oder 403. Was ist los?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr ""
+msgstr "<strong>401</strong> bedeutet meist, dass der Pass uns nicht erreicht. Manche Webserver entfernen die Begrüßung — das Hinzufügen von <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> in die <code>.htaccess</code> der Website bringt es in Ordnung. <strong>403</strong> heißt, der Pass ist angekommen, darf aber nicht tun, worum du bittest — prüfe, was du beim Erstellen angekreuzt hast, die IP-Liste und ob die Website gesperrt ist. Das Audit-Log sagt dir, welches."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"
-msgstr ""
+msgstr "Kann ich mehrere verschiedene Pässe für verschiedene Dinge behalten?"
 
 #: admin/pages/help.php:381
 msgid "Of course. One that only reads. One that can write content. One for proper admin work. Each can have its own expiry, its own IP lock, its own dry-run flag. Mix as you like."
-msgstr ""
+msgstr "Natürlich. Einer, der nur liest. Einer, der Inhalte schreiben kann. Einer für richtige Admin-Arbeit. Jeder kann seinen eigenen Ablauf, seine eigene IP-Sperre, sein eigenes Dry-Run-Flag haben. Misch sie, wie du magst."
 
 #: admin/pages/help.php:385
 msgid "My helper says \"no active session\". What's that?"
-msgstr ""
+msgstr "Mein Helfer sagt „keine aktive Sitzung“. Was ist das?"
 
 #: admin/pages/help.php:386
 msgid "Anything that changes things wants to be wrapped in a named session — that's what lets you undo a whole afternoon's work with one button later. Just tell your helper \"Open a session called X, then go ahead.\" Read-only tasks don't need a session."
-msgstr ""
+msgstr "Alles, was Dinge ändert, möchte in eine benannte Sitzung eingebettet werden — das ist es, was dir später ermöglicht, die Arbeit eines ganzen Nachmittags mit einem Knopfdruck rückgängig zu machen. Sag deinem Helfer einfach „Öffne eine Sitzung namens X, dann leg los.“ Schreibgeschützte Aufgaben brauchen keine Sitzung."
 
 #: admin/pages/help.php:390
 msgid "How do I tidy up old snapshots?"
-msgstr ""
+msgstr "Wie räume ich alte Snapshots auf?"
 
 #: admin/pages/help.php:395
 #, php-format
 msgid "<a href=\"%s\">Snapshots → Cleanup settings</a>. Set a maximum age (in days), a maximum size (in MB), or both. A daily routine sweeps the older ones away. You can also delete individual snapshots by hand on the Backup Snapshots tab."
-msgstr ""
+msgstr "<a href=\"%s\">Snapshots → Aufräum-Einstellungen</a>. Setze ein Höchstalter (in Tagen), eine maximale Größe (in MB) oder beides. Eine tägliche Routine fegt die älteren weg. Du kannst auch einzelne Snapshots von Hand auf dem Tab Backup-Snapshots löschen."
 
 #: admin/pages/help.php:404
 msgid "Sessions, skills — what's the difference, really?"
-msgstr ""
+msgstr "Sitzungen, Skills — was ist eigentlich der Unterschied?"
 
 #: admin/pages/help.php:405
 msgid "A session is one afternoon of work. A skill is a recipe you can ask for again. Skills usually start their life inside a session: \"I liked what we just did. Save it for next time.\""
-msgstr ""
+msgstr "Eine Sitzung ist die Arbeit eines Nachmittags. Ein Skill ist ein Rezept, nach dem du wieder fragen kannst. Skills beginnen ihr Leben meist innerhalb einer Sitzung: „Mir hat gefallen, was wir gerade gemacht haben. Speichere es für nächstes Mal.“"
 
 #: admin/pages/help.php:415
 msgid "And if something ever feels off —"
-msgstr ""
+msgstr "Und wenn sich jemals etwas falsch anfühlt —"
 
 #: admin/pages/help.php:420
 #, php-format
 msgid "the <a href=\"%s\">Safety</a> page is your kill switch. Three clicks and the whole place freezes. Nothing destructive can happen without your explicit yes."
-msgstr ""
+msgstr "die Seite <a href=\"%s\">Sicherheit</a> ist dein Notausschalter. Drei Klicks und der ganze Laden friert ein. Nichts Destruktives kann ohne dein ausdrückliches Ja passieren."
 
 #: admin/pages/help.php:426
 msgid "Now — try a sentence and see."
-msgstr ""
+msgstr "Jetzt — probier einen Satz und schau."
 
 #: admin/pages/modules.php:16
 #: includes/class-auth.php:25
 msgid "WordPress Core"
-msgstr ""
+msgstr "WordPress Core"
 
 #: admin/pages/modules.php:16
 msgid "Posts, pages, custom post types, taxonomies, meta, options."
-msgstr ""
+msgstr "Beiträge, Seiten, Custom Post Types, Taxonomien, Meta, Optionen."
 
 #: admin/pages/modules.php:17
 msgid "Yoast SEO"
-msgstr ""
+msgstr "Yoast SEO"
 
 #: admin/pages/modules.php:17
 msgid "SEO meta, Open Graph, Twitter Card, sitemap, breadcrumbs per post and term."
-msgstr ""
+msgstr "SEO-Meta, Open Graph, Twitter Card, Sitemap, Breadcrumbs pro Beitrag und Term."
 
 #: admin/pages/modules.php:17
 msgid "Yoast SEO plugin"
-msgstr ""
+msgstr "Yoast-SEO-Plugin"
 
 #: admin/pages/modules.php:18
 #: admin/pages/modules.php:30
 #: includes/class-auth.php:33
 msgid "Media & Files"
-msgstr ""
+msgstr "Medien & Dateien"
 
 #: admin/pages/modules.php:18
 msgid "WordPress media library, file upload/list/delete (with allowlist)."
-msgstr ""
+msgstr "WordPress-Medienbibliothek, Datei-Upload/Auflisten/Löschen (mit Erlaubnisliste)."
 
 #: admin/pages/modules.php:19
 msgid "Elementor"
-msgstr ""
+msgstr "Elementor"
 
 #: admin/pages/modules.php:19
 msgid "Programmatic widget editing via _elementor_data. Batch text update, backup/restore."
-msgstr ""
+msgstr "Programmatische Widget-Bearbeitung über _elementor_data. Batch-Textaktualisierung, Backup/Wiederherstellung."
 
 #: admin/pages/modules.php:19
 msgid "Elementor plugin"
-msgstr ""
+msgstr "Elementor-Plugin"
 
 #: admin/pages/modules.php:20
 msgid "ECS"
-msgstr ""
+msgstr "ECS"
 
 #: admin/pages/modules.php:20
 msgid "Ele Custom Skin — loop skins, color schemes, container layouts for Elementor."
-msgstr ""
+msgstr "Ele Custom Skin — Loop-Skins, Farbschemata, Container-Layouts für Elementor."
 
 #: admin/pages/modules.php:20
 msgid "ECS plugin"
-msgstr ""
+msgstr "ECS-Plugin"
 
 #: admin/pages/modules.php:21
 msgid "Polylang"
-msgstr ""
+msgstr "Polylang"
 
 #: admin/pages/modules.php:21
 msgid "Language assignment, translation linking for posts and terms."
-msgstr ""
+msgstr "Sprachzuweisung, Übersetzungsverknüpfung für Beiträge und Terms."
 
 #: admin/pages/modules.php:21
 msgid "Polylang plugin"
-msgstr ""
+msgstr "Polylang-Plugin"
 
 #: admin/pages/modules.php:22
 msgid "WooCommerce"
-msgstr ""
+msgstr "WooCommerce"
 
 #: admin/pages/modules.php:22
 msgid "Products, categories, attributes, stock, price, settings."
-msgstr ""
+msgstr "Produkte, Kategorien, Attribute, Lagerbestand, Preis, Einstellungen."
 
 #: admin/pages/modules.php:22
 msgid "WooCommerce plugin"
-msgstr ""
+msgstr "WooCommerce-Plugin"
 
 #: admin/pages/modules.php:23
 #: includes/class-auth.php:38
 msgid "Users & Roles"
-msgstr ""
+msgstr "Benutzer & Rollen"
 
 #: admin/pages/modules.php:23
 msgid "User management, role assignment, capabilities. Anti-lockout guards included."
-msgstr ""
+msgstr "Benutzerverwaltung, Rollenzuweisung, Capabilities. Anti-Aussperr-Schutz inklusive."
 
 #: admin/pages/modules.php:24
 msgid "Backup & Restore"
-msgstr ""
+msgstr "Backup & Wiederherstellung"
 
 #: admin/pages/modules.php:24
 msgid "Post/term/Elementor backups stored in database. Per-request restore."
-msgstr ""
+msgstr "Beitrags-/Term-/Elementor-Backups in der Datenbank gespeichert. Wiederherstellung pro Anfrage."
 
 #: admin/pages/modules.php:25
 msgid "Clautron"
-msgstr ""
+msgstr "Clautron"
 
 #: admin/pages/modules.php:25
 msgid "Blueprint and capability management — catalog, primitives, compile, smoke test."
-msgstr ""
+msgstr "Blueprint- und Capability-Verwaltung — Katalog, Primitiven, Kompilieren, Smoke-Test."
 
 #: admin/pages/modules.php:25
 msgid "Clautron plugin"
-msgstr ""
+msgstr "Clautron-Plugin"
 
 #: admin/pages/modules.php:29
 msgid "Writing & Content"
-msgstr ""
+msgstr "Schreiben & Inhalte"
 
 #: admin/pages/modules.php:29
 msgid "Drafting posts, editing pages, managing categories, polishing SEO metadata."
-msgstr ""
+msgstr "Beiträge entwerfen, Seiten bearbeiten, Kategorien verwalten, SEO-Metadaten polieren."
 
 #: admin/pages/modules.php:30
 msgid "Image library, accessibility (alt text), and selective file system access."
-msgstr ""
+msgstr "Bildbibliothek, Barrierefreiheit (Alt-Text) und selektiver Dateisystemzugriff."
 
 #: admin/pages/modules.php:31
 msgid "Pages & Layout"
-msgstr ""
+msgstr "Seiten & Layout"
 
 #: admin/pages/modules.php:31
 msgid "Page builders, design systems and translation tooling for layout-heavy work."
-msgstr ""
+msgstr "Page Builder, Designsysteme und Übersetzungstools für layoutlastige Arbeit."
 
 #: admin/pages/modules.php:32
 msgid "Shop & Commerce"
-msgstr ""
+msgstr "Shop & Commerce"
 
 #: admin/pages/modules.php:32
 msgid "WooCommerce store: products, prices, stock, taxonomies."
-msgstr ""
+msgstr "WooCommerce-Shop: Produkte, Preise, Lagerbestand, Taxonomien."
 
 #: admin/pages/modules.php:33
 msgid "User accounts, snapshots, restore. The plumbing."
-msgstr ""
+msgstr "Benutzerkonten, Snapshots, Wiederherstellung. Die Klempnerei."
 
 #: admin/pages/modules.php:34
 msgid "AI Agent Tooling"
-msgstr ""
+msgstr "AI-Agent-Tools"
 
 #: admin/pages/modules.php:34
 msgid "Capabilities your agents create and discover — blueprints, primitives, smoke tests."
-msgstr ""
+msgstr "Fähigkeiten, die deine Agents erstellen und entdecken — Blueprints, Primitiven, Smoke-Tests."
 
 #: admin/pages/modules.php:47
 msgid "Everything your AI agent can do, grouped by what it's good at. Modules that depend on a parent plugin will say so."
-msgstr ""
+msgstr "Alles, was dein AI-Agent kann, gruppiert nach Stärken. Module, die von einem übergeordneten Plugin abhängen, sagen das."
 
 #. translators: %1$d: active modules, %2$d: total modules in group
 #: admin/pages/modules.php:67
 #, php-format
 msgid "%1$d of %2$d active"
-msgstr ""
+msgstr "%1$d von %2$d aktiv"
 
 #: admin/pages/modules.php:81
 msgid "(Free)"
-msgstr ""
+msgstr "(Free)"
 
 #: admin/pages/modules.php:82
 msgid "(Pro)"
-msgstr ""
+msgstr "(Pro)"
 
 #: admin/pages/modules.php:83
 msgid "(Premium)"
-msgstr ""
+msgstr "(Premium)"
 
 #: admin/pages/modules.php:84
 msgid "Installed — no languages"
-msgstr ""
+msgstr "Installiert — keine Sprachen"
 
 #. translators: %s: plugin name
 #: admin/pages/modules.php:103
 #, php-format
 msgid "⚠ Requires: %s"
-msgstr ""
+msgstr "⚠ Erfordert: %s"
 
 #: admin/pages/modules.php:108
 msgid "Always active"
-msgstr ""
+msgstr "Immer aktiv"
 
 #. translators: %d: number of tools
 #: admin/pages/modules.php:113
@@ -2124,652 +2118,652 @@ msgstr ""
 #, php-format
 msgid "%d tool"
 msgid_plural "%d tools"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d Tool"
+msgstr[1] "%d Tools"
 
 #: admin/pages/modules.php:127
 msgid "Registered Tools"
-msgstr ""
+msgstr "Registrierte Tools"
 
 #: admin/pages/modules.php:139
 msgid "Tool Name"
-msgstr ""
+msgstr "Tool-Name"
 
 #: admin/pages/modules.php:140
 msgid "Module"
-msgstr ""
+msgstr "Modul"
 
 #: admin/pages/modules.php:142
 msgid "Required Scopes"
-msgstr ""
+msgstr "Benötigte Scopes"
 
 #: admin/pages/modules.php:143
 msgid "Flags"
-msgstr ""
+msgstr "Flags"
 
 #: admin/pages/onboarding.php:17
 msgid "A desktop chat app"
-msgstr ""
+msgstr "Eine Desktop-Chat-App"
 
 #: admin/pages/onboarding.php:21
 msgid "In your terminal"
-msgstr ""
+msgstr "In deinem Terminal"
 
 #: admin/pages/onboarding.php:25
 msgid "AI code editor"
-msgstr ""
+msgstr "AI-Code-Editor"
 
 #: admin/pages/onboarding.php:29
 msgid "OpenAI Actions"
-msgstr ""
+msgstr "OpenAI Actions"
 
 #: admin/pages/onboarding.php:33
 msgid "Any MCP-aware client"
-msgstr ""
+msgstr "Jeder MCP-fähige Client"
 
 #: admin/pages/onboarding.php:59
 msgid "Two quick questions."
-msgstr ""
+msgstr "Zwei kurze Fragen."
 
 #: admin/pages/onboarding.php:60
 msgid "AICOM is a quiet bridge between the AI you already pay for and the WordPress site you already love. Let's tell it who you are."
-msgstr ""
+msgstr "AICOM ist eine leise Brücke zwischen der AI, für die du schon bezahlst, und der WordPress-Website, die du schon liebst. Sag ihr, wer du bist."
 
 #: admin/pages/onboarding.php:62
 msgid "Which AI do you use?"
-msgstr ""
+msgstr "Welche AI nutzt du?"
 
 #: admin/pages/onboarding.php:63
 msgid "We'll show you the exact setup for that one — no guessing."
-msgstr ""
+msgstr "Wir zeigen dir das genaue Setup dafür — kein Raten."
 
 #: admin/pages/onboarding.php:75
 msgid "Next →"
-msgstr ""
+msgstr "Weiter →"
 
 #: admin/pages/onboarding.php:80
 msgid "I'll set it up later — skip"
-msgstr ""
+msgstr "Ich richte es später ein — überspringen"
 
 #: admin/pages/onboarding.php:86
 msgid "What should it be able to do?"
-msgstr ""
+msgstr "Was soll sie können?"
 
 #: admin/pages/onboarding.php:87
 msgid "Pick how much access your AI gets. You can always change this later or make more keys with different powers."
-msgstr ""
+msgstr "Wähle, wie viel Zugriff deine AI bekommt. Du kannst das jederzeit später ändern oder weitere Schlüssel mit anderen Befugnissen erstellen."
 
 #: admin/pages/onboarding.php:90
 msgid "Please pick one of the options below."
-msgstr ""
+msgstr "Bitte wähle eine der untenstehenden Optionen."
 
 #: admin/pages/onboarding.php:115
 msgid "Tip — start safe. You can always make a more powerful key once you trust your agent."
-msgstr ""
+msgstr "Tipp — fang sicher an. Du kannst jederzeit einen mächtigeren Schlüssel erstellen, sobald du deinem Agent vertraust."
 
 #: admin/pages/onboarding.php:119
 msgid "Generate my first key →"
-msgstr ""
+msgstr "Meinen ersten Schlüssel erzeugen →"
 
 #: admin/pages/safety.php:10
 msgid "Only <code>server.status</code> is allowed. All other tools are blocked."
-msgstr ""
+msgstr "Nur <code>server.status</code> ist erlaubt. Alle anderen Tools sind blockiert."
 
 #: admin/pages/safety.php:14
 msgid "Write, destructive, and admin-sensitive tools are blocked. Read and discovery tools are permitted."
-msgstr ""
+msgstr "Schreib-, destruktive und admin-sensible Tools sind blockiert. Lese- und Discovery-Tools sind erlaubt."
 
 #: admin/pages/safety.php:18
 msgid "All tools permitted (subject to scope and allowlist checks)."
-msgstr ""
+msgstr "Alle Tools erlaubt (vorbehaltlich Scope- und Erlaubnislisten-Prüfungen)."
 
 #: admin/pages/safety.php:24
 msgid "Safety Controls"
-msgstr ""
+msgstr "Sicherheitskontrollen"
 
 #: admin/pages/safety.php:25
 msgid "Control lock mode to restrict what AI agents can do site-wide."
-msgstr ""
+msgstr "Steuere den Sperrmodus, um einzuschränken, was AI-Agents websiteweit tun können."
 
 #: admin/pages/safety.php:29
 msgid "Lock settings updated."
-msgstr ""
+msgstr "Sperreinstellungen aktualisiert."
 
 #: admin/pages/safety.php:35
 msgid "Current Lock Status"
-msgstr ""
+msgstr "Aktueller Sperrstatus"
 
 #: admin/pages/safety.php:51
 #, php-format
 msgid "Schedule: overridden until %s (next working period)."
-msgstr ""
+msgstr "Zeitplan: überschrieben bis %s (nächster Arbeitszeitraum)."
 
 #: admin/pages/safety.php:55
 msgid "Schedule: within working hours — no additional lock."
-msgstr ""
+msgstr "Zeitplan: innerhalb der Arbeitszeiten — keine zusätzliche Sperre."
 
 #: admin/pages/safety.php:58
 #, php-format
 msgid "Schedule: outside working hours — %s enforced."
-msgstr ""
+msgstr "Zeitplan: außerhalb der Arbeitszeiten — %s erzwungen."
 
 #: admin/pages/safety.php:75
 msgid "Hard Lock overrides Soft Lock. Changes take effect immediately for all subsequent requests."
-msgstr ""
+msgstr "Hard Lock setzt Soft Lock außer Kraft. Änderungen wirken sich sofort auf alle folgenden Anfragen aus."
 
 #: admin/pages/safety.php:86
 msgid "Agents can read and browse the site but cannot create, change, or delete anything. Safe pause button."
-msgstr ""
+msgstr "Agents können die Website lesen und durchsuchen, aber nichts erstellen, ändern oder löschen. Sicherer Pausenknopf."
 
 #: admin/pages/safety.php:87
 msgid "Read-only mode"
-msgstr ""
+msgstr "Schreibgeschützter Modus"
 
 #: admin/pages/safety.php:95
 msgid "Enable Soft Lock"
-msgstr ""
+msgstr "Soft Lock aktivieren"
 
 #: admin/pages/safety.php:97
 msgid "Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only. Blocks write, destructive, admin_sensitive."
-msgstr ""
+msgstr "Erlaubt nur Tools der Klasse <em>public</em>, <em>discovery</em>, <em>read</em>. Blockiert write, destructive, admin_sensitive."
 
 #: admin/pages/safety.php:103
 msgid "Total freeze. Only server.status responds. Agents are blocked from doing anything. Use when something feels wrong."
-msgstr ""
+msgstr "Totaler Einfrierzustand. Nur server.status antwortet. Agents werden daran gehindert, irgendetwas zu tun. Nutze es, wenn sich etwas falsch anfühlt."
 
 #: admin/pages/safety.php:104
 msgid "Emergency freeze"
-msgstr ""
+msgstr "Notfall-Einfrieren"
 
 #: admin/pages/safety.php:111
 msgid "Enable Hard Lock"
-msgstr ""
+msgstr "Hard Lock aktivieren"
 
 #: admin/pages/safety.php:113
 msgid "Permits <em>public</em> tools only (<code>server.status</code>). <strong>Hard Lock overrides Soft Lock.</strong>"
-msgstr ""
+msgstr "Erlaubt nur Tools der Klasse <em>public</em> (<code>server.status</code>). <strong>Hard Lock setzt Soft Lock außer Kraft.</strong>"
 
 #: admin/pages/safety.php:120
 msgid "<strong>Hard Lock is active.</strong> Soft Lock is disabled and ignored."
-msgstr ""
+msgstr "<strong>Hard Lock ist aktiv.</strong> Soft Lock ist deaktiviert und wird ignoriert."
 
 #: admin/pages/safety.php:124
 msgid "Apply Lock Settings"
-msgstr ""
+msgstr "Sperreinstellungen anwenden"
 
 #: admin/pages/safety.php:142
 msgid "Schedule saved."
-msgstr ""
+msgstr "Zeitplan gespeichert."
 
 #: admin/pages/safety.php:147
 msgid "Working Hours Schedule"
-msgstr ""
+msgstr "Arbeitszeiten-Plan"
 
 #: admin/pages/safety.php:149
 msgid "Enabled"
-msgstr ""
+msgstr "Aktiviert"
 
 #: admin/pages/safety.php:149
 msgid "Disabled"
-msgstr ""
+msgstr "Deaktiviert"
 
 #: admin/pages/safety.php:154
 msgid "Outside working hours, all MCP requests are automatically locked at the configured level. Manual locks always take precedence."
-msgstr ""
+msgstr "Außerhalb der Arbeitszeiten werden alle MCP-Anfragen automatisch auf dem konfigurierten Level gesperrt. Manuelle Sperren haben immer Vorrang."
 
 #: admin/pages/safety.php:164
 msgid "Enable Schedule"
-msgstr ""
+msgstr "Zeitplan aktivieren"
 
 #: admin/pages/safety.php:168
 msgid "Lock site outside working hours"
-msgstr ""
+msgstr "Website außerhalb der Arbeitszeiten sperren"
 
 #: admin/pages/safety.php:174
 msgid "Working Days"
-msgstr ""
+msgstr "Arbeitstage"
 
 #: admin/pages/safety.php:186
 msgid "Checked days are treated as working days."
-msgstr ""
+msgstr "Angekreuzte Tage gelten als Arbeitstage."
 
 #: admin/pages/safety.php:202
 #, php-format
 msgid "Site timezone: %s"
-msgstr ""
+msgstr "Zeitzone der Website: %s"
 
 #: admin/pages/safety.php:210
 msgid "Outside Hours Lock"
-msgstr ""
+msgstr "Sperre außerhalb der Zeiten"
 
 #: admin/pages/safety.php:215
 msgid "Soft Lock — read-only mode (discovery & read tools still work)"
-msgstr ""
+msgstr "Soft Lock — schreibgeschützter Modus (Discovery- & Lese-Tools funktionieren weiterhin)"
 
 #: admin/pages/safety.php:220
 msgid "Hard Lock — full block (only public tools work)"
-msgstr ""
+msgstr "Hard Lock — komplette Sperre (nur public-Tools funktionieren)"
 
 #: admin/pages/safety.php:227
 msgid "Save Schedule"
-msgstr ""
+msgstr "Zeitplan speichern"
 
 #: admin/pages/safety.php:236
 msgid "Lock Permission Matrix"
-msgstr ""
+msgstr "Sperr-Berechtigungsmatrix"
 
 #: admin/pages/safety.php:242
 msgid "Tool Class"
-msgstr ""
+msgstr "Tool-Klasse"
 
 #: admin/pages/safety.php:243
 msgid "Examples"
-msgstr ""
+msgstr "Beispiele"
 
 #: admin/pages/safety.php:284
 msgid "AICOM Hub Pairing"
-msgstr ""
+msgstr "AICOM-Hub-Pairing"
 
 #: admin/pages/safety.php:287
 #, php-format
 msgid "%d paired hub"
 msgid_plural "%d paired hubs"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%d gekoppelter Hub"
+msgstr[1] "%d gekoppelte Hubs"
 
 #: admin/pages/safety.php:288
 msgid "Not paired"
-msgstr ""
+msgstr "Nicht gekoppelt"
 
 #: admin/pages/safety.php:293
 msgid "Generate a one-time pairing token to connect this site to an AICOM Hub. The token is valid for 10 minutes and consumed on first use."
-msgstr ""
+msgstr "Erzeuge ein einmaliges Pairing-Token, um diese Website mit einem AICOM Hub zu verbinden. Das Token ist 10 Minuten gültig und wird bei der ersten Nutzung verbraucht."
 
 #: admin/pages/safety.php:299
 msgid "Pairing token — copy now, shown once"
-msgstr ""
+msgstr "Pairing-Token — jetzt kopieren, einmalig gezeigt"
 
 #: admin/pages/safety.php:305
 msgid "Paste this into AICOM Hub → Sites → Pair a site within 10 minutes."
-msgstr ""
+msgstr "Füge dies innerhalb von 10 Minuten in AICOM Hub → Sites → Pair a site ein."
 
 #: admin/pages/safety.php:315
 msgid "Generate new token"
-msgstr ""
+msgstr "Neues Token erzeugen"
 
 #: admin/pages/safety.php:315
 msgid "Generate pairing token"
-msgstr ""
+msgstr "Pairing-Token erzeugen"
 
 #: admin/pages/safety.php:323
 msgid "Hub ID"
-msgstr ""
+msgstr "Hub-ID"
 
 #: admin/pages/safety.php:324
 msgid "Hub URL"
-msgstr ""
+msgstr "Hub-URL"
 
 #: admin/pages/safety.php:325
 msgid "Paired"
-msgstr ""
+msgstr "Gekoppelt"
 
 #: admin/pages/safety.php:326
 msgid "Last seen"
-msgstr ""
+msgstr "Zuletzt gesehen"
 
 #: admin/pages/skills.php:20
 msgid "Reusable AI procedures — instructions, rules, and workflows your AI agents can discover and execute."
-msgstr ""
+msgstr "Wiederverwendbare AI-Prozeduren — Anweisungen, Regeln und Workflows, die deine AI-Agents entdecken und ausführen können."
 
 #: admin/pages/skills.php:26
 #: includes/class-auth.php:44
 msgid "Skills"
-msgstr ""
+msgstr "Skills"
 
 #: admin/pages/skills.php:30
 msgid "Suggested"
-msgstr ""
+msgstr "Vorgeschlagen"
 
 #: admin/pages/skills.php:35
 msgid "Proposals"
-msgstr ""
+msgstr "Vorschläge"
 
 #: admin/pages/skills.php:40
 msgid "History ↗"
-msgstr ""
+msgstr "Verlauf ↗"
 
 #: admin/pages/skills.php:46
 msgid "Setting saved."
-msgstr ""
+msgstr "Einstellung gespeichert."
 
 #: admin/pages/skills.php:60
 msgid "Skill not found."
-msgstr ""
+msgstr "Skill nicht gefunden."
 
 #: admin/pages/skills.php:74
 msgid "Back to Skills"
-msgstr ""
+msgstr "Zurück zu Skills"
 
 #: admin/pages/skills.php:83
 msgid "Export JSON"
-msgstr ""
+msgstr "JSON exportieren"
 
 #: admin/pages/skills.php:105
 #: admin/pages/skills.php:118
 msgid "Description"
-msgstr ""
+msgstr "Beschreibung"
 
 #: admin/pages/skills.php:112
 msgid "Input Schema"
-msgstr ""
+msgstr "Eingabeschema"
 
 #: admin/pages/skills.php:115
 #: admin/pages/skills.php:320
 msgid "Name"
-msgstr ""
+msgstr "Name"
 
 #: admin/pages/skills.php:117
 msgid "Required"
-msgstr ""
+msgstr "Erforderlich"
 
 #: admin/pages/skills.php:136
 #: admin/pages/skills.php:460
 msgid "Steps"
-msgstr ""
+msgstr "Schritte"
 
 #: admin/pages/skills.php:152
 msgid "Rules"
-msgstr ""
+msgstr "Regeln"
 
 #: admin/pages/skills.php:159
 msgid "Tags"
-msgstr ""
+msgstr "Tags"
 
 #: admin/pages/skills.php:170
 msgid "Permissions"
-msgstr ""
+msgstr "Berechtigungen"
 
 #: admin/pages/skills.php:215
 msgid "Simple"
-msgstr ""
+msgstr "Einfach"
 
 #: admin/pages/skills.php:216
 msgid "Guided"
-msgstr ""
+msgstr "Geführt"
 
 #: admin/pages/skills.php:217
 msgid "Advanced"
-msgstr ""
+msgstr "Fortgeschritten"
 
 #: admin/pages/skills.php:230
 #, php-format
 msgid "Skill \"%s\" imported as draft."
-msgstr ""
+msgstr "Skill „%s“ als Entwurf importiert."
 
 #: admin/pages/skills.php:237
 #, php-format
 msgid "Import failed: %s"
-msgstr ""
+msgstr "Import fehlgeschlagen: %s"
 
 #: admin/pages/skills.php:249
 msgid "Search skills…"
-msgstr ""
+msgstr "Skills suchen…"
 
 #: admin/pages/skills.php:251
 msgid "All types"
-msgstr ""
+msgstr "Alle Typen"
 
 #: admin/pages/skills.php:257
 msgid "All statuses"
-msgstr ""
+msgstr "Alle Status"
 
 #: admin/pages/skills.php:258
 msgid "Active only"
-msgstr ""
+msgstr "Nur aktive"
 
 #: admin/pages/skills.php:259
 msgid "Draft only"
-msgstr ""
+msgstr "Nur Entwürfe"
 
 #: admin/pages/skills.php:260
 msgid "Archived"
-msgstr ""
+msgstr "Archiviert"
 
 #: admin/pages/skills.php:271
 msgid "Import JSON"
-msgstr ""
+msgstr "JSON importieren"
 
 #: admin/pages/skills.php:280
 msgid "Suggestions active — click to disable."
-msgstr ""
+msgstr "Vorschläge aktiv — zum Deaktivieren klicken."
 
 #: admin/pages/skills.php:281
 msgid "Suggestions disabled — click to enable."
-msgstr ""
+msgstr "Vorschläge deaktiviert — zum Aktivieren klicken."
 
 #: admin/pages/skills.php:286
 msgid "Suggestions on"
-msgstr ""
+msgstr "Vorschläge an"
 
 #: admin/pages/skills.php:287
 msgid "Suggestions off"
-msgstr ""
+msgstr "Vorschläge aus"
 
 #: admin/pages/skills.php:295
 msgid "Import Skill from JSON"
-msgstr ""
+msgstr "Skill aus JSON importieren"
 
 #: admin/pages/skills.php:296
 msgid "Paste a skill definition exported from this plugin or crafted manually. The skill will be saved as Draft for review."
-msgstr ""
+msgstr "Füge eine Skill-Definition ein, die aus diesem Plugin exportiert oder manuell erstellt wurde. Der Skill wird zur Prüfung als Entwurf gespeichert."
 
 #: admin/pages/skills.php:304
 msgid "Import"
-msgstr ""
+msgstr "Importieren"
 
 #: admin/pages/skills.php:314
 msgid "No skills found. AI agents create skills via skills.create, or import a local definition via skills.import or the Import JSON button above."
-msgstr ""
+msgstr "Keine Skills gefunden. AI-Agents erstellen Skills über skills.create, oder importiere eine lokale Definition über skills.import oder den Button „JSON importieren“ oben."
 
 #: admin/pages/skills.php:321
 msgid "Slug"
-msgstr ""
+msgstr "Slug"
 
 #: admin/pages/skills.php:324
 msgid "Ver."
-msgstr ""
+msgstr "Ver."
 
 #: admin/pages/skills.php:325
 msgid "Updated"
-msgstr ""
+msgstr "Aktualisiert"
 
 #: admin/pages/skills.php:349
 msgid "Details"
-msgstr ""
+msgstr "Details"
 
 #: admin/pages/skills.php:359
 #: admin/pages/skills.php:473
 msgid "Activate"
-msgstr ""
+msgstr "Aktivieren"
 
 #: admin/pages/skills.php:369
 msgid "Deactivate"
-msgstr ""
+msgstr "Deaktivieren"
 
 #: admin/pages/skills.php:396
 msgid "Permanently delete this skill?"
-msgstr ""
+msgstr "Diesen Skill dauerhaft löschen?"
 
 #: admin/pages/skills.php:417
 #, php-format
 msgid "Page %1$d of %2$d — %3$d total"
-msgstr ""
+msgstr "Seite %1$d von %2$d — %3$d insgesamt"
 
 #: admin/pages/skills.php:419
 msgid "Prev"
-msgstr ""
+msgstr "Zurück"
 
 #: admin/pages/skills.php:441
 msgid "Suggested Skills"
-msgstr ""
+msgstr "Vorgeschlagene Skills"
 
 #: admin/pages/skills.php:442
 msgid "Skills proposed by AI agents, waiting for your review."
-msgstr ""
+msgstr "Von AI-Agents vorgeschlagene Skills, die auf deine Prüfung warten."
 
 #: admin/pages/skills.php:446
 msgid "No suggested skills. AI agents can push skill definitions here via skills.import."
-msgstr ""
+msgstr "Keine vorgeschlagenen Skills. AI-Agents können Skill-Definitionen hier über skills.import einreichen."
 
 #: admin/pages/skills.php:480
 msgid "Save as Draft"
-msgstr ""
+msgstr "Als Entwurf speichern"
 
 #: admin/pages/skills.php:483
 msgid "Reject and delete this suggested skill?"
-msgstr ""
+msgstr "Diesen vorgeschlagenen Skill ablehnen und löschen?"
 
 #: admin/pages/skills.php:489
 #: admin/pages/skills.php:562
 msgid "Reject"
-msgstr ""
+msgstr "Ablehnen"
 
 #: admin/pages/skills.php:509
 msgid "Update Proposals"
-msgstr ""
+msgstr "Update-Vorschläge"
 
 #: admin/pages/skills.php:510
 msgid "AI-proposed changes to existing skills. Review the diff before accepting."
-msgstr ""
+msgstr "Von der AI vorgeschlagene Änderungen an bestehenden Skills. Prüfe den Diff vor dem Akzeptieren."
 
 #: admin/pages/skills.php:514
 msgid "No update proposals pending."
-msgstr ""
+msgstr "Keine ausstehenden Update-Vorschläge."
 
 #: admin/pages/skills.php:523
 msgid "Update proposed"
-msgstr ""
+msgstr "Update vorgeschlagen"
 
 #: admin/pages/skills.php:529
 msgid "Current"
-msgstr ""
+msgstr "Aktuell"
 
 #: admin/pages/skills.php:537
 msgid "Proposed"
-msgstr ""
+msgstr "Vorgeschlagen"
 
 #: admin/pages/skills.php:553
 msgid "Accept Update"
-msgstr ""
+msgstr "Update annehmen"
 
 #: admin/pages/skills.php:556
 msgid "Reject and delete this proposal?"
-msgstr ""
+msgstr "Diesen Vorschlag ablehnen und löschen?"
 
 #: includes/class-auth.php:26
 msgid "Read posts, terms, meta, settings"
-msgstr ""
+msgstr "Beiträge, Terms, Meta, Einstellungen lesen"
 
 #: includes/class-auth.php:27
 msgid "Create & edit posts/pages"
-msgstr ""
+msgstr "Beiträge/Seiten erstellen & bearbeiten"
 
 #: includes/class-auth.php:28
 msgid "Trash & delete posts"
-msgstr ""
+msgstr "Beiträge in den Papierkorb verschieben & löschen"
 
 #: includes/class-auth.php:29
 msgid "Post meta read/write"
-msgstr ""
+msgstr "Beitrags-Meta lesen/schreiben"
 
 #: includes/class-auth.php:30
 msgid "Categories, tags, taxonomies"
-msgstr ""
+msgstr "Kategorien, Schlagwörter, Taxonomien"
 
 #: includes/class-auth.php:31
 msgid "Navigation menus"
-msgstr ""
+msgstr "Navigationsmenüs"
 
 #: includes/class-auth.php:34
 msgid "Upload & manage media library"
-msgstr ""
+msgstr "Medienbibliothek hochladen & verwalten"
 
 #: includes/class-auth.php:35
 msgid "Direct file system access"
-msgstr ""
+msgstr "Direkter Dateisystemzugriff"
 
 #: includes/class-auth.php:36
 msgid "Accessibility audits & alt text fixes"
-msgstr ""
+msgstr "Barrierefreiheits-Audits & Alt-Text-Korrekturen"
 
 #: includes/class-auth.php:39
 msgid "List & read user profiles"
-msgstr ""
+msgstr "Benutzerprofile auflisten & lesen"
 
 #: includes/class-auth.php:40
 msgid "Create & update users"
-msgstr ""
+msgstr "Benutzer erstellen & aktualisieren"
 
 #: includes/class-auth.php:41
 msgid "Delete users"
-msgstr ""
+msgstr "Benutzer löschen"
 
 #: includes/class-auth.php:42
 msgid "Manage roles & capabilities"
-msgstr ""
+msgstr "Rollen & Capabilities verwalten"
 
 #: includes/class-auth.php:45
 msgid "List, search and run Skills"
-msgstr ""
+msgstr "Skills auflisten, suchen und ausführen"
 
 #: includes/class-auth.php:46
 msgid "Create, update, archive and delete Skills"
-msgstr ""
+msgstr "Skills erstellen, aktualisieren, archivieren und löschen"
 
 #: includes/class-auth.php:47
 msgid "Suggest and propose Skill updates from sessions"
-msgstr ""
+msgstr "Skill-Updates aus Sitzungen vorschlagen und einreichen"
 
 #: includes/class-auth.php:49
 msgid "Site Configuration"
-msgstr ""
+msgstr "Website-Konfiguration"
 
 #: includes/class-auth.php:50
 msgid "WordPress options/settings"
-msgstr ""
+msgstr "WordPress-Optionen/-Einstellungen"
 
 #: includes/class-auth.php:51
 msgid "Plugin management & updates"
-msgstr ""
+msgstr "Plugin-Verwaltung & -Updates"
 
 #: includes/class-auth.php:52
 msgid "Backup & restore data"
-msgstr ""
+msgstr "Daten sichern & wiederherstellen"
 
 #: includes/class-auth.php:54
 msgid "Integrations"
-msgstr ""
+msgstr "Integrationen"
 
 #: includes/class-auth.php:55
 msgid "WooCommerce products"
-msgstr ""
+msgstr "WooCommerce-Produkte"
 
 #: includes/class-auth.php:56
 msgid "WooCommerce settings"
-msgstr ""
+msgstr "WooCommerce-Einstellungen"
 
 #: includes/class-auth.php:57
 msgid "Elementor pages & widgets"
-msgstr ""
+msgstr "Elementor-Seiten & -Widgets"
 
 #: includes/class-auth.php:58
 msgid "Polylang translations"
-msgstr ""
+msgstr "Polylang-Übersetzungen"
 
 #: includes/class-auth.php:59
 msgid "Yoast SEO fields"
-msgstr ""
+msgstr "Yoast-SEO-Felder"
 
 #: includes/class-auth.php:60
 msgid "Clautron blueprints"
-msgstr ""
+msgstr "Clautron-Blueprints"
