@@ -2840,9 +2840,11 @@ body.aicom-fullscreen #wpcontent {
 }
 body.aicom-fullscreen #wpbody-content {
     padding-bottom: 60px;
+    padding-top: 0;
 }
-html.wp-toolbar { padding-top: 0; }
-body.aicom-fullscreen.wp-toolbar { padding-top: 0; }
+/* Drop the 32px top padding WP reserves for the admin bar, only while the
+   wizard is on screen. :has() lets us target html based on body's class. */
+html:has(body.aicom-fullscreen) { padding-top: 0 !important; }
 body.aicom-fullscreen {
     background: var(--aicom-bg);
     min-height: 100vh;
