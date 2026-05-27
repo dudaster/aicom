@@ -187,7 +187,7 @@ msgstr "Iets anders"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Elke MCP-client. Endpoint + Bearer-header, voorbeeldverzoek hieronder."
+msgstr "Elke MCP-client. Endpoint + Bearer-header, met een voorbeeld-request-body hieronder."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -1619,7 +1619,7 @@ msgstr "Snapshots maken en herstellen"
 
 #: admin/pages/help.php:79
 msgid "Before you touch anything: take a snapshot of the home page and our three landing pages. Save the session as \"Before launch\" so I can roll back the whole thing later if I need to."
-msgstr "Voordat je iets aanraakt: maak een snapshot van de homepage en onze drie landingspagina's. Sla de sessie op als \"Voor lancering\" zodat ik later het hele zaakje kan terugdraaien als dat nodig is."
+msgstr "Voordat je iets aanraakt: maak een snapshot van de homepage en onze drie landingspagina's. Sla de sessie op als \"Voor lancering\", zodat ik later alles kan terugdraaien als dat nodig is."
 
 #: admin/pages/help.php:82
 msgid "watch, then remember"
@@ -1663,7 +1663,7 @@ msgstr "in je terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "In een terminal, binnen een willekeurige projectmap — plak dit en vervang je pas."
+msgstr "In een terminal, binnen een willekeurige projectmap — plak dit en vervang het door je pas."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1695,7 +1695,7 @@ msgstr "Custom GPT · Actions"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr "Voeg in de Custom GPT-builder een Action toe en wijs hem op deze URL. Kies bij Authentication API Key → Bearer en plak je pas."
+msgstr "Voeg in de Custom GPT-builder een Action toe en wijs die naar deze URL. Kies bij Authentication API Key → Bearer en plak je pas."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
@@ -1723,11 +1723,11 @@ msgstr "Dify, Flowise, LangChain…"
 
 #: admin/pages/help.php:144
 msgid "Point your tool at this OpenAPI schema URL with Bearer auth, and all the tools are discovered for you."
-msgstr "Wijs je tool met Bearer-authenticatie op deze OpenAPI-schema-URL en alle tools worden voor je ontdekt."
+msgstr "Wijs je tool naar deze OpenAPI-schema-URL, met Bearer-auth, en alle tools worden automatisch voor je ontdekt."
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr "Werkt met Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — alles wat vloeiend OpenAPI 3.0 spreekt."
+msgstr "Werkt met Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — alles wat met OpenAPI 3.0 overweg kan."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
@@ -1774,7 +1774,7 @@ msgstr "Vertel ze wat je dwarszit."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "Geen toverwoorden om te leren. Gebruik de kleine builder hieronder: tik op een kaart, kopieer de zin die hij voor je schrijft en plak hem in je helper. Die neemt het vanaf daar over."
+msgstr "Geen toverwoorden nodig. Gebruik de kleine builder hieronder: tik op een kaart, kopieer de zin die hij voor je schrijft en plak hem in de chat van je helper. Die neemt het vanaf daar over."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
@@ -1814,7 +1814,7 @@ msgstr "Vertel je helper waar de deur is."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr "Niets typen nodig. Vind je helper in de lijst hieronder, tik op kopiëren en plak de tekst precies waar erom gevraagd wordt. We hebben het allemaal voor je opgeschreven — het juiste adres, de juiste begroeting, de juiste vorm. De twee notities eronder staan er alleen ter referentie als je nieuwsgierig bent."
+msgstr "Je hoeft niets te typen. Vind je helper in de lijst hieronder, tik op Kopiëren en plak de tekst precies waar erom gevraagd wordt. We hebben alles voor je voorbereid — het juiste adres, de juiste greeting, het juiste format. De twee notities eronder staan er alleen ter referentie als je nieuwsgierig bent."
 
 #: admin/pages/help.php:278
 msgid "The address"
@@ -1880,7 +1880,7 @@ msgstr "Mijn helper krijgt steeds 401 of 403. Wat is er mis?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> betekent meestal dat de pas ons niet bereikt. Sommige webservers verwijderen de begroeting — door <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> toe te voegen aan de <code>.htaccess</code> van de site komt het goed. <strong>403</strong> betekent dat de pas is aangekomen maar niet mag wat je vraagt — controleer wat je hebt aangevinkt bij het aanmaken, de IP-lijst en of de site is vergrendeld. Het auditlog vertelt je welke."
+msgstr "<strong>401</strong> betekent meestal dat de pas ons niet bereikt. Sommige webservers verwijderen de Authorization-header — voeg <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> toe aan de <code>.htaccess</code> van de site om dat te herstellen. <strong>403</strong> betekent dat de pas is aangekomen, maar niet mag doen wat je vraagt — controleer wat je hebt aangevinkt bij het aanmaken, de IP-lijst en of de site is vergrendeld. Het auditlog vertelt je precies waarom."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"

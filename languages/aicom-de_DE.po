@@ -159,7 +159,7 @@ msgstr "Claude Code"
 
 #: admin/class-admin.php:302
 msgid "Open a terminal in any project folder and paste this single command. Claude Code remembers it across sessions."
-msgstr "Öffne ein Terminal in einem beliebigen Projektordner und füge diesen einen Befehl ein. Claude Code merkt es sich über Sitzungen hinweg."
+msgstr "Öffne ein Terminal in einem beliebigen Projektordner und füge diesen einen Befehl ein. Claude Code merkt ihn sich sitzungsübergreifend."
 
 #: admin/class-admin.php:306
 #: admin/pages/help.php:121
@@ -187,7 +187,7 @@ msgstr "Etwas anderes"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Jeder MCP-fähige Client. Endpoint + Bearer-Header, Beispielanfrage unten."
+msgstr "Jeder MCP-fähige Client. Endpoint + Bearer-Header, Beispiel-Request-Body unten."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -1610,7 +1610,7 @@ msgstr "Mach erst einen Snapshot"
 
 #: admin/pages/help.php:74
 msgid "Before you let your helper change anything, you ask for snapshots of the pages that matter. So you can sleep — and ship."
-msgstr "Bevor du deinen Helfer etwas ändern lässt, bittest du um Snapshots der wichtigen Seiten. Damit du schlafen — und ausliefern — kannst."
+msgstr "Bevor du deinen Helfer etwas ändern lässt, bittest du um Snapshots der wichtigen Seiten. Damit du ruhig schlafen — und trotzdem shippen — kannst."
 
 #: admin/pages/help.php:77
 #: admin/pages/help.php:97
@@ -1639,7 +1639,7 @@ msgstr "Skills erstellen und aktualisieren"
 
 #: admin/pages/help.php:89
 msgid "Every Monday I publish a product review. Watch what I do this morning, then save the workflow as a skill called Weekly product review. Next time, when I ask for it by name, you'll know exactly what to do."
-msgstr "Jeden Montag veröffentliche ich eine Produktrezension. Schau zu, was ich heute Morgen mache, und speichere den Workflow dann als Skill namens „Wöchentliche Produktrezension“. Wenn ich es nächstes Mal beim Namen nenne, weißt du genau, was zu tun ist."
+msgstr "Jeden Montag veröffentliche ich eine Produktrezension. Schau heute Morgen zu, was ich mache, und speichere den Workflow dann als Skill namens „Wöchentliche Produktrezension“. Wenn ich ihn das nächste Mal beim Namen nenne, weißt du genau, was zu tun ist."
 
 #: admin/pages/help.php:92
 msgid "a one-line rewind"
@@ -1663,7 +1663,7 @@ msgstr "in deinem Terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "In einem Terminal, in einem beliebigen Projektordner — füge dies ein und tausche deinen Pass aus."
+msgstr "In einem Terminal, in einem beliebigen Projektordner — füge dies ein und ersetze es durch deinen Pass."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1711,7 +1711,7 @@ msgstr "einfacher HTTP-Knoten"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr "Ein einfacher HTTP-Knoten erledigt die Arbeit — füge diese Vorlage hinein und tausche deinen Pass aus."
+msgstr "Ein einfacher HTTP-Knoten erledigt den Job — füge diese Vorlage ein und ersetze sie durch deinen Pass."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
@@ -1727,7 +1727,7 @@ msgstr "Richte dein Tool auf diese OpenAPI-Schema-URL mit Bearer-Auth, und alle 
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr "Funktioniert mit Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — allem, was OpenAPI 3.0 spricht."
+msgstr "Funktioniert mit Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — allem, was mit OpenAPI 3.0 umgehen kann."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
@@ -1758,7 +1758,7 @@ msgstr "Mach einen Besucherpass."
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr "Schau in <a href=\"%s\">der Schlüsselschublade</a> vorbei und wähle ein Starterset. Hake die Berechtigungen ab, die wir gleich unten vorschlagen. Kopiere den Pass in dem Moment, in dem er erscheint — er zeigt sein Gesicht kein zweites Mal."
+msgstr "Schau in <a href=\"%s\">der Schlüsselschublade</a> vorbei und wähle ein Starterset. Hake die Berechtigungen ab, die wir unten vorschlagen. Kopiere den Pass, sobald er erscheint — er wird kein zweites Mal angezeigt."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
@@ -1774,7 +1774,7 @@ msgstr "Sag ihnen, was dir auf dem Herzen liegt."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "Keine Zauberworte zu lernen. Nutze den kleinen Builder unten: tippe auf eine Karte, kopiere den Satz, den er für dich schreibt, und füge ihn in deinen Helfer ein. Den Rest übernehmen sie."
+msgstr "Keine Zauberworte nötig. Nutze den kleinen Builder unten: tippe auf eine Karte, kopiere den Satz, den er für dich schreibt, und füge ihn in den Chat deines Helfers ein. Den Rest übernimmt er."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
@@ -1880,7 +1880,7 @@ msgstr "Mein Helfer bekommt ständig 401 oder 403. Was ist los?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> bedeutet meist, dass der Pass uns nicht erreicht. Manche Webserver entfernen die Begrüßung — das Hinzufügen von <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> in die <code>.htaccess</code> der Website bringt es in Ordnung. <strong>403</strong> heißt, der Pass ist angekommen, darf aber nicht tun, worum du bittest — prüfe, was du beim Erstellen angekreuzt hast, die IP-Liste und ob die Website gesperrt ist. Das Audit-Log sagt dir, welches."
+msgstr "<strong>401</strong> bedeutet meist, dass der Pass uns nicht erreicht. Manche Webserver entfernen den Authorization-Header — <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> in der <code>.htaccess</code> der Website behebt das. <strong>403</strong> heißt, der Pass ist angekommen, darf aber nicht tun, worum du bittest — prüfe, was du beim Erstellen angekreuzt hast, die IP-Liste und ob die Website gesperrt ist. Das Audit-Log sagt dir genau, warum."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"

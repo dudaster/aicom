@@ -183,7 +183,7 @@ msgstr "ChatGPT (Custom GPT)"
 
 #: admin/class-admin.php:312
 msgid "Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above."
-msgstr "Abra o construtor de Custom GPT, adicione uma Action, cole esta URL. Defina a Autenticação como API Key → Bearer e então cole a chave acima."
+msgstr "Abra o builder de Custom GPT, adicione uma Action e cole esta URL. Defina a Autenticação como API Key → Bearer e então cole a chave acima."
 
 #: admin/class-admin.php:316
 #: admin/pages/onboarding.php:32
@@ -192,7 +192,7 @@ msgstr "Outra coisa"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Qualquer cliente compatível com MCP. Endpoint + cabeçalho Bearer, exemplo de corpo de requisição abaixo."
+msgstr "Qualquer cliente compatível com MCP. Endpoint + Bearer header, com um exemplo de request body abaixo."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -1668,7 +1668,7 @@ msgstr "no seu terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "Num terminal, dentro de qualquer pasta de projeto — cole isto e troque pelo seu passe."
+msgstr "Num terminal, dentro de qualquer pasta de projeto — cole isto e substitua pelo seu passe."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1700,7 +1700,7 @@ msgstr "Custom GPT · Actions"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr "No construtor de Custom GPT, adicione uma Action e aponte para esta URL. Em Autenticação, escolha API Key → Bearer e cole seu passe."
+msgstr "No builder de Custom GPT, adicione uma Action e aponte para esta URL. Em Autenticação, escolha API Key → Bearer e cole seu passe."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
@@ -1716,7 +1716,7 @@ msgstr "nó HTTP simples"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr "Um nó HTTP simples já dá conta — cole este template dentro dele e troque pelo seu passe."
+msgstr "Um nó HTTP simples já dá conta — cole este template nele e substitua pelo seu passe."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
@@ -1728,11 +1728,11 @@ msgstr "Dify, Flowise, LangChain…"
 
 #: admin/pages/help.php:144
 msgid "Point your tool at this OpenAPI schema URL with Bearer auth, and all the tools are discovered for you."
-msgstr "Aponte sua ferramenta para esta URL de esquema OpenAPI com autenticação Bearer, e todas as ferramentas são descobertas automaticamente para você."
+msgstr "Aponte sua ferramenta para esta URL de esquema OpenAPI, com Bearer auth, e todas as ferramentas serão descobertas automaticamente."
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr "Funciona com Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — qualquer coisa que fale OpenAPI 3.0."
+msgstr "Funciona com Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — qualquer coisa compatível com OpenAPI 3.0."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
@@ -1779,11 +1779,11 @@ msgstr "Diga a ele o que você tem em mente."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "Sem palavras mágicas para decorar. Use o pequeno construtor abaixo: toque num card, copie a frase que ele escreve para você e cole no seu assistente. Ele leva dali em diante."
+msgstr "Sem palavras mágicas para decorar. Use o pequeno builder abaixo: toque num card, copie a frase que ele escreve para você e cole no chat do seu assistente. Ele assume daí em diante."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
-msgstr "O pequeno construtor"
+msgstr "O pequeno builder"
 
 #: admin/pages/help.php:222
 msgid "Pick a thing you'd like done. We'll write it for you."
@@ -1819,7 +1819,7 @@ msgstr "Dizendo ao seu assistente onde fica a porta."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr "Não precisa digitar. Encontre seu assistente na lista abaixo, toque em copiar e cole o texto exatamente onde ele pedir. Escrevemos tudo para você — o endereço certo, a saudação certa, o formato certo. As duas notas embaixo estão lá só para referência, caso você tenha curiosidade."
+msgstr "Não precisa digitar. Encontre seu assistente na lista abaixo, toque em Copiar e cole o texto exatamente onde ele pedir. Já preparamos tudo para você — o endereço certo, o greeting certo, o formato certo. As duas notas embaixo estão lá só para referência, caso você tenha curiosidade."
 
 #: admin/pages/help.php:278
 msgid "The address"
@@ -1885,7 +1885,7 @@ msgstr "Meu assistente fica recebendo 401 ou 403. O que está errado?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> geralmente significa que o passe não está chegando até nós. Alguns servidores web removem a saudação — adicionar <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> ao <code>.htaccess</code> do site resolve. <strong>403</strong> significa que o passe chegou mas não tem permissão para fazer o que você está pedindo — confira o que você marcou ao criá-lo, a lista de IPs e se o site está bloqueado. O log de auditoria te diz qual é o caso."
+msgstr "<strong>401</strong> geralmente significa que o passe não está chegando até nós. Alguns servidores web removem o Authorization header — adicionar <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> ao <code>.htaccess</code> do site resolve. <strong>403</strong> significa que o passe chegou, mas não tem permissão para fazer o que você está pedindo — confira o que você marcou ao criá-lo, a lista de IPs e se o site está bloqueado. O log de auditoria te diz exatamente o motivo."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"

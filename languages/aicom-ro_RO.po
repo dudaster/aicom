@@ -88,7 +88,7 @@ msgstr[2] "%d de cereri"
 
 #: admin/class-admin.php:144
 msgid "New here? Read the four-minute guide."
-msgstr "Nou aici? Citește ghidul de patru minute."
+msgstr "Ești nou aici? Citește ghidul de patru minute."
 
 #: admin/class-admin.php:166
 #: admin/class-admin.php:167
@@ -184,7 +184,7 @@ msgstr "ChatGPT (Custom GPT)"
 
 #: admin/class-admin.php:312
 msgid "Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above."
-msgstr "Deschide builder-ul de Custom GPT, adaugă o Acțiune, lipește acest URL. Setează Autentificarea pe API Key → Bearer, apoi lipește cheia de mai sus."
+msgstr "Deschide builder-ul Custom GPT, adaugă o Acțiune și lipește acest URL. Setează Autentificarea pe API Key → Bearer, apoi lipește cheia de mai sus."
 
 #: admin/class-admin.php:316
 #: admin/pages/onboarding.php:32
@@ -193,7 +193,7 @@ msgstr "Altceva"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Orice client compatibil MCP. Endpoint + header Bearer, exemplu de cerere mai jos."
+msgstr "Orice client compatibil MCP. Endpoint + Bearer header, cu un exemplu de request body mai jos."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -726,7 +726,7 @@ msgstr "Alege permisiunile manual"
 
 #: admin/pages/api-keys.php:503
 msgid "Scopes are set by the preset above. Tick a checkbox to switch to Custom and edit manually."
-msgstr "Permisiunile sunt setate de presetul de mai sus. Bifează o casetă pentru a trece la Personalizat și a edita manual."
+msgstr "Permisiunile sunt setate de presetul de mai sus. Bifează o casetă ca să treci pe Personalizat și să editezi manual."
 
 #: admin/pages/api-keys.php:532
 msgid "+ Save as preset"
@@ -761,7 +761,7 @@ msgstr "ex. 203.0.113.5 sau 192.168.1.0/24"
 
 #: admin/pages/api-keys.php:573
 msgid "On first use the connecting IP is recorded and all subsequent requests must come from that IP. Use \"Reset IP lock\" in the key menu to rebind."
-msgstr "La prima utilizare, IP-ul care se conectează este înregistrat și toate cererile ulterioare trebuie să vină de la acel IP. Folosește „Resetează blocarea IP” din meniul cheii pentru a o lega din nou."
+msgstr "La prima utilizare, IP-ul care se conectează este înregistrat, iar toate cererile ulterioare trebuie să vină de la acel IP. Folosește „Resetează blocarea IP” din meniul cheii ca să o legi din nou."
 
 #: admin/pages/api-keys.php:663
 msgid "Key stops working automatically on this date."
@@ -813,7 +813,7 @@ msgstr "Arată arhivate"
 
 #: admin/pages/api-keys.php:732
 msgid "No API keys yet. Generate your first key on the Generate tab."
-msgstr "Încă nicio cheie API. Generează-ți prima cheie în tab-ul Generează."
+msgstr "Încă nu ai nicio cheie API. Generează-ți prima cheie în tab-ul Generează."
 
 #: admin/pages/api-keys.php:738
 msgid "Prefix"
@@ -1345,7 +1345,7 @@ msgstr "Prima ta cheie e gata."
 
 #: admin/pages/dashboard.php:36
 msgid "Open your AI client, paste the snippet from the modal, and try a sentence like \"list my last five published posts.\" Activity will appear in the card below as soon as your agent gets to work."
-msgstr "Deschide-ți clientul AI, lipește snippet-ul din modal și încearcă o propoziție precum „arată-mi ultimele cinci articole publicate”. Activitatea va apărea în cardul de mai jos imediat ce agentul tău se pune pe treabă."
+msgstr "Deschide clientul AI, lipește snippet-ul din modal și încearcă o propoziție precum „arată-mi ultimele cinci articole publicate”. Activitatea va apărea în cardul de mai jos imediat ce agentul tău se pune pe treabă."
 
 #: admin/pages/dashboard.php:38
 msgid "Dismiss"
@@ -1361,7 +1361,7 @@ msgstr "Mai multe opțiuni →"
 
 #: admin/pages/dashboard.php:64
 msgid "Each card describes a role your AI assistant could play on this site. Pick the one that fits and we will mint a key with the right permissions. You still review and confirm before it is created."
-msgstr "Fiecare card descrie un rol pe care asistentul tău AI l-ar putea juca pe acest site. Alege-l pe cel care ți se potrivește și vom genera o cheie cu permisiunile potrivite. Tu rămâi cel care verifică și confirmă înainte de creare."
+msgstr "Fiecare card descrie un rol pe care asistentul tău AI l-ar putea avea pe acest site. Alege-l pe cel potrivit și vom genera o cheie cu permisiunile corecte. Tu verifici și confirmi înainte să fie creată."
 
 #. translators: %d: number of permissions
 #. translators: %d: number of scopes
@@ -1522,7 +1522,7 @@ msgstr "Editează setările paginii (categorii, etichete)"
 
 #: admin/pages/help.php:26
 msgid "Draft me a 600-word starter guide about indoor plants for beginners. Friendly tone, ending with a five-point checklist. Save it as a draft under the Gardening category, and let me know when it's ready."
-msgstr "Schițează-mi un ghid de 600 de cuvinte pentru începători despre plantele de interior. Ton prietenos, încheind cu o listă de cinci puncte. Salvează-l ca ciornă în categoria Grădinărit și anunță-mă când e gata."
+msgstr "Schițează-mi un ghid de 600 de cuvinte pentru începători despre plantele de interior, pe un ton prietenos, încheiat cu o listă de cinci puncte. Salvează-l ca ciornă în categoria Grădinărit și anunță-mă când e gata."
 
 #: admin/pages/help.php:29
 msgid "three years of forgotten captions"
@@ -1534,7 +1534,7 @@ msgstr "Pune SEO-ul la punct"
 
 #: admin/pages/help.php:31
 msgid "You ask for a quiet audit of the last twenty posts — anything with a short title or missing description — and the helper writes new ones, applies them, and shows you a summary."
-msgstr "Ceri un audit liniștit al ultimelor douăzeci de articole — orice are titlul scurt sau descrierea lipsă — iar ajutorul scrie unele noi, le aplică și-ți arată un rezumat."
+msgstr "Ceri un audit discret al ultimelor douăzeci de articole — orice are titlul prea scurt sau descrierea lipsă — iar ajutorul scrie variante noi, le aplică și îți arată un rezumat."
 
 #: admin/pages/help.php:34
 msgid "Read SEO fields (Yoast)"
@@ -1550,7 +1550,7 @@ msgstr "Aruncă o privire la ultimele douăzeci de articole publicate. Găsește
 
 #: admin/pages/help.php:40
 msgid "the tab you keep meaning to open"
-msgstr "tab-ul pe care tot dai să-l deschizi"
+msgstr "tab-ul pe care tot vrei să-l deschizi"
 
 #: admin/pages/help.php:41
 msgid "Help the screen readers"
@@ -1558,7 +1558,7 @@ msgstr "Ajută cititoarele de ecran"
 
 #: admin/pages/help.php:42
 msgid "You ask for a quick site report on images without descriptions, then have the ten most-viewed ones described kindly. Before and after, side by side, for your taste."
-msgstr "Ceri un raport rapid despre imaginile fără descrieri, apoi pui să fie descrise cu grijă cele mai vizualizate zece. Înainte și după, una lângă alta, pentru gustul tău."
+msgstr "Ceri un raport rapid despre imaginile fără descrieri, apoi pui cele mai vizualizate zece imagini să fie descrise cu grijă. Înainte și după, una lângă alta, pe gustul tău."
 
 #: admin/pages/help.php:45
 msgid "Run accessibility audits"
@@ -1631,7 +1631,7 @@ msgstr "Fă și restaurează snapshot-uri"
 
 #: admin/pages/help.php:79
 msgid "Before you touch anything: take a snapshot of the home page and our three landing pages. Save the session as \"Before launch\" so I can roll back the whole thing later if I need to."
-msgstr "Înainte să atingi ceva: fă un snapshot al paginii principale și al celor trei pagini de landing. Salvează sesiunea ca „Înainte de lansare” ca să pot să dau totul înapoi mai târziu dacă e nevoie."
+msgstr "Înainte să atingi ceva: fă un snapshot al paginii principale și al celor trei pagini de landing. Salvează sesiunea ca „Înainte de lansare”, ca să pot reveni la starea inițială mai târziu, dacă e nevoie."
 
 #: admin/pages/help.php:82
 msgid "watch, then remember"
@@ -1643,7 +1643,7 @@ msgstr "Salvează o rutină pentru mai târziu"
 
 #: admin/pages/help.php:84
 msgid "You walk your helper through a workflow once — and ask them to save the steps as a recipe you can call back next week with one sentence."
-msgstr "Îl iei o dată pe ajutor pas cu pas printr-un workflow — și-i ceri să salveze pașii ca o rețetă pe care poți să o chemi săptămâna viitoare cu o singură propoziție."
+msgstr "Îți ghidezi ajutorul o singură dată printr-un workflow — și îi ceri să salveze pașii ca o rețetă pe care o poți relua săptămâna viitoare cu o singură propoziție."
 
 #: admin/pages/help.php:87
 msgid "Create and update skills"
@@ -1651,7 +1651,7 @@ msgstr "Creează și actualizează abilități"
 
 #: admin/pages/help.php:89
 msgid "Every Monday I publish a product review. Watch what I do this morning, then save the workflow as a skill called Weekly product review. Next time, when I ask for it by name, you'll know exactly what to do."
-msgstr "În fiecare luni public o recenzie de produs. Uită-te azi dimineață ce fac, apoi salvează workflow-ul ca abilitate numită Recenzia săptămânală de produs. Data viitoare, când o cer pe nume, vei ști exact ce să faci."
+msgstr "În fiecare luni public o recenzie de produs. Urmărește ce fac în această dimineață, apoi salvează workflow-ul ca abilitate numită Recenzia săptămânală de produs. Data viitoare, când o cer pe nume, vei ști exact ce să faci."
 
 #: admin/pages/help.php:92
 msgid "a one-line rewind"
@@ -1675,7 +1675,7 @@ msgstr "în terminalul tău"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "Într-un terminal, în orice folder de proiect — lipește asta și schimbă cu permisul tău."
+msgstr "Într-un terminal, în orice folder de proiect — lipește asta și înlocuiește cu permisul tău."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1707,7 +1707,7 @@ msgstr "Custom GPT · Acțiuni"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr "În builder-ul de Custom GPT, adaugă o Acțiune și indică-i acest URL. Pentru Autentificare, alege API Key → Bearer și lipește permisul tău."
+msgstr "În builder-ul Custom GPT, adaugă o Acțiune și indică acest URL. Pentru Autentificare, alege API Key → Bearer și lipește permisul tău."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
@@ -1723,7 +1723,7 @@ msgstr "nod HTTP simplu"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr "Un simplu nod HTTP rezolvă treaba — lipește acest șablon în el și schimbă cu permisul tău."
+msgstr "Un nod HTTP simplu rezolvă treaba — lipește acest șablon în el și înlocuiește cu permisul tău."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
@@ -1735,11 +1735,11 @@ msgstr "Dify, Flowise, LangChain…"
 
 #: admin/pages/help.php:144
 msgid "Point your tool at this OpenAPI schema URL with Bearer auth, and all the tools are discovered for you."
-msgstr "Îndreaptă-ți unealta către acest URL al schemei OpenAPI cu autentificare Bearer și toate instrumentele sunt descoperite pentru tine."
+msgstr "Îndreaptă tool-ul către acest URL al schemei OpenAPI, cu autentificare Bearer, iar toate instrumentele vor fi descoperite automat."
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr "Funcționează cu Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — orice vorbește fluent OpenAPI 3.0."
+msgstr "Funcționează cu Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — orice este compatibil cu OpenAPI 3.0."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
@@ -1770,7 +1770,7 @@ msgstr "Fă un permis de vizitator."
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr "Treci pe la <a href=\"%s\">sertarul cu chei</a> și alege un set de început. Bifează permisiunile pe care ți le sugerăm chiar mai jos. Copiază permisul imediat ce apare — n-o să se mai arate la față a doua oară."
+msgstr "Intră în <a href=\"%s\">sertarul cu chei</a> și alege un set de început. Bifează permisiunile sugerate mai jos. Copiază permisul imediat ce apare — nu va mai fi afișat a doua oară."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
@@ -1778,7 +1778,7 @@ msgstr "Invită-i înăuntru."
 
 #: admin/pages/help.php:201
 msgid "You don't have to write a single line yourself. Further down, pick which AI helper you use — we have the exact text already written for it. Tap copy, paste it where your helper expects, done."
-msgstr "Nu trebuie să scrii nicio linie singur. Mai jos, alege ce ajutor AI folosești — avem deja textul exact scris pentru el. Apasă copiază, lipește-l unde-l așteaptă ajutorul tău, gata."
+msgstr "Nu trebuie să scrii nicio linie singur. Mai jos, alege ce ajutor AI folosești — avem deja textul exact pregătit pentru el. Apasă Copiază, lipește-l unde îl așteaptă ajutorul tău și gata."
 
 #: admin/pages/help.php:206
 msgid "Tell them what's on your mind."
@@ -1786,7 +1786,7 @@ msgstr "Spune-le ce ai pe suflet."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "Nu trebuie să înveți cuvinte magice. Folosește micul builder de mai jos: apasă un card, copiază propoziția pe care ți-o scrie și lipește-o în ajutorul tău. De acolo, se ocupă el."
+msgstr "Nu trebuie să înveți formule speciale. Folosește micul builder de mai jos: apasă un card, copiază propoziția pe care ți-o scrie și lipește-o în chatul ajutorului tău. De acolo se ocupă el."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
@@ -1798,7 +1798,7 @@ msgstr "Alege ceva ce-ai vrea să se facă. Îți scriem noi."
 
 #: admin/pages/help.php:223
 msgid "Tap a card. We'll show you which permissions to tick when you make the pass, and we'll write a sentence you can copy straight into your helper's chat window."
-msgstr "Apasă un card. Îți arătăm ce permisiuni să bifezi când faci permisul și-ți scriem o propoziție pe care o poți copia direct în fereastra de chat a ajutorului tău."
+msgstr "Apasă un card. Îți arătăm ce permisiuni să bifezi când creezi permisul și îți scriem o propoziție pe care o poți copia direct în fereastra de chat a ajutorului tău."
 
 #: admin/pages/help.php:236
 msgid "tap to use this →"
@@ -1814,7 +1814,7 @@ msgstr "Deschide sertarul cu chei →"
 
 #: admin/pages/help.php:252
 msgid "And paste this into your helper"
-msgstr "Și lipește asta în ajutorul tău"
+msgstr "Și lipește asta în chatul ajutorului tău"
 
 #: admin/pages/help.php:269
 msgid "The wiring"
@@ -1826,7 +1826,7 @@ msgstr "Îi arăți ajutorului unde e ușa."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr "Nu trebuie să tastezi. Găsește-ți ajutorul în lista de mai jos, apasă copiază și lipește textul exact unde îți cere. Am scris totul pentru tine — adresa potrivită, salutul potrivit, forma potrivită. Cele două note de mai jos sunt acolo doar ca referință, dacă ești curios."
+msgstr "Nu trebuie să tastezi. Găsește-ți ajutorul în lista de mai jos, apasă Copiază și lipește textul exact unde ți se cere. Am pregătit totul pentru tine — adresa corectă, greeting-ul corect, formatul corect. Cele două note de mai jos sunt doar pentru referință, dacă ești curios."
 
 #: admin/pages/help.php:278
 msgid "The address"
@@ -1871,11 +1871,11 @@ msgstr "Nu. AICOM e gratuit. Ajutorul tău folosește abonamentul AI pentru care
 
 #: admin/pages/help.php:351
 msgid "Is it really safe to let a helper into the site?"
-msgstr "E chiar sigur să-l lași pe un ajutor în site?"
+msgstr "E chiar sigur să lași un ajutor să intre pe site?"
 
 #: admin/pages/help.php:352
 msgid "Safer than giving someone your password. Every pass has only the powers you grant. You can freeze the whole site with one click. Working Hours can lock helpers out at night. Everything they do is written down and reversible. You are always in charge."
-msgstr "Mai sigur decât să-i dai cuiva parola. Fiecare permis are doar puterile pe care i le acorzi. Poți îngheța tot site-ul cu un singur clic. Programul de lucru poate bloca ajutoarele afară noaptea. Tot ce fac e scris și reversibil. Tu ești mereu la cârmă."
+msgstr "Mai sigur decât să-i dai cuiva parola. Fiecare permis are doar puterile pe care le acorzi. Poți îngheța tot site-ul cu un singur clic. Programul de lucru poate bloca ajutoarele pe timpul nopții. Tot ce fac este înregistrat și reversibil. Tu ești mereu la comandă."
 
 #: admin/pages/help.php:356
 msgid "I shared a pass and now I'd like it back."
@@ -1892,7 +1892,7 @@ msgstr "Ajutorul meu primește mereu 401 sau 403. Ce nu e în regulă?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> înseamnă de obicei că permisul nu ajunge la noi. Unele servere web scot salutul — adăugând <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> în <code>.htaccess</code>-ul site-ului rezolvă treaba. <strong>403</strong> înseamnă că permisul a ajuns dar nu are voie să facă ce ceri — verifică ce ai bifat când l-ai făcut, lista de IP-uri și dacă site-ul e blocat. Jurnalul de audit îți spune care."
+msgstr "<strong>401</strong> înseamnă de obicei că permisul nu ajunge la noi. Unele servere web scot Authorization header-ul — adăugând <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> în <code>.htaccess</code>-ul site-ului rezolvi problema. <strong>403</strong> înseamnă că permisul a ajuns, dar nu are voie să facă ce ceri — verifică ce ai bifat când l-ai creat, lista de IP-uri și dacă site-ul e blocat. Jurnalul de audit îți spune exact cauza."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"
@@ -1900,7 +1900,7 @@ msgstr "Pot ține câteva permise diferite pentru lucruri diferite?"
 
 #: admin/pages/help.php:381
 msgid "Of course. One that only reads. One that can write content. One for proper admin work. Each can have its own expiry, its own IP lock, its own dry-run flag. Mix as you like."
-msgstr "Sigur. Unul care doar citește. Unul care poate scrie conținut. Unul pentru muncă de admin propriu-zisă. Fiecare poate avea propria expirare, propria blocare IP, propriul indicator de dry-run. Amestecă-le cum vrei."
+msgstr "Sigur. Unul care doar citește. Unul care poate scrie conținut. Unul pentru administrare propriu-zisă. Fiecare poate avea propria expirare, propria blocare IP și propriul flag de dry-run. Combină-le cum vrei."
 
 #: admin/pages/help.php:385
 msgid "My helper says \"no active session\". What's that?"
@@ -1908,7 +1908,7 @@ msgstr "Ajutorul meu spune „nicio sesiune activă”. Ce e asta?"
 
 #: admin/pages/help.php:386
 msgid "Anything that changes things wants to be wrapped in a named session — that's what lets you undo a whole afternoon's work with one button later. Just tell your helper \"Open a session called X, then go ahead.\" Read-only tasks don't need a session."
-msgstr "Orice schimbă lucruri vrea să fie învelit într-o sesiune cu nume — asta îți permite să anulezi mai târziu munca de-o după-amiază cu un singur buton. Spune-i ajutorului tău „Deschide o sesiune numită X, apoi dă-i drumul.” Sarcinile doar de citire nu au nevoie de sesiune."
+msgstr "Orice modificare trebuie pusă într-o sesiune cu nume — asta îți permite să anulezi mai târziu munca unei după-amiezi cu un singur buton. Spune-i ajutorului tău „Deschide o sesiune numită X, apoi continuă.” Sarcinile doar de citire nu au nevoie de sesiune."
 
 #: admin/pages/help.php:390
 msgid "How do I tidy up old snapshots?"
@@ -1917,7 +1917,7 @@ msgstr "Cum fac curat printre snapshot-urile vechi?"
 #: admin/pages/help.php:395
 #, php-format
 msgid "<a href=\"%s\">Snapshots → Cleanup settings</a>. Set a maximum age (in days), a maximum size (in MB), or both. A daily routine sweeps the older ones away. You can also delete individual snapshots by hand on the Backup Snapshots tab."
-msgstr "<a href=\"%s\">Snapshot-uri → Setări de curățare</a>. Setează o vechime maximă (în zile), o dimensiune maximă (în MB) sau ambele. O rutină zilnică le mătură pe cele mai vechi. Poți șterge și snapshot-uri individuale manual din tab-ul Snapshot-uri de backup."
+msgstr "<a href=\"%s\">Snapshot-uri → Setări de curățare</a>. Setează o vechime maximă (în zile), o dimensiune maximă (în MB) sau ambele. O rutină zilnică le elimină pe cele mai vechi. Poți șterge manual și snapshot-uri individuale din tab-ul Snapshot-uri de backup."
 
 #: admin/pages/help.php:404
 msgid "Sessions, skills — what's the difference, really?"
@@ -1934,7 +1934,7 @@ msgstr "Și dacă vreodată ceva pare în neregulă —"
 #: admin/pages/help.php:420
 #, php-format
 msgid "the <a href=\"%s\">Safety</a> page is your kill switch. Three clicks and the whole place freezes. Nothing destructive can happen without your explicit yes."
-msgstr "pagina <a href=\"%s\">Siguranță</a> e butonul tău de oprire. Trei clicuri și tot locul îngheață. Nimic distructiv nu se poate întâmpla fără un da explicit din partea ta."
+msgstr "pagina <a href=\"%s\">Siguranță</a> e kill switch-ul tău. Trei clicuri și tot site-ul îngheață. Nimic distructiv nu se poate întâmpla fără acordul tău explicit."
 
 #: admin/pages/help.php:426
 msgid "Now — try a sentence and see."
@@ -1969,7 +1969,7 @@ msgstr "Media și fișiere"
 
 #: admin/pages/modules.php:18
 msgid "WordPress media library, file upload/list/delete (with allowlist)."
-msgstr "Biblioteca media WordPress, încărcare/listare/ștergere fișiere (cu listă de permise)."
+msgstr "Biblioteca media WordPress, încărcare/listare/ștergere de fișiere (cu allowlist)."
 
 #: admin/pages/modules.php:19
 msgid "Elementor"
@@ -2078,7 +2078,7 @@ msgstr "Magazin WooCommerce: produse, prețuri, stoc, taxonomii."
 
 #: admin/pages/modules.php:33
 msgid "User accounts, snapshots, restore. The plumbing."
-msgstr "Conturi de utilizatori, snapshot-uri, restaurare. Instalația sanitară."
+msgstr "Conturi de utilizatori, snapshot-uri, restore. Partea tehnică din spate."
 
 #: admin/pages/modules.php:34
 msgid "AI Agent Tooling"
@@ -2086,11 +2086,11 @@ msgstr "Unelte pentru agenți AI"
 
 #: admin/pages/modules.php:34
 msgid "Capabilities your agents create and discover — blueprints, primitives, smoke tests."
-msgstr "Capabilități pe care agenții tăi le creează și le descoperă — blueprint-uri, primitive, smoke teste."
+msgstr "Capabilități pe care agenții tăi le creează și le descoperă — blueprint-uri, primitive, smoke tests."
 
 #: admin/pages/modules.php:47
 msgid "Everything your AI agent can do, grouped by what it's good at. Modules that depend on a parent plugin will say so."
-msgstr "Tot ce poate face agentul tău AI, grupat după ce știe să facă bine. Modulele care depind de un plugin părinte vor spune asta."
+msgstr "Tot ce poate face agentul tău AI, grupat după lucrurile la care se pricepe. Modulele care depind de un plugin părinte vor spune asta."
 
 #. translators: %1$d: active modules, %2$d: total modules in group
 #: admin/pages/modules.php:67
@@ -2228,7 +2228,7 @@ msgstr "Instrumentele de scriere, distructive și admin-sensibile sunt blocate. 
 
 #: admin/pages/safety.php:18
 msgid "All tools permitted (subject to scope and allowlist checks)."
-msgstr "Toate instrumentele permise (sub rezerva verificărilor de permisiuni și listă de permise)."
+msgstr "Toate instrumentele sunt permise (în limita verificărilor de scope și allowlist)."
 
 #: admin/pages/safety.php:24
 msgid "Safety Controls"
@@ -2266,7 +2266,7 @@ msgstr "Hard Lock are prioritate față de Soft Lock. Modificările au efect ime
 
 #: admin/pages/safety.php:86
 msgid "Agents can read and browse the site but cannot create, change, or delete anything. Safe pause button."
-msgstr "Agenții pot citi și naviga pe site dar nu pot crea, schimba sau șterge nimic. Buton de pauză sigur."
+msgstr "Agenții pot citi și naviga pe site, dar nu pot crea, modifica sau șterge nimic. Un buton de pauză sigur."
 
 #: admin/pages/safety.php:87
 msgid "Read-only mode"
@@ -2278,7 +2278,7 @@ msgstr "Activează Soft Lock"
 
 #: admin/pages/safety.php:97
 msgid "Permits <em>public</em>, <em>discovery</em>, <em>read</em> tools only. Blocks write, destructive, admin_sensitive."
-msgstr "Permite doar instrumentele <em>public</em>, <em>discovery</em>, <em>read</em>. Blochează scriere, distructive, admin_sensitive."
+msgstr "Permite doar instrumentele <em>public</em>, <em>discovery</em> și <em>read</em>. Blochează write, destructive și admin_sensitive."
 
 #: admin/pages/safety.php:103
 msgid "Total freeze. Only server.status responds. Agents are blocked from doing anything. Use when something feels wrong."

@@ -178,7 +178,7 @@ msgstr "ChatGPT (Custom GPT)"
 
 #: admin/class-admin.php:312
 msgid "Open the Custom GPT builder, add an Action, paste this URL. Set Authentication to API Key → Bearer, then paste the key above."
-msgstr "Abre o construtor de Custom GPT, adiciona uma Action e cola este URL. Define Authentication como API Key → Bearer e depois cola a chave acima."
+msgstr "Abre o builder de Custom GPT, adiciona uma Action e cola este URL. Define Authentication como API Key → Bearer e depois cola a chave acima."
 
 #: admin/class-admin.php:316
 #: admin/pages/onboarding.php:32
@@ -187,7 +187,7 @@ msgstr "Outra coisa"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Qualquer cliente compatível com MCP. Endpoint + cabeçalho Bearer, corpo do pedido de exemplo abaixo."
+msgstr "Qualquer cliente compatível com MCP. Endpoint + Bearer header, com um exemplo de request body abaixo."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -1663,7 +1663,7 @@ msgstr "no teu terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "Num terminal, dentro de qualquer pasta de projeto — cola isto e troca pelo teu passe."
+msgstr "Num terminal, dentro de qualquer pasta de projeto — cola isto e substitui pelo teu passe."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1695,7 +1695,7 @@ msgstr "Custom GPT · Actions"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr "No construtor de Custom GPT, adiciona uma Action e aponta-a para este URL. Para Authentication, escolhe API Key → Bearer e cola o teu passe."
+msgstr "No builder de Custom GPT, adiciona uma Action e aponta-a para este URL. Para Authentication, escolhe API Key → Bearer e cola o teu passe."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
@@ -1711,7 +1711,7 @@ msgstr "nó HTTP simples"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr "Um nó HTTP simples faz o trabalho — cola este modelo e troca pelo teu passe."
+msgstr "Um nó HTTP simples faz o trabalho — cola este modelo e substitui pelo teu passe."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
@@ -1723,11 +1723,11 @@ msgstr "Dify, Flowise, LangChain…"
 
 #: admin/pages/help.php:144
 msgid "Point your tool at this OpenAPI schema URL with Bearer auth, and all the tools are discovered for you."
-msgstr "Aponta a tua ferramenta para este URL de esquema OpenAPI com autenticação Bearer, e todas as ferramentas são descobertas automaticamente."
+msgstr "Aponta a tua ferramenta para este URL de esquema OpenAPI, com Bearer auth, e todas as ferramentas serão descobertas automaticamente."
 
 #: admin/pages/help.php:146
 msgid "Works with Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — anything fluent in OpenAPI 3.0."
-msgstr "Funciona com Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — qualquer coisa fluente em OpenAPI 3.0."
+msgstr "Funciona com Dify, Flowise, LangChain, Semantic Kernel, Microsoft Copilot Studio — qualquer coisa compatível com OpenAPI 3.0."
 
 #: admin/pages/help.php:163
 msgid "A short letter to start"
@@ -1758,7 +1758,7 @@ msgstr "Faz um passe de visitante."
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr "Passa pela <a href=\"%s\">gaveta das chaves</a> e escolhe um conjunto inicial. Marca as permissões que sugerimos logo abaixo. Copia o passe assim que ele aparecer — não vai mostrar a cara duas vezes."
+msgstr "Passa pela <a href=\"%s\">gaveta das chaves</a> e escolhe um conjunto inicial. Marca as permissões sugeridas logo abaixo. Copia o passe assim que ele aparecer — não será mostrado duas vezes."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
@@ -1774,11 +1774,11 @@ msgstr "Diz-lhes o que tens em mente."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "Sem palavras mágicas para aprender. Usa o pequeno construtor abaixo: carrega num cartão, copia a frase que ele escreve para ti e cola-a no teu ajudante. A partir daí, ele trata do resto."
+msgstr "Sem palavras mágicas para aprender. Usa o pequeno builder abaixo: carrega num cartão, copia a frase que ele escreve para ti e cola-a no chat do teu ajudante. A partir daí, ele trata do resto."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
-msgstr "O pequeno construtor"
+msgstr "O pequeno builder"
 
 #: admin/pages/help.php:222
 msgid "Pick a thing you'd like done. We'll write it for you."
@@ -1814,7 +1814,7 @@ msgstr "Dizer ao teu ajudante onde fica a porta."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr "Sem escrever nada. Encontra o teu ajudante na lista abaixo, carrega em copiar e cola o texto exatamente onde ele pede. Já escrevemos tudo por ti — a morada certa, a saudação certa, o formato certo. As duas notas abaixo estão lá só para referência, caso tenhas curiosidade."
+msgstr "Sem escrever nada. Encontra o teu ajudante na lista abaixo, carrega em Copiar e cola o texto exatamente onde ele pede. Já preparámos tudo por ti — a morada certa, o greeting certo, o formato certo. As duas notas abaixo estão lá só para referência, caso tenhas curiosidade."
 
 #: admin/pages/help.php:278
 msgid "The address"
@@ -1880,7 +1880,7 @@ msgstr "O meu ajudante continua a receber 401 ou 403. O que se passa?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> normalmente quer dizer que o passe não está a chegar até nós. Alguns servidores web removem a saudação — adicionar <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> ao <code>.htaccess</code> do site resolve. <strong>403</strong> quer dizer que o passe chegou mas não tem autorização para o que estás a pedir — verifica o que marcaste quando o fizeste, a lista de IPs e se o site está bloqueado. O registo de auditoria diz-te qual."
+msgstr "<strong>401</strong> normalmente quer dizer que o passe não está a chegar até nós. Alguns servidores web removem o Authorization header — adicionar <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> ao <code>.htaccess</code> do site resolve. <strong>403</strong> quer dizer que o passe chegou, mas não tem autorização para o que estás a pedir — verifica o que marcaste quando o fizeste, a lista de IPs e se o site está bloqueado. O registo de auditoria diz-te exatamente porquê."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"

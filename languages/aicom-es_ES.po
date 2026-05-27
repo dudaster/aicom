@@ -192,7 +192,7 @@ msgstr "Otra cosa"
 
 #: admin/class-admin.php:317
 msgid "Any MCP-aware client. Endpoint + Bearer header, sample request body below."
-msgstr "Cualquier cliente compatible con MCP. Endpoint + cabecera Bearer, ejemplo de cuerpo de petición abajo."
+msgstr "Cualquier cliente compatible con MCP. Endpoint + cabecera Bearer, con un ejemplo de request body abajo."
 
 #: admin/class-admin.php:324
 msgid "Key created"
@@ -1668,7 +1668,7 @@ msgstr "en tu terminal"
 
 #: admin/pages/help.php:109
 msgid "In a terminal, inside any project folder — paste this and swap in your pass."
-msgstr "En un terminal, dentro de cualquier carpeta de proyecto: pega esto y cambia tu pase."
+msgstr "En un terminal, dentro de cualquier carpeta de proyecto: pega esto y sustitúyelo por tu pase."
 
 #: admin/pages/help.php:111
 msgid "Then in any chat: \"Show me my last ten published posts via aicom.\""
@@ -1700,7 +1700,7 @@ msgstr "Custom GPT · Acciones"
 
 #: admin/pages/help.php:130
 msgid "In the Custom GPT builder, add an Action and point it at this URL. For Authentication, pick API Key → Bearer and paste your pass."
-msgstr "En el creador de Custom GPT, añade una Acción y apúntala a esta URL. Para la autenticación elige API Key → Bearer y pega tu pase."
+msgstr "En el builder de Custom GPT, añade una Acción y apúntala a esta URL. Para la autenticación elige API Key → Bearer y pega tu pase."
 
 #: admin/pages/help.php:132
 msgid "All 170+ tools are discovered for you automatically."
@@ -1716,7 +1716,7 @@ msgstr "nodo HTTP sencillo"
 
 #: admin/pages/help.php:137
 msgid "A plain HTTP node does the job — paste this template into it and swap in your pass."
-msgstr "Un nodo HTTP sencillo basta: pega esta plantilla y cambia tu pase."
+msgstr "Un nodo HTTP sencillo basta: pega esta plantilla y sustitúyela por tu pase."
 
 #: admin/pages/help.php:142
 msgid "Other OpenAPI helpers"
@@ -1763,7 +1763,7 @@ msgstr "Haz un pase de visitante."
 #: admin/pages/help.php:190
 #, php-format
 msgid "Stop by <a href=\"%s\">the keys drawer</a> and pick a starter set. Tick the permissions we suggest just below. Copy the pass the moment it appears — it won't show its face twice."
-msgstr "Pásate por <a href=\"%s\">el cajón de las claves</a> y elige un conjunto inicial. Marca los permisos que sugerimos justo debajo. Copia el pase en cuanto aparezca: no asomará la cabeza dos veces."
+msgstr "Pásate por <a href=\"%s\">el cajón de las claves</a> y elige un conjunto inicial. Marca los permisos sugeridos justo debajo. Copia el pase en cuanto aparezca: no se mostrará dos veces."
 
 #: admin/pages/help.php:200
 msgid "Show them inside."
@@ -1779,11 +1779,11 @@ msgstr "Cuéntales lo que tienes en mente."
 
 #: admin/pages/help.php:207
 msgid "No magic words to learn. Use the little builder below: tap a card, copy the sentence it writes for you, and paste it into your helper. They take it from there."
-msgstr "No hay palabras mágicas que aprender. Usa el pequeño creador de abajo: toca una tarjeta, copia la frase que escribe por ti y pégala en tu ayudante. Él se encargará del resto."
+msgstr "No hay fórmulas mágicas que aprender. Usa el pequeño builder de abajo: toca una tarjeta, copia la frase que escribe por ti y pégala en el chat de tu ayudante. Él se encargará del resto."
 
 #: admin/pages/help.php:219
 msgid "The little builder"
-msgstr "El pequeño creador"
+msgstr "El pequeño builder"
 
 #: admin/pages/help.php:222
 msgid "Pick a thing you'd like done. We'll write it for you."
@@ -1819,7 +1819,7 @@ msgstr "Decirle a tu ayudante dónde está la puerta."
 
 #: admin/pages/help.php:273
 msgid "No typing required. Find your helper in the list below, tap copy, and paste the text exactly where it asks. We've written it all for you — the right address, the right greeting, the right shape. The two notes underneath are just there for reference if you're curious."
-msgstr "No hace falta escribir. Encuentra tu ayudante en la lista de abajo, toca copiar y pega el texto justo donde te lo pida. Lo hemos escrito todo por ti: la dirección correcta, el saludo correcto, la forma correcta. Las dos notas de abajo están solo de referencia, por si tienes curiosidad."
+msgstr "No hace falta escribir. Encuentra tu ayudante en la lista de abajo, toca Copiar y pega el texto justo donde te lo pida. Lo hemos preparado todo por ti: la dirección correcta, el greeting correcto, el formato correcto. Las dos notas de abajo están solo de referencia, por si tienes curiosidad."
 
 #: admin/pages/help.php:278
 msgid "The address"
@@ -1885,7 +1885,7 @@ msgstr "Mi ayudante recibe constantemente 401 o 403. ¿Qué pasa?"
 
 #: admin/pages/help.php:373
 msgid "<strong>401</strong> usually means the pass isn't reaching us. Some web servers strip the greeting out — adding <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> to the site's <code>.htaccess</code> sets things right. <strong>403</strong> means the pass arrived but isn't allowed to do what you're asking — check what you ticked when you made it, the IP list, and whether the site is locked. The audit log tells you which."
-msgstr "<strong>401</strong> suele significar que el pase no nos está llegando. Algunos servidores web eliminan el saludo: añadir <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> al <code>.htaccess</code> del sitio lo arregla. <strong>403</strong> significa que el pase llegó pero no tiene permiso para hacer lo que pides: comprueba qué marcaste al crearlo, la lista de IPs y si el sitio está bloqueado. El registro de auditoría te dirá cuál."
+msgstr "<strong>401</strong> suele significar que el pase no nos está llegando. Algunos servidores web eliminan el Authorization header: añadir <code>SetEnvIf Authorization \"(.*)\" HTTP_AUTHORIZATION=$1</code> al <code>.htaccess</code> del sitio lo arregla. <strong>403</strong> significa que el pase llegó, pero no tiene permiso para hacer lo que pides: comprueba qué marcaste al crearlo, la lista de IPs y si el sitio está bloqueado. El registro de auditoría te dirá exactamente por qué."
 
 #: admin/pages/help.php:380
 msgid "Can I keep a few different passes for different things?"
