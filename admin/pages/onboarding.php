@@ -12,6 +12,11 @@ $skip_form_url  = admin_url( 'admin-post.php' );
 // Client cards. The wizard saves the chosen one to localStorage so the
 // key-created modal pre-selects it at the end.
 $clients = [
+    'general' => [
+        'name'        => __( 'General', 'aicom' ),
+        'tag'         => __( 'Works with any MCP-aware agent', 'aicom' ),
+        'recommended' => true,
+    ],
     'claude-desktop' => [
         'name' => __( 'Claude Desktop', 'aicom' ),
         'tag'  => __( 'A desktop chat app', 'aicom' ),
@@ -64,7 +69,10 @@ $gentle_presets = array_intersect_key(
 
         <div class="aicom-onboarding-clients" id="aicom-onboarding-clients">
             <?php foreach ( $clients as $key => $c ) : ?>
-                <button type="button" class="aicom-onboarding-client" data-client="<?php echo esc_attr( $key ); ?>">
+                <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
+                    <?php if ( ! empty( $c['recommended'] ) ) : ?>
+                        <span class="aicom-onboarding-client-badge"><?php esc_html_e( 'Recommended', 'aicom' ); ?></span>
+                    <?php endif; ?>
                     <span class="aicom-onboarding-client-name"><?php echo esc_html( $c['name'] ); ?></span>
                     <span class="aicom-onboarding-client-tag"><?php echo esc_html( $c['tag'] ); ?></span>
                 </button>
@@ -132,12 +140,23 @@ $gentle_presets = array_intersect_key(
     var buttons = document.querySelectorAll('.aicom-onboarding-client');
     var nextBtn = document.getElementById('aicom-onboarding-next-1');
 
-    // Restore previous pick if user navigates back.
+    // Restore previous pick if user navigates back; otherwise pre-select
+    // the recommended option so users who tap Next without choosing still
+    // get a sensible default ("General" works with any MCP-aware agent).
     var saved = null;
     try { saved = localStorage.getItem('aicom_pref_client'); } catch (e) {}
+    var picked = false;
     if (saved) {
         buttons.forEach(function (b) {
-            if (b.dataset.client === saved) b.classList.add('is-active');
+            if (b.dataset.client === saved) { b.classList.add('is-active'); picked = true; }
+        });
+    }
+    if (!picked) {
+        buttons.forEach(function (b) {
+            if (b.dataset.recommended === '1') {
+                b.classList.add('is-active');
+                try { localStorage.setItem('aicom_pref_client', b.dataset.client); } catch (e) {}
+            }
         });
     }
 

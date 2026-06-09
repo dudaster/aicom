@@ -2986,6 +2986,23 @@ body.aicom-fullscreen {
     font-size: 0.82em;
     color: var(--aicom-text-sm);
 }
+.aicom-onboarding-client.is-recommended {
+    position: relative;
+}
+.aicom-onboarding-client-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--aicom-primary);
+    color: #fff;
+    font-size: 0.65em;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1.4;
+}
 /* Onboarding step 2 reuses the same .aicom-preset-card markup as the
    Dashboard Quick Generation. Layout overrides put the cards in a single
    column with a few small tweaks. */

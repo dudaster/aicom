@@ -93,6 +93,33 @@ class AICOM_Tool_Router {
             $arguments = (array) ( $payload['arguments'] ?? $payload['params'] ?? [] );
         }
 
+        // ── MCP handshake methods ─────────────────────────────────────────
+        // Handled before lock/auth/session so strict MCP clients can complete
+        // their initialize handshake. No tool is invoked, no state is mutated.
+        if ( $rpc_method === 'initialize' ) {
+            return self::jsonrpc_wrap( [
+                'protocolVersion' => '2024-11-05',
+                'capabilities'    => [
+                    'tools' => [ 'listChanged' => false ],
+                ],
+                'serverInfo'      => [
+                    'name'    => 'AICOM',
+                    'version' => defined( 'AICOM_VERSION' ) ? AICOM_VERSION : '0.0.0',
+                ],
+                'instructions'    => 'Call tools/list to discover available tools. Before any write/destructive/admin_sensitive tool, call session.open(name, description). Read/discovery tools work without a session.',
+                'request_id'      => $request_id,
+            ], $rpc_id );
+        }
+
+        if ( $rpc_method === 'notifications/initialized' ) {
+            // Notification — no response body. Some clients still expect a 200.
+            return self::jsonrpc_wrap( [ 'request_id' => $request_id ], $rpc_id );
+        }
+
+        if ( $rpc_method === 'ping' ) {
+            return self::jsonrpc_wrap( [ 'request_id' => $request_id ], $rpc_id );
+        }
+
         if ( $tool_name === '' ) {
             return self::early_error( 'parse_error', 'Missing tool name', 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
         }
@@ -178,7 +205,7 @@ class AICOM_Tool_Router {
                     $request_id, $remote_ip, $key_id, $key_label,
                     $tool_name, $tool_module,
                     'NO_ACTIVE_SESSION',
-                    'Open a session first: session.open(name: "Describe what you\'re about to do")',
+                    'REQUIRED — not optional. Open a session first: session.open(name: "Short label", description: "What you plan to do and why"). Read/discovery tools work without a session.',
                     'validation_failed', 400, $arguments, $start, $rpc_id
                 );
             }

@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.8.3
+Stable tag: 3.8.4
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,12 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.8.4 =
+
+* MCP standard handshake — `initialize`, `notifications/initialized`, and `ping` now return spec-compliant responses, so strict MCP clients can connect.
+* Onboarding wizard pre-selects a new General option marked Recommended — works with any MCP-aware agent without per-client config.
+* Clearer error message when a write is attempted without an active session.
 
 = 3.8.3 =
 
