@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.8.4
+Stable tag: 3.8.5
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.8.5 =
+
+* Fixed audit log table missing `session_id` column on fresh installs — every request was failing the INSERT silently, leaving the Activity tab empty. The fix repairs existing installs automatically on update.
+* New AICOM-Only Mode (Safety page, default off) — blocks Application Passwords, XML-RPC, and unsigned REST writes so AI agents can only modify the site through AICOM. Recommended at onboarding.
 
 = 3.8.4 =
 

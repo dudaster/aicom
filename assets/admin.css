@@ -3040,6 +3040,36 @@ body.aicom-fullscreen {
     color: var(--aicom-text-md);
     font-style: italic;
 }
+.aicom-onboarding-lockdown {
+    margin: 14px 0 0;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1.5px solid var(--aicom-border);
+    border-radius: 8px;
+}
+.aicom-onboarding-lockdown-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+.aicom-onboarding-lockdown-row input[type="checkbox"] {
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+.aicom-onboarding-lockdown-row strong {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    color: var(--aicom-ink);
+    margin-bottom: 4px;
+}
+.aicom-onboarding-lockdown-desc {
+    display: block;
+    font-size: 0.85em;
+    color: var(--aicom-text-sm);
+    line-height: 1.45;
+}
 .aicom-onboarding-error {
     margin: 0 0 14px;
     padding: 10px 14px;

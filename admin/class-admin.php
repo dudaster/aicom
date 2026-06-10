@@ -595,6 +595,11 @@ class AICOM_Admin {
                 );
                 break;
 
+            case 'set_lockdown':
+                AICOM_Lockdown::set_enabled( ! empty( $_POST['lockdown_mode'] ) );
+                wp_safe_redirect( add_query_arg( 'updated', 'lockdown', admin_url( 'admin.php?page=aicom-safety' ) ) );
+                exit;
+
             case 'generate_pairing_token':
                 // One-time bootstrap token for AICOM Hub pairing (PRD §16.2).
                 // Plaintext is stashed in a short-lived transient so the next
@@ -630,6 +635,9 @@ class AICOM_Admin {
 
             case 'complete_onboarding':
                 $preset_slug = sanitize_key( wp_unslash( $_POST['preset'] ?? '' ) );
+                if ( ! empty( $_POST['enable_lockdown'] ) ) {
+                    AICOM_Lockdown::set_enabled( true );
+                }
                 $this->handle_complete_onboarding( $preset_slug );
                 break;
 

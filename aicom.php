@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.8.4
+ * Version:           3.8.5
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.8.4' );
+define( 'AICOM_VERSION', '3.8.5' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -98,6 +98,12 @@ add_action( 'plugins_loaded', function (): void {
 }, 1 );
 
 add_action( 'plugins_loaded', 'aicom_boot', 5 );
+
+// AICOM-only mode (off by default): closes Application Passwords, XML-RPC, and
+// unsigned REST writes so AI agents can only modify the site through AICOM.
+// Registered on plugins_loaded so the xmlrpc_methods filter is in place before
+// wp_xmlrpc_server applies it during set_callbacks().
+add_action( 'plugins_loaded', [ 'AICOM_Lockdown', 'bootstrap' ], 1 );
 
 function aicom_boot(): void {
     // Fallback: schedule cron if plugin was already active before this version

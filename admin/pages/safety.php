@@ -270,6 +270,41 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
         </div>
     </div>
 
+    <!-- AICOM-Only Mode (Lockdown) -->
+    <?php
+    $lockdown_on = AICOM_Lockdown::is_enabled();
+    $lockdown_just_updated = isset( $_GET['updated'] ) && $_GET['updated'] === 'lockdown';
+    ?>
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'AICOM-Only Mode', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo $lockdown_on ? 'aicom-badge-success' : ''; ?>">
+                <?php echo $lockdown_on ? esc_html__( 'On', 'aicom' ) : esc_html__( 'Off', 'aicom' ); ?>
+            </span>
+        </div>
+        <div class="aicom-card-body">
+            <?php if ( $lockdown_just_updated ) : ?>
+                <div class="notice notice-success inline" style="margin:0 0 14px"><p><?php esc_html_e( 'AICOM-Only Mode setting saved.', 'aicom' ); ?></p></div>
+            <?php endif; ?>
+            <p style="margin:0 0 14px;color:var(--aicom-text-sm);font-size:0.92em">
+                <?php esc_html_e( 'When ON, the only way to change content from outside the wp-admin interface is through AICOM. Application Passwords are disabled, XML-RPC is disabled, and unsigned REST writes are refused. Every edit goes through a scope-checked, session-tracked, audited tool call.', 'aicom' ); ?>
+            </p>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0">
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <input type="hidden" name="action" value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="set_lockdown" />
+                <label class="aicom-toggle-row" style="display:flex;align-items:center;gap:10px">
+                    <input type="checkbox" name="lockdown_mode" value="1" <?php checked( $lockdown_on ); ?> />
+                    <span><strong><?php esc_html_e( 'Block external write paths (Application Passwords, XML-RPC, unsigned REST writes)', 'aicom' ); ?></strong></span>
+                </label>
+                <p style="margin:10px 0 16px;color:var(--aicom-text-sm);font-size:0.85em">
+                    <?php esc_html_e( 'wp-admin and Gutenberg keep working — they send a wp_rest nonce that we honor. Only anonymous or password-only writes are refused.', 'aicom' ); ?>
+                </p>
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Save', 'aicom' ); ?></button>
+            </form>
+        </div>
+    </div>
+
     <!-- Hub Pairing (PRD §16.2) -->
     <?php
     $pairing_token = ! empty( $_GET['pairing_generated'] ) ? get_transient( 'aicom_new_pairing_token' ) : '';

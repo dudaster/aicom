@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.6';
+    const DB_VERSION    = '4.7';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -118,6 +118,18 @@ class AICOM_DB {
             $wpdb->show_errors();
         }
 
+        // v4.7: SHOW COLUMNS-based defensive migration. Earlier versions had a
+        // race in install() where run_migrations() ran before create_tables(),
+        // so on a fresh install the ALTER TABLE statements that should have
+        // added session_id failed (table didn't exist yet), then create_tables
+        // ran with an older schema that lacked session_id, then VERSION_OPT
+        // was bumped to current — so the v4.3 migration above never ran again.
+        // Result: anconav.ro and any other fresh install of 3.x had a logs
+        // table missing session_id, which made every audit log insert fail
+        // silently. This block fixes that regardless of stored version.
+        self::ensure_column( 'aicom_logs',    'session_id', 'BIGINT UNSIGNED NULL AFTER request_id' );
+        self::ensure_column( 'aicom_backups', 'session_id', 'BIGINT UNSIGNED NULL AFTER request_id' );
+
         // v4.0: rename tables from acl_* → aicom_* (second rebrand).
         if ( version_compare( $current, '4.0', '<' ) ) {
             $wpdb->hide_errors();
@@ -137,6 +149,39 @@ class AICOM_DB {
 
             $wpdb->show_errors();
         }
+    }
+
+    /**
+     * Idempotent column add. Checks SHOW COLUMNS (works on any MySQL/MariaDB
+     * version, unlike `ADD COLUMN IF NOT EXISTS` which requires MySQL ≥ 8.0.29
+     * or MariaDB). Also creates an index on the new column.
+     *
+     * @param string $table_short e.g. 'aicom_logs' (without prefix)
+     * @param string $column      column name
+     * @param string $spec        SQL type + position (e.g. 'BIGINT UNSIGNED NULL AFTER request_id')
+     */
+    private static function ensure_column( string $table_short, string $column, string $spec ): void {
+        global $wpdb;
+        $table = $wpdb->prefix . $table_short;
+
+        // Table must exist; otherwise create_tables() will build it correctly
+        // a moment later with the column included.
+        $table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+        if ( $table_exists !== $table ) {
+            return;
+        }
+
+        $exists = $wpdb->get_results( $wpdb->prepare( "SHOW COLUMNS FROM `{$table}` LIKE %s", $column ) );
+        if ( ! empty( $exists ) ) {
+            return;
+        }
+
+        $wpdb->hide_errors();
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- table/column/spec are internal, not user input
+        $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$spec}" );
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+        $wpdb->query( "ALTER TABLE `{$table}` ADD INDEX `idx_{$column}` (`{$column}`)" );
+        $wpdb->show_errors();
     }
 
     private static function create_tables(): void {
@@ -170,6 +215,7 @@ class AICOM_DB {
             id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at          DATETIME        NOT NULL,
             request_id          VARCHAR(64)     NOT NULL,
+            session_id          BIGINT UNSIGNED NULL,
             remote_ip           VARCHAR(45)     NOT NULL,
             api_key_id          BIGINT UNSIGNED NULL,
             api_key_label       VARCHAR(191)    NULL,
@@ -193,6 +239,7 @@ class AICOM_DB {
             KEY idx_ip_created       (remote_ip, created_at),
             KEY idx_key_created      (api_key_id, created_at),
             KEY idx_request_id       (request_id),
+            KEY idx_session_id       (session_id),
             KEY idx_tool_class       (tool_class)
         ) $charset;";
 
@@ -201,6 +248,7 @@ class AICOM_DB {
             id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             created_at    DATETIME        NOT NULL,
             request_id    VARCHAR(64)     NULL,
+            session_id    BIGINT UNSIGNED NULL,
             api_key_id    BIGINT UNSIGNED NULL,
             tool_name     VARCHAR(191)    NULL,
             target_type   VARCHAR(64)     NULL,
@@ -209,6 +257,7 @@ class AICOM_DB {
             payload_json  LONGTEXT        NULL,
             PRIMARY KEY (id),
             KEY idx_created_at (created_at),
+            KEY idx_session_id (session_id),
             KEY idx_target     (target_type, target_id)
         ) $charset;";
 

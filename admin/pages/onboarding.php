@@ -122,6 +122,18 @@ $gentle_presets = array_intersect_key(
 
             <p class="aicom-onboarding-tip"><?php esc_html_e( "Tip — start safe. You can always make a more powerful key once you trust your agent.", 'aicom' ); ?></p>
 
+            <div class="aicom-onboarding-lockdown">
+                <label class="aicom-onboarding-lockdown-row">
+                    <input type="checkbox" name="enable_lockdown" value="1" checked />
+                    <span>
+                        <strong><?php esc_html_e( 'Block external write paths — recommended', 'aicom' ); ?></strong>
+                        <span class="aicom-onboarding-lockdown-desc">
+                            <?php esc_html_e( "Closes Application Passwords, XML-RPC, and unsigned REST writes. Your AI agent must go through AICOM to change anything — every edit is scope-checked, session-tracked, and audited. wp-admin and Gutenberg keep working normally. You can flip this off any time on the Safety page.", 'aicom' ); ?>
+                        </span>
+                    </span>
+                </label>
+            </div>
+
             <div class="aicom-onboarding-actions">
                 <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-onboarding&step=1' ) ); ?>" class="aicom-onboarding-back">← <?php esc_html_e( 'Back', 'aicom' ); ?></a>
                 <button type="submit" class="button button-primary button-hero"><?php esc_html_e( 'Generate my first key →', 'aicom' ); ?></button>
