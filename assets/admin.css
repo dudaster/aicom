@@ -1472,6 +1472,15 @@ button.aicom-preset-card {
     letter-spacing: -0.2px;
 }
 .aicom-tree-scope-row .aicom-risk-badge { justify-self: end; }
+.aicom-scope-implied-hint {
+    grid-column: 2 / -1;
+    font-size: 0.74em;
+    font-style: italic;
+    color: var(--aicom-primary);
+    line-height: 1.3;
+    margin-top: -2px;
+}
+.aicom-scope-implied-hint[hidden] { display: none; }
 
 /* ── Kebab menu ─────────────────────────────────────────────────────────── */
 .aicom-km { position: relative; display: inline-block; }

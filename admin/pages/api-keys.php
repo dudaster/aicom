@@ -19,6 +19,15 @@ if ( $edited ) {
 // ── Scope tree (single source of truth: AICOM_Auth::scope_tree) ────────────
 $scope_tree      = AICOM_Auth::scope_tree();
 $scope_tree_flat = AICOM_Auth::scope_flat();
+
+// Implications map for UI hints — when a manage.X checkbox is ticked, the
+// matching read.X row gets a small "included automatically" note rendered
+// underneath so users see the relationship.
+$scope_implications = AICOM_Auth::scope_implications();
+$scope_implied_by   = [];
+foreach ( $scope_implications as $write_scope => $implied_read ) {
+    $scope_implied_by[ $implied_read ][] = $write_scope;
+}
 $all_scope_keys  = AICOM_Auth::scope_slugs();
 
 // ── System presets ─────────────────────────────────────────────────────────
@@ -179,7 +188,9 @@ $keys = $wpdb->get_results(
                                     </div>
                                     <div class="aicom-tree-group-body">
                                     <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
-                                        <label class="aicom-tree-scope-row" data-scope="<?php echo esc_attr( $scope_key ); ?>">
+                                        <label class="aicom-tree-scope-row"
+                                               data-scope="<?php echo esc_attr( $scope_key ); ?>"
+                                               <?php if ( isset( $scope_implications[ $scope_key ] ) ) : ?>data-implies="<?php echo esc_attr( $scope_implications[ $scope_key ] ); ?>"<?php endif; ?>>
                                             <input type="checkbox" name="scopes[]"
                                                    value="<?php echo esc_attr( $scope_key ); ?>"
                                                    class="aicom-scope-cb"
@@ -187,6 +198,11 @@ $keys = $wpdb->get_results(
                                             <span class="aicom-tree-scope-label"><?php echo esc_html( $scope_label ); ?></span>
                                             <code class="aicom-tree-scope-code"><?php echo esc_html( $scope_key ); ?></code>
                                             <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $scope_risk ); ?>"><?php echo esc_html( strtoupper( $scope_risk ) ); ?></span>
+                                            <?php if ( isset( $scope_implied_by[ $scope_key ] ) ) : ?>
+                                                <span class="aicom-scope-implied-hint" data-implied-by="<?php echo esc_attr( implode( ',', $scope_implied_by[ $scope_key ] ) ); ?>" hidden>
+                                                    <?php esc_html_e( '(included automatically when the matching manage scope is ticked)', 'aicom' ); ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </label>
                                     <?php endforeach; ?>
                                     </div>
@@ -513,7 +529,9 @@ $keys = $wpdb->get_results(
                                         </div>
                                         <div class="aicom-tree-group-body">
                                         <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
-                                            <label class="aicom-tree-scope-row" data-scope="<?php echo esc_attr( $scope_key ); ?>">
+                                            <label class="aicom-tree-scope-row"
+                                                   data-scope="<?php echo esc_attr( $scope_key ); ?>"
+                                                   <?php if ( isset( $scope_implications[ $scope_key ] ) ) : ?>data-implies="<?php echo esc_attr( $scope_implications[ $scope_key ] ); ?>"<?php endif; ?>>
                                                 <input type="checkbox" name="scopes[]"
                                                        value="<?php echo esc_attr( $scope_key ); ?>"
                                                        class="aicom-scope-cb"
@@ -521,6 +539,11 @@ $keys = $wpdb->get_results(
                                                 <span class="aicom-tree-scope-label"><?php echo esc_html( $scope_label ); ?></span>
                                                 <code class="aicom-tree-scope-code"><?php echo esc_html( $scope_key ); ?></code>
                                                 <span class="aicom-risk-badge aicom-risk-<?php echo esc_attr( $scope_risk ); ?>"><?php echo esc_html( strtoupper( $scope_risk ) ); ?></span>
+                                                <?php if ( isset( $scope_implied_by[ $scope_key ] ) ) : ?>
+                                                    <span class="aicom-scope-implied-hint" data-implied-by="<?php echo esc_attr( implode( ',', $scope_implied_by[ $scope_key ] ) ); ?>" hidden>
+                                                        <?php esc_html_e( '(included automatically when the matching manage scope is ticked)', 'aicom' ); ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </label>
                                         <?php endforeach; ?>
                                         </div>

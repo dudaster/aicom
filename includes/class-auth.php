@@ -52,12 +52,15 @@ class AICOM_Auth {
                 'manage.backups'            => [ __( 'Backup & restore data',        'aicom' ), 'high' ],
             ],
             __( 'Integrations', 'aicom' ) => [
-                'manage.woocommerce.products' => [ __( 'WooCommerce products',     'aicom' ), 'med' ],
-                'manage.woocommerce.settings' => [ __( 'WooCommerce settings',     'aicom' ), 'high' ],
-                'manage.elementor'            => [ __( 'Elementor pages & widgets', 'aicom' ), 'med' ],
-                'manage.polylang'             => [ __( 'Polylang translations',     'aicom' ), 'med' ],
-                'manage.yoast'                => [ __( 'Yoast SEO fields',         'aicom' ), 'med' ],
-                'manage.clautron'             => [ __( 'Clautron blueprints',      'aicom' ), 'med' ],
+                'read.woocommerce'            => [ __( 'Read WooCommerce data (products, categories, settings)', 'aicom' ), 'low' ],
+                'manage.woocommerce.products' => [ __( 'Manage WooCommerce products',     'aicom' ), 'med' ],
+                'manage.woocommerce.settings' => [ __( 'Manage WooCommerce settings',     'aicom' ), 'high' ],
+                'read.elementor'              => [ __( 'Read Elementor pages and widgets', 'aicom' ), 'low' ],
+                'manage.elementor'            => [ __( 'Edit Elementor pages and widgets', 'aicom' ), 'med' ],
+                'read.polylang'               => [ __( 'Read Polylang languages and translation links', 'aicom' ), 'low' ],
+                'manage.polylang'             => [ __( 'Manage Polylang translations',    'aicom' ), 'med' ],
+                'manage.yoast'                => [ __( 'Edit Yoast SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
+                'manage.clautron'             => [ __( 'Edit Clautron blueprints (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
             ],
         ];
     }
@@ -389,7 +392,8 @@ class AICOM_Auth {
             return true;
         }
 
-        $key_scopes = json_decode( $key_record['scopes_json'], true ) ?: [];
+        $key_scopes  = json_decode( $key_record['scopes_json'], true ) ?: [];
+        $key_scopes  = self::expand_implied_scopes( $key_scopes );
 
         foreach ( $required_scopes as $scope ) {
             if ( ! in_array( $scope, $key_scopes, true ) ) {
@@ -398,6 +402,40 @@ class AICOM_Auth {
         }
 
         return true;
+    }
+
+    /**
+     * Expand a key's declared scopes with implied ones so a write-level scope
+     * automatically grants the matching read-level scope. Keeps old keys
+     * (issued before read.* scopes for integrations existed) working without
+     * forcing the user to re-mint them.
+     *
+     * Implication rule: holding any `manage.*` (or `write.*`/`delete.*`) on an
+     * integration also satisfies `read.<integration>`.
+     */
+    public static function expand_implied_scopes( array $scopes ): array {
+        $implications = self::scope_implications();
+
+        foreach ( $implications as $write_scope => $implied_read ) {
+            if ( in_array( $write_scope, $scopes, true ) && ! in_array( $implied_read, $scopes, true ) ) {
+                $scopes[] = $implied_read;
+            }
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * Map of write-level scope → implied read scope. Single source of truth so
+     * both check_scopes() and the admin UI hint stay aligned.
+     */
+    public static function scope_implications(): array {
+        return [
+            'manage.woocommerce.products' => 'read.woocommerce',
+            'manage.woocommerce.settings' => 'read.woocommerce',
+            'manage.elementor'            => 'read.elementor',
+            'manage.polylang'             => 'read.polylang',
+        ];
     }
 
     // ── Request Parsing ───────────────────────────────────────────────────

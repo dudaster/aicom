@@ -169,7 +169,23 @@
             $('.aicom-preset-card').removeClass('is-active');
             $('.aicom-preset-card[data-preset="custom"]').addClass('is-active');
             updateGroupCounts();
+            updateImpliedHints();
         });
+
+        // ── Implied-by hints: when a manage.X checkbox is ticked, reveal the
+        //    small "included automatically" note under the matching read.X row.
+        //    Server side already implies it; this just makes the link visible.
+        function updateImpliedHints() {
+            $('.aicom-scope-implied-hint').each(function () {
+                var $hint   = $(this);
+                var impliers = ($hint.attr('data-implied-by') || '').split(',').filter(Boolean);
+                var any = impliers.some(function (slug) {
+                    return $('.aicom-tree-scope-row[data-scope="' + slug + '"] input.aicom-scope-cb:checked').length > 0;
+                });
+                $hint.attr('hidden', any ? null : 'hidden');
+            });
+        }
+        updateImpliedHints();
 
         // ── Scope search filter ─────────────────────────────────────────────
         $('#aicom-scope-search').on('input', function () {

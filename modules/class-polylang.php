@@ -11,11 +11,12 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
     public function register_tools(): void {
         $dep    = 'polylang';
-        $scopes = 'manage.polylang';
+        $read   = 'read.polylang';
+        $manage = 'manage.polylang';
 
         $this->register( 'pll.languages.list', [
             'class'           => 'discovery',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'List all registered Polylang languages.',
             'input_schema'    => [],
@@ -24,7 +25,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.post.get_language', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'Get the language of a post.',
             'input_schema'    => [
@@ -35,7 +36,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.post.set_language', [
             'class'           => 'write',
-            'required_scopes' => [ 'write.wp.posts', $scopes ],
+            'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
             'description'     => 'Set the language of a post.',
             'input_schema'    => [
@@ -47,7 +48,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.post.get_translations', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'Get all translations linked to a post.',
             'input_schema'    => [
@@ -58,7 +59,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.post.link_translation', [
             'class'           => 'admin_sensitive',
-            'required_scopes' => [ 'write.wp.posts', $scopes ],
+            'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
             'description'     => 'Link posts as translations. Pass translations as {"en": 123, "ro": 456, "uk": 789}. Existing group members not mentioned are preserved.',
             'input_schema'    => [
@@ -70,7 +71,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.post.unlink_translation', [
             'class'           => 'admin_sensitive',
-            'required_scopes' => [ 'write.wp.posts', $scopes ],
+            'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
             'description'     => 'Unlink a post from its translations group (confirm=true required).',
             'input_schema'    => [
@@ -82,7 +83,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.get_language', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'Get the language of a term.',
             'input_schema'    => [
@@ -93,7 +94,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.set_language', [
             'class'           => 'write',
-            'required_scopes' => [ 'manage.taxonomies', $scopes ],
+            'required_scopes' => [ 'manage.taxonomies', $manage ],
             'dependency'      => $dep,
             'description'     => 'Set the language of a term.',
             'input_schema'    => [
@@ -105,7 +106,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.get_translations', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'Get all term translations.',
             'input_schema'    => [
@@ -116,7 +117,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.strings.list', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'List WordPress core strings with their current translations per language. Works on Polylang free and Pro.',
             'input_schema'    => [],
@@ -125,7 +126,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.string.get', [
             'class'           => 'read',
-            'required_scopes' => [ 'read.wp', $scopes ],
+            'required_scopes' => [ 'read.wp', $read ],
             'dependency'      => $dep,
             'description'     => 'Get a WordPress core string and all its Polylang translations. Use wp_option (e.g. "blogdescription") or name+group.',
             'input_schema'    => [
@@ -138,7 +139,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.string.set', [
             'class'            => 'write',
-            'required_scopes'  => [ 'write.wp.posts', $scopes ],
+            'required_scopes'  => [ 'write.wp.posts', $manage ],
             'supports_dry_run' => true,
             'dependency'       => $dep,
             'description'      => 'Set the Polylang translation of a string for a specific language. Works on free and Pro. Use wp_option for WordPress core strings.',
@@ -154,7 +155,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.link_translation', [
             'class'           => 'admin_sensitive',
-            'required_scopes' => [ 'manage.taxonomies', $scopes ],
+            'required_scopes' => [ 'manage.taxonomies', $manage ],
             'dependency'      => $dep,
             'description'     => 'Link terms as translations. Pass translations as {"en": 5, "ro": 8, "uk": 11}. Existing group members not mentioned are preserved.',
             'input_schema'    => [

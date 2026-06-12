@@ -16,7 +16,7 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         // ── Products ───────────────────────────────────────────────────────
         $this->register( 'wc.products.list', [
             'class'           => 'read',
-            'required_scopes' => [ $rs . '.products' ],
+            'required_scopes' => [ 'read.woocommerce' ],
             'dependency'      => $dep,
             'description'     => 'List WooCommerce products.',
             'input_schema'    => [
@@ -30,7 +30,7 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
 
         $this->register( 'wc.products.get', [
             'class'           => 'read',
-            'required_scopes' => [ $rs . '.products' ],
+            'required_scopes' => [ 'read.woocommerce' ],
             'dependency'      => $dep,
             'description'     => 'Get a WooCommerce product by ID.',
             'input_schema'    => [
@@ -152,7 +152,7 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         // ── Categories ─────────────────────────────────────────────────────
         $this->register( 'wc.categories.list', [
             'class'           => 'read',
-            'required_scopes' => [ $rs . '.products' ],
+            'required_scopes' => [ 'read.woocommerce' ],
             'dependency'      => $dep,
             'description'     => 'List WooCommerce product categories.',
             'input_schema'    => [],
@@ -201,7 +201,7 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         // ── Settings ───────────────────────────────────────────────────────
         $this->register( 'wc.settings.get', [
             'class'           => 'read',
-            'required_scopes' => [ $rs . '.settings' ],
+            'required_scopes' => [ 'read.woocommerce' ],
             'dependency'      => $dep,
             'description'     => 'Get a WooCommerce setting value (allowlist enforced).',
             'input_schema'    => [

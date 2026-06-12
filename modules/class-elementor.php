@@ -14,7 +14,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
 
         $this->register( 'elementor.page.get_tree', [
             'class'           => 'read',
-            'required_scopes' => [ 'manage.elementor' ],
+            'required_scopes' => [ 'read.elementor' ],
             'dependency'      => $dep,
             'description'     => 'Get Elementor page structure as parsed JSON tree.',
             'input_schema'    => [
@@ -25,7 +25,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
 
         $this->register( 'elementor.page.get_texts', [
             'class'           => 'read',
-            'required_scopes' => [ 'manage.elementor' ],
+            'required_scopes' => [ 'read.elementor' ],
             'dependency'      => $dep,
             'description'     => 'Extract all text fields (title, editor, button_text, etc.) from Elementor widgets.',
             'input_schema'    => [
@@ -89,7 +89,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
 
         $this->register( 'elementor.page.validate', [
             'class'           => 'read',
-            'required_scopes' => [ 'manage.elementor' ],
+            'required_scopes' => [ 'read.elementor' ],
             'dependency'      => $dep,
             'description'     => 'Validate Elementor JSON structure for a post. Returns element_count.',
             'input_schema'    => [
