@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.8.5
+Stable tag: 3.8.6
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.8.6 =
+
+* New read-only scopes for Polylang, WooCommerce, and Elementor — grant an agent the ability to inspect data from these integrations without giving it write access.
+* The Connect AI Agents form shows a small "included automatically" note under each read scope when its matching manage scope is ticked, so the implication is visible.
 
 = 3.8.5 =
 
