@@ -106,7 +106,19 @@ class AICOM_Tool_Router {
                     'name'    => 'AICOM',
                     'version' => defined( 'AICOM_VERSION' ) ? AICOM_VERSION : '0.0.0',
                 ],
-                'instructions'    => 'Call tools/list to discover available tools. Before any write/destructive/admin_sensitive tool, call session.open(name, description). Read/discovery tools work without a session.',
+                'instructions'    => implode( "\n", [
+                    'ALWAYS start with these 3 calls in order:',
+                    '1. tools/list  →  {"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}',
+                    '2. aicom.recipes(task:"what you want to do")  →  get step-by-step guidance scoped to your key',
+                    '3. session.open(name:"label", description:"what and why")  →  required before any write tool',
+                    '',
+                    'Errors:',
+                    '  NO_ACTIVE_SESSION  → do step 3 first',
+                    '  TOOL_NOT_FOUND     → do step 1; call aicom.recipes for task guidance',
+                    '  DENIED_SCOPE       → your key lacks the required scope; ask the site admin',
+                    '  SOFT_LOCK_ACTIVE   → site is read-only; only read/discovery tools work',
+                    '  CONFIRM_REQUIRED   → add "confirm":true to arguments',
+                ] ),
                 'request_id'      => $request_id,
             ], $rpc_id );
         }
@@ -214,7 +226,11 @@ class AICOM_Tool_Router {
 
         // ── Step 4: Tool exists ───────────────────────────────────────────
         if ( $tool_meta === null ) {
-            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'TOOL_NOT_FOUND', "Tool not found: $tool_name", 'error', 404, $arguments, $start, $rpc_id );
+            $suggestions = self::suggest_tools( $tool_name );
+            $hint = $suggestions
+                ? "Tool not found: $tool_name. Did you mean: " . implode( ', ', $suggestions ) . '? Call tools/list to see all tools.'
+                : "Tool not found: $tool_name. Call tools/list to see all tools, or aicom.recipes for task guidance.";
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'TOOL_NOT_FOUND', $hint, 'error', 404, $arguments, $start, $rpc_id );
         }
 
         // ── Step 5: Dependency check ──────────────────────────────────────
@@ -564,6 +580,19 @@ class AICOM_Tool_Router {
         }
 
         return $remote_addr;
+    }
+
+    private static function suggest_tools( string $bad_name ): array {
+        $all   = array_keys( AICOM_Tool_Registry::get_all() );
+        $found = [];
+        foreach ( $all as $name ) {
+            similar_text( $bad_name, $name, $pct );
+            if ( $pct >= 55 ) {
+                $found[ $name ] = $pct;
+            }
+        }
+        arsort( $found );
+        return array_slice( array_keys( $found ), 0, 3 );
     }
 
     private static function is_rate_limited( string $ip ): bool {

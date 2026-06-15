@@ -208,6 +208,19 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
             ],
             'handler' => [ $this, 'handle_suggestions_setting' ],
         ] );
+
+        $this->register( 'aicom.recipes', [
+            'class'           => 'discovery',
+            'required_scopes' => [],
+            'description'     => 'Returns step-by-step recipes for tasks you can perform with YOUR key\'s permissions. Always filtered to what your key can actually do. Pass a task keyword to filter (e.g. "create post", "translate", "woocommerce product"). Leave empty to list all available recipes for your key.',
+            'input_schema'    => [
+                'task' => [
+                    'type'        => 'string',
+                    'description' => 'Keyword describing what you want to do (e.g. "create post", "translate", "product", "seo"). Optional — omit to list all recipes available to your key.',
+                ],
+            ],
+            'handler' => [ $this, 'handle_recipes' ],
+        ] );
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────────
@@ -593,6 +606,21 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
                 'summary'     => [ 'action' => 'propose_skill_update', 'slug' => $original['slug'] ],
             ]
         );
+    }
+
+    public function handle_recipes( array $args, array $key_record ): array {
+        $task    = trim( (string) ( $args['task'] ?? '' ) );
+        $recipes = $task
+            ? AICOM_Recipes::get_for_key( $task, $key_record )
+            : AICOM_Recipes::all_for_key( $key_record );
+
+        if ( empty( $recipes ) ) {
+            return $this->ok( [
+                'recipes' => [],
+                'hint'    => 'No recipe matched your key\'s permissions. Try: create post, upload media, backup, alt text.',
+            ] );
+        }
+        return $this->ok( [ 'recipes' => $recipes ] );
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
