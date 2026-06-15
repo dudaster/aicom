@@ -77,13 +77,29 @@ class AICOM_Tool_Registry {
         $tools = self::get_for_modules( $active_modules );
 
         return array_values( array_map( static function ( array $meta ): array {
+            $props = [];
+            foreach ( $meta['input_schema'] as $param => $def ) {
+                $prop = $def;
+                // Remove internal-only keys not part of JSON Schema
+                unset( $prop['required'] );
+                $props[ $param ] = $prop;
+            }
+
+            $required = array_keys( array_filter(
+                $meta['input_schema'],
+                static fn( $d ) => ! empty( $d['required'] )
+            ) );
+
+            $schema = [ 'type' => 'object', 'properties' => $props ];
+            if ( $required ) {
+                $schema['required'] = $required;
+            }
+
             return [
                 'name'        => $meta['tool_name'],
                 'description' => $meta['description'],
-                'inputSchema' => [
-                    'type'       => 'object',
-                    'properties' => $meta['input_schema'],
-                ],
+                'class'       => $meta['class'],
+                'inputSchema' => $schema,
             ];
         }, $tools ) );
     }

@@ -388,20 +388,16 @@ class AICOM_Auth {
      * Returns true if key has ALL required scopes.
      */
     public static function check_scopes( array $key_record, array $required_scopes ): bool {
+        return empty( self::missing_scopes( $key_record, $required_scopes ) );
+    }
+
+    public static function missing_scopes( array $key_record, array $required_scopes ): array {
         if ( empty( $required_scopes ) ) {
-            return true;
+            return [];
         }
-
-        $key_scopes  = json_decode( $key_record['scopes_json'], true ) ?: [];
-        $key_scopes  = self::expand_implied_scopes( $key_scopes );
-
-        foreach ( $required_scopes as $scope ) {
-            if ( ! in_array( $scope, $key_scopes, true ) ) {
-                return false;
-            }
-        }
-
-        return true;
+        $key_scopes = json_decode( $key_record['scopes_json'], true ) ?: [];
+        $key_scopes = self::expand_implied_scopes( $key_scopes );
+        return array_values( array_filter( $required_scopes, fn( $s ) => ! in_array( $s, $key_scopes, true ) ) );
     }
 
     /**

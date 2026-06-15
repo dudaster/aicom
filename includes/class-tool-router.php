@@ -261,8 +261,10 @@ class AICOM_Tool_Router {
         }
 
         // ── Step 6: Scope check ───────────────────────────────────────────
-        if ( ! AICOM_Auth::check_scopes( $key_record, $tool_meta['required_scopes'] ) ) {
-            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DENIED_SCOPE', 'Insufficient scope for this tool', 'denied_scope', 403, $arguments, $start, $rpc_id );
+        $missing_scopes = AICOM_Auth::missing_scopes( $key_record, $tool_meta['required_scopes'] );
+        if ( $missing_scopes ) {
+            $hint = 'Insufficient scope. Required: ' . implode( ', ', $missing_scopes ) . '. Ask the site admin to enable it on your API key.';
+            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DENIED_SCOPE', $hint, 'denied_scope', 403, $arguments, $start, $rpc_id );
         }
 
         // ── Step 7: (Delegated) Allowlist checks are done inside handlers ─

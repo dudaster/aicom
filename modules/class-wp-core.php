@@ -38,6 +38,13 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'handler'         => [ $this, 'handle_tools_list' ],
         ] );
 
+        $this->register( 'site.summary', [
+            'class'           => 'discovery',
+            'required_scopes' => [],
+            'description'     => 'Returns a summary of this WordPress site: name, URL, version, active theme, active AICOM modules, and post counts. Call this first to understand the site before doing anything else.',
+            'handler'         => [ $this, 'handle_site_summary' ],
+        ] );
+
         $this->register( 'wp.site.info', [
             'class'           => 'discovery',
             'required_scopes' => [ 'read.wp' ],
@@ -132,7 +139,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'post_title'   => [ 'type' => 'string',  'required' => true ],
                 'post_content' => [ 'type' => 'string' ],
                 'post_excerpt' => [ 'type' => 'string' ],
-                'post_status'  => [ 'type' => 'string',  'default' => 'draft' ],
+                'post_status'  => [ 'type' => 'string',  'default' => 'draft', 'enum' => [ 'draft', 'publish', 'private', 'pending', 'future' ], 'description' => 'Post status. Use "draft" first, then "publish" when ready.' ],
                 'post_name'    => [ 'type' => 'string',  'description' => 'URL slug. For drafts WordPress leaves the slug empty unless explicitly set here.' ],
                 'post_author'  => [ 'type' => 'integer', 'description' => 'Author user ID. Defaults to the user who created the API key.' ],
                 'post_date'    => [ 'type' => 'string',  'description' => 'Publish date in YYYY-MM-DD HH:MM:SS or ISO 8601 format. Uses site timezone.' ],
@@ -149,7 +156,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'id'           => [ 'type' => 'integer', 'required' => true ],
                 'post_title'   => [ 'type' => 'string' ],
                 'post_content' => [ 'type' => 'string' ],
-                'post_status'  => [ 'type' => 'string' ],
+                'post_status'  => [ 'type' => 'string', 'enum' => [ 'draft', 'publish', 'private', 'pending', 'future', 'trash' ] ],
                 'post_excerpt' => [ 'type' => 'string' ],
                 'post_name'    => [ 'type' => 'string',  'description' => 'URL slug.' ],
                 'post_author'  => [ 'type' => 'integer' ],
@@ -344,6 +351,32 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
     // ── Handlers ──────────────────────────────────────────────────────────
 
+    public function handle_site_summary( array $args, array $key_record, bool $dry_run ): array {
+        $theme     = wp_get_theme();
+        $post_types = get_post_types( [ 'public' => true ], 'names' );
+        $counts    = [];
+        foreach ( $post_types as $type ) {
+            $c = wp_count_posts( $type );
+            $counts[ $type ] = [
+                'publish' => (int) $c->publish,
+                'draft'   => (int) $c->draft,
+            ];
+        }
+
+        return $this->ok( [
+            'name'           => get_bloginfo( 'name' ),
+            'description'    => get_bloginfo( 'description' ),
+            'url'            => get_site_url(),
+            'admin_url'      => admin_url(),
+            'wp_version'     => get_bloginfo( 'version' ),
+            'language'       => get_bloginfo( 'language' ),
+            'active_theme'   => $theme->get( 'Name' ),
+            'active_modules' => AICOM_Module_Detector::get_active_modules(),
+            'post_counts'    => $counts,
+            'user_count'     => (int) ( count_users()['total_users'] ?? 0 ),
+        ] );
+    }
+
     public function handle_server_status( array $args, array $key_record, bool $dry_run ): array {
         return $this->ok( [
             'server' => [
@@ -516,6 +549,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'menu_order'     => (int) $post->menu_order,
             'comment_status' => $post->comment_status,
             'terms'          => $terms_map,
+            'edit_url'       => get_edit_post_link( $post->ID, 'raw' ),
+            'view_url'       => get_permalink( $post->ID ),
         ], [ 'target_type' => 'post', 'target_id' => $id ] );
     }
 
@@ -576,7 +611,14 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
 
         return $this->ok(
-            [ 'id' => $id, 'post_type' => $post_type, 'post_title' => get_the_title( $id ) ],
+            [
+                'id'       => $id,
+                'post_type'=> $post_type,
+                'title'    => get_the_title( $id ),
+                'status'   => get_post_status( $id ),
+                'edit_url' => get_edit_post_link( $id, 'raw' ),
+                'view_url' => get_permalink( $id ),
+            ],
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => [ 'created' => true ] ]
         );
     }
@@ -629,7 +671,14 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
 
         return $this->ok(
-            [ 'id' => $id, 'updated' => true ],
+            [
+                'id'       => $id,
+                'updated'  => true,
+                'status'   => get_post_status( $id ),
+                'modified' => get_post_field( 'post_modified', $id ),
+                'edit_url' => get_edit_post_link( $id, 'raw' ),
+                'view_url' => get_permalink( $id ),
+            ],
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => array_keys( $data ) ]
         );
     }

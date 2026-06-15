@@ -286,7 +286,13 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         $id = $product->save();
 
         return $this->ok(
-            [ 'id' => $id, 'name' => $name ],
+            [
+                'id'       => $id,
+                'name'     => $name,
+                'status'   => $product->get_status(),
+                'edit_url' => get_edit_post_link( $id, 'raw' ),
+                'view_url' => get_permalink( $id ),
+            ],
             [ 'target_type' => 'product', 'target_id' => $id, 'summary' => [ 'created' => true ] ]
         );
     }
@@ -315,7 +321,13 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         $product->save();
 
         return $this->ok(
-            [ 'id' => $id, 'updated' => true ],
+            [
+                'id'       => $id,
+                'updated'  => true,
+                'status'   => $product->get_status(),
+                'edit_url' => get_edit_post_link( $id, 'raw' ),
+                'view_url' => get_permalink( $id ),
+            ],
             [ 'target_type' => 'product', 'target_id' => $id ]
         );
     }
