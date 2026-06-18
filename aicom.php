@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.8.8
+ * Version:           3.8.9
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.8.8' );
+define( 'AICOM_VERSION', '3.8.9' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -184,6 +184,30 @@ function aicom_boot(): void {
             'ajaxUrl' => admin_url( 'admin-ajax.php' ),
         ] );
     } );
+
+    // ── Bypass WP JSON validation for /mcp ────────────────────────────────
+    // WP_REST_Server validates Content-Type: application/json bodies before
+    // calling our callback. Malformed JSON (e.g. from weak local models that
+    // mis-escape content) would produce an opaque rest_invalid_json error
+    // instead of our MCP-formatted error. We intercept the route here so our
+    // router handles the raw body directly and returns a proper MCP error.
+    add_filter( 'rest_pre_dispatch', function ( $result, $server, $request ) {
+        $route = $request->get_route();
+        if ( $route !== '/aicom/v1/mcp' ) {
+            return $result;
+        }
+        if ( $request->get_method() === 'GET' ) {
+            return new WP_REST_Response( [
+                'ok'      => true,
+                'server'  => 'AICOM - AI Commander',
+                'version' => AICOM_VERSION,
+                'lock'    => AICOM_Lock_Manager::get_state(),
+            ] );
+        }
+        $body   = $request->get_body();
+        $data   = AICOM_Tool_Router::dispatch( $body ?: '{}' );
+        return new WP_REST_Response( $data, 200 );
+    }, 10, 3 );
 
     // ── REST Endpoints ─────────────────────────────────────────────────────
     add_action( 'rest_api_init', function (): void {

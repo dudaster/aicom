@@ -10,9 +10,10 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
     }
 
     public function register_tools(): void {
-        $dep    = 'polylang';
-        $read   = 'read.polylang';
-        $manage = 'manage.polylang';
+        $dep      = 'polylang';
+        $read     = 'read.polylang';
+        $manage   = 'manage.polylang';
+        $settings = 'manage.polylang.settings';
 
         $this->register( 'pll.languages.list', [
             'class'           => 'discovery',
@@ -94,7 +95,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.set_language', [
             'class'           => 'write',
-            'required_scopes' => [ 'manage.taxonomies', $manage ],
+            'required_scopes' => [ 'manage.taxonomies', $settings ],
             'dependency'      => $dep,
             'description'     => 'Set the language of a term.',
             'input_schema'    => [
@@ -139,7 +140,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.string.set', [
             'class'            => 'write',
-            'required_scopes'  => [ 'write.wp.posts', $manage ],
+            'required_scopes'  => [ 'write.wp.posts', $settings ],
             'supports_dry_run' => true,
             'dependency'       => $dep,
             'description'      => 'Set the Polylang translation of a string for a specific language. Works on free and Pro. Use wp_option for WordPress core strings.',
@@ -155,7 +156,7 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
 
         $this->register( 'pll.term.link_translation', [
             'class'           => 'admin_sensitive',
-            'required_scopes' => [ 'manage.taxonomies', $manage ],
+            'required_scopes' => [ 'manage.taxonomies', $settings ],
             'dependency'      => $dep,
             'description'     => 'Link terms as translations. Pass translations as {"en": 5, "ro": 8, "uk": 11}. Existing group members not mentioned are preserved.',
             'input_schema'    => [

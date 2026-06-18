@@ -39,7 +39,12 @@ class AICOM_Tool_Router {
         $payload   = json_decode( $raw_body, true, 64 );
 
         if ( json_last_error() !== JSON_ERROR_NONE ) {
-            return self::early_error( 'parse_error', 'Invalid JSON payload', 400, wp_generate_uuid4(), $remote_ip, '', 'unknown', $start, 0, '', null );
+            // Try to repair common model mistakes before giving up
+            $repaired = self::repair_json( $raw_body );
+            $payload  = json_decode( $repaired, true, 64 );
+            if ( json_last_error() !== JSON_ERROR_NONE ) {
+                return self::early_error( 'parse_error', 'Invalid JSON payload', 400, wp_generate_uuid4(), $remote_ip, '', 'unknown', $start, 0, '', null );
+            }
         }
 
         // ── JSON-RPC 2.0 batch: top-level JSON array (empty or indexed) ──
@@ -83,6 +88,13 @@ class AICOM_Tool_Router {
             // MCP standard: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"...","arguments":{}},"id":1}
             $tool_name = trim( (string) $payload['params']['name'] );
             $arguments = (array) ( $payload['params']['arguments'] ?? [] );
+        } elseif ( $rpc_method === 'tools/call' && ! isset( $payload['params']['name'] ) ) {
+            // tools/call without name — tell model exactly what is missing
+            return self::early_error(
+                'parse_error',
+                'tools/call requires params.name. Example: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"wp.posts.list","arguments":{}},"id":1}',
+                400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id
+            );
         } elseif ( $rpc_method === 'tools/list' ) {
             // MCP standard list request
             $tool_name = 'tools/list';
@@ -91,6 +103,18 @@ class AICOM_Tool_Router {
             // Shorthand: {"method":"tool.name","params":{}} or {"tool":"tool.name","arguments":{}}
             $tool_name = trim( (string) ( $payload['tool'] ?? $rpc_method ) );
             $arguments = (array) ( $payload['arguments'] ?? $payload['params'] ?? [] );
+
+            // Detect specific structural mistakes and return educational errors
+            if ( $tool_name === '' ) {
+                // No method and no tool field — but params.name present → model used wrong structure
+                if ( isset( $payload['params']['name'] ) ) {
+                    return self::early_error(
+                        'parse_error',
+                        'You sent params.name but forgot the method field. Add "method":"tools/call": {"jsonrpc":"2.0","method":"tools/call","params":{"name":"' . esc_html( $payload['params']['name'] ) . '","arguments":{}},"id":1}',
+                        400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id
+                    );
+                }
+            }
         }
 
         // ── MCP handshake methods ─────────────────────────────────────────
@@ -133,7 +157,37 @@ class AICOM_Tool_Router {
         }
 
         if ( $tool_name === '' ) {
-            return self::early_error( 'parse_error', 'Missing tool name', 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
+            // Try to give a more specific hint based on what the model actually sent
+            if ( $rpc_method === '' && ! isset( $payload['tool'] ) ) {
+                $hint = 'Request has no "method" and no "tool" field. To call a tool: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"TOOL_NAME","arguments":{}},"id":1}. To list tools: {"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}';
+            } else {
+                $hint = 'Missing tool name. Correct format: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"TOOL_NAME","arguments":{}},"id":1}';
+            }
+            return self::early_error( 'parse_error', $hint, 400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id );
+        }
+
+        // Redirect: model called tools/call with name="tools" or "list_tools" instead of using the method.
+        // "tools/list" is excluded — it goes through the normal pipeline to handle_tools_list which returns full schemas.
+        // Returns compact list (name + class only) to avoid flooding small context windows.
+        if ( in_array( $tool_name, [ 'tools', 'list_tools' ], true ) ) {
+            $full    = AICOM_Tool_Registry::to_mcp_list( AICOM_Module_Detector::get_active_modules() );
+            $compact = array_map( fn( $t ) => [ 'name' => $t['name'], 'class' => $t['class'] ?? '' ], $full );
+            return self::jsonrpc_wrap( [
+                'tools'      => $compact,
+                'total'      => count( $compact ),
+                'request_id' => $request_id,
+                '_note'      => 'Compact list (name+class only). Use {"method":"tools/list"} for full schemas with inputSchema, or call aicom.recipes for task guidance.',
+            ], $rpc_id );
+        }
+
+        // Detect: model used "method":"tools/wp.posts.create" instead of tools/call + params.name
+        if ( strpos( $rpc_method, 'tools/' ) === 0 && $rpc_method !== 'tools/list' && $rpc_method !== 'tools/call' ) {
+            $guessed = substr( $rpc_method, strlen( 'tools/' ) );
+            return self::early_error(
+                'parse_error',
+                'Use method:"tools/call" with params.name, not method:"' . $rpc_method . '". Correct: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"' . esc_html( $guessed ) . '","arguments":{}},"id":1}',
+                400, $request_id, $remote_ip, '', 'unknown', $start, 0, '', $rpc_id
+            );
         }
 
         // Resolve metadata early (needed for lock check)
@@ -180,7 +234,17 @@ class AICOM_Tool_Router {
 
         if ( ! $key_record ) {
             self::record_auth_failure( $remote_ip );
-            return self::early_error( 'auth_failed', 'Invalid or revoked API key', 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
+            // Detect truncated key: right prefix format but too short
+            $expected_len = 55; // "aicom_" (6) + 8-char prefix + "_" (1) + 40-char hex
+            $msg = 'Invalid or revoked API key';
+            if ( strpos( $plain_key, 'aicom_' ) === 0 && strlen( $plain_key ) < $expected_len ) {
+                $msg = sprintf(
+                    'API key is incomplete (%d of %d chars). Make sure you copy and use the entire key — do not truncate or shorten it.',
+                    strlen( $plain_key ),
+                    $expected_len
+                );
+            }
+            return self::early_error( 'auth_failed', $msg, 403, $request_id, $remote_ip, $tool_name, $tool_module, $start, 0, '', $rpc_id );
         }
 
         AICOM_Auth::maybe_auto_bind_ip( $key_record, $remote_ip );
@@ -277,6 +341,47 @@ class AICOM_Tool_Router {
         // ── Step 9: Dry-run mode ──────────────────────────────────────────
         $is_dry_run = ! empty( $arguments['dry_run'] ) || AICOM_Policy_Engine::is_dry_run_only( $key_record );
 
+        // ── Step 9b: Unknown parameter detection ─────────────────────────
+        // Resolve common aliases before checking unknown params.
+        $aliases = [
+            'status'    => 'post_status',
+            'title'     => 'post_title',
+            'content'   => 'post_content',
+            'excerpt'   => 'post_excerpt',
+            'post_id'   => 'id',           // e.g. wp.posts.update uses 'id'
+        ];
+        $schema_keys = array_keys( $tool_meta['input_schema'] ?? [] );
+        foreach ( $aliases as $wrong => $correct ) {
+            if ( isset( $arguments[ $wrong ] ) && ! isset( $arguments[ $correct ] ) ) {
+                // Only apply alias if correct key is in schema and wrong key is not
+                if ( in_array( $correct, $schema_keys, true ) && ! in_array( $wrong, $schema_keys, true ) ) {
+                    $arguments[ $correct ] = $arguments[ $wrong ];
+                    unset( $arguments[ $wrong ] );
+                }
+            }
+        }
+        // Warn about remaining unknown params
+        if ( ! empty( $schema_keys ) ) {
+            $reserved    = [ 'dry_run', 'confirm' ];
+            $unknown     = array_diff( array_keys( $arguments ), $schema_keys, $reserved );
+            if ( ! empty( $unknown ) ) {
+                $hints = [];
+                foreach ( $unknown as $bad_key ) {
+                    $best     = '';
+                    $best_pct = 0;
+                    foreach ( $schema_keys as $good_key ) {
+                        similar_text( $bad_key, $good_key, $pct );
+                        if ( $pct > $best_pct ) { $best_pct = $pct; $best = $good_key; }
+                    }
+                    $hints[] = $best_pct >= 50
+                        ? "\"$bad_key\" is not a valid parameter — did you mean \"$best\"?"
+                        : "\"$bad_key\" is not a valid parameter and was ignored";
+                }
+                // Inject warning into arguments so it surfaces in the result
+                $arguments['_param_warnings'] = $hints;
+            }
+        }
+
         // ── Step 10: Execute ──────────────────────────────────────────────
         $handler = $tool_meta['handler'];
 
@@ -336,6 +441,11 @@ class AICOM_Tool_Router {
         // Strip internal keys before returning
         unset( $result['_meta'], $result['http_status'] );
         $result['request_id'] = $request_id;
+
+        // Surface unknown parameter warnings in the result
+        if ( isset( $arguments['_param_warnings'] ) ) {
+            $result['_warnings'] = $arguments['_param_warnings'];
+        }
 
         return self::jsonrpc_wrap( $result, $rpc_id );
     }
@@ -582,6 +692,63 @@ class AICOM_Tool_Router {
         }
 
         return $remote_addr;
+    }
+
+    /**
+     * Best-effort JSON repair for payloads from weak local models.
+     * Fixes: UTF-8 BOM, literal control chars inside strings, trailing commas.
+     */
+    private static function repair_json( string $raw ): string {
+        // Strip UTF-8 BOM
+        if ( substr( $raw, 0, 3 ) === "\xEF\xBB\xBF" ) {
+            $raw = substr( $raw, 3 );
+        }
+
+        // State-machine pass: escape literal control characters inside JSON strings
+        $out         = '';
+        $in_string   = false;
+        $escape_next = false;
+        $len         = strlen( $raw );
+
+        for ( $i = 0; $i < $len; $i++ ) {
+            $c   = $raw[ $i ];
+            $ord = ord( $c );
+
+            if ( $escape_next ) {
+                $out        .= $c;
+                $escape_next = false;
+                continue;
+            }
+
+            if ( $c === '\\' && $in_string ) {
+                $out        .= $c;
+                $escape_next = true;
+                continue;
+            }
+
+            if ( $c === '"' ) {
+                $in_string = ! $in_string;
+                $out      .= $c;
+                continue;
+            }
+
+            if ( $in_string && $ord < 0x20 ) {
+                switch ( $c ) {
+                    case "\n": $out .= '\\n';  break;
+                    case "\r": $out .= '\\r';  break;
+                    case "\t": $out .= '\\t';  break;
+                    default:   $out .= sprintf( '\\u%04x', $ord ); break;
+                }
+                continue;
+            }
+
+            $out .= $c;
+        }
+
+        // Remove trailing commas before ] or } (another common model mistake)
+        $out = preg_replace( '/,(\s*[\]}])/', '$1', $out );
+
+        return $out ?? $raw;
     }
 
     private static function suggest_tools( string $bad_name ): array {

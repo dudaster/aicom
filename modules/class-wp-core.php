@@ -919,11 +919,25 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
     public function handle_terms_assign_to_post( array $args, array $key_record, bool $dry_run ): array {
         $post_id  = $this->require_int( $args, 'post_id' );
-        $term_ids = array_values( array_filter( array_map( 'intval', (array) ( $args['term_ids'] ?? [] ) ), fn( $id ) => $id > 0 ) );
         $taxonomy = sanitize_key( $args['taxonomy'] ?? '' );
 
-        if ( ! $post_id || empty( $term_ids ) || ! $taxonomy ) {
-            return $this->err( 'MISSING_PARAM', 'Parameters post_id, term_ids, and taxonomy are required', 'validation_failed' );
+        if ( ! $post_id ) {
+            return $this->err( 'MISSING_PARAM', 'post_id is required. Example: "post_id": 123', 'validation_failed' );
+        }
+        if ( ! $taxonomy ) {
+            return $this->err( 'MISSING_PARAM', 'taxonomy is required. Example: "taxonomy": "category"', 'validation_failed' );
+        }
+        if ( ! isset( $args['term_ids'] ) ) {
+            return $this->err( 'MISSING_PARAM', 'term_ids is required. It must be an array of integers. Example: "term_ids": [200]', 'validation_failed' );
+        }
+        if ( ! is_array( $args['term_ids'] ) ) {
+            return $this->err( 'MISSING_PARAM', 'term_ids must be an array, not a single value. You sent ' . json_encode( $args['term_ids'] ) . ' — wrap it in brackets: "term_ids": [' . json_encode( $args['term_ids'] ) . ']', 'validation_failed' );
+        }
+
+        $term_ids = array_values( array_filter( array_map( 'intval', $args['term_ids'] ), fn( $id ) => $id > 0 ) );
+
+        if ( empty( $term_ids ) ) {
+            return $this->err( 'MISSING_PARAM', 'term_ids array is empty or contains no valid IDs. Example: "term_ids": [200]', 'validation_failed' );
         }
 
         if ( $dry_run ) {

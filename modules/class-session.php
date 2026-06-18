@@ -28,6 +28,14 @@ class AICOM_Module_Session extends AICOM_Module_Base {
             'input_schema'    => [],
             'handler'         => [ $this, 'handle_close' ],
         ] );
+
+        $this->register( 'session.status', [
+            'class'           => 'discovery',
+            'required_scopes' => [],
+            'description'     => 'Check whether a session is currently open for your API key. Returns session id, name, description, and how long it has been open. Call this before session.open to avoid SESSION_ALREADY_OPEN errors.',
+            'input_schema'    => [],
+            'handler'         => [ $this, 'handle_status' ],
+        ] );
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────
@@ -88,5 +96,29 @@ class AICOM_Module_Session extends AICOM_Module_Base {
         }
 
         return $this->ok( $response );
+    }
+
+    public function handle_status( array $args, array $key_record, bool $dry_run ): array {
+        $key_id  = (int) $key_record['id'];
+        $session = AICOM_Sessions::get_active( $key_id );
+
+        if ( ! $session ) {
+            return $this->ok( [
+                'active'  => false,
+                'message' => 'No session open. Call session.open before any write operation.',
+            ] );
+        }
+
+        $opened_at = strtotime( $session['opened_at'] ?? 'now' );
+        $elapsed   = human_time_diff( $opened_at, time() );
+
+        return $this->ok( [
+            'active'      => true,
+            'session_id'  => (int) $session['id'],
+            'name'        => $session['name'],
+            'description' => $session['description'] ?? '',
+            'opened_at'   => $session['opened_at'],
+            'open_for'    => $elapsed,
+        ] );
     }
 }
