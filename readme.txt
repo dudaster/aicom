@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.8.6
+Stable tag: 3.8.9
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,29 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.8.9 =
+
+* JSON repair for malformed payloads from local AI models (literal control characters, trailing commas, UTF-8 BOM).
+* `rest_pre_dispatch` intercept bypasses WordPress JSON validation so weak models can connect without "rest_invalid_json" errors.
+* New `session.status` tool — check whether a session is open before calling `session.open`, avoiding SESSION_ALREADY_OPEN errors.
+* `TOOL_NOT_FOUND` now includes fuzzy name suggestions ("Did you mean: wp.posts.create?") to guide models that hallucinate tool names.
+* Educational parameter warnings: unknown parameter names are flagged with the correct name and a usage example; aliases (`status`, `content`, `post_id`) are resolved automatically with a hint.
+* Truncated API key detection with character count in the error message.
+* Split `manage.polylang` scope: post language assignment and translation linking remain under `manage.polylang`; string translations and term language/linking now require the new `manage.polylang.settings` scope.
+
+= 3.8.8 =
+
+* Full MCP `inputSchema` now returned in `tools/list` — each tool includes parameter types, descriptions, and required flags so models can call tools correctly without prior knowledge.
+* Compact tool list (name + class only) available via shorthand `tools` or `list_tools` method for small-context models.
+* Detect `method:"tools/wp.posts.create"` pattern and return a corrected JSON-RPC example.
+* Explicit error when `tools/call` is sent without a `name` field.
+
+= 3.8.7 =
+
+* Server-side discoverability for weak local AI models: new `aicom.recipes` tool returns step-by-step task recipes filtered to the key's actual permissions and active modules.
+* Compact `initialize` instructions — three exact steps with copy-paste JSON-RPC format.
+* `session.status` registered as a discovery tool (no session required, no scope required).
 
 = 3.8.6 =
 
