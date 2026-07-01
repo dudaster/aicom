@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.8.9
+Stable tag: 3.9.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.9.0 =
+
+* Fixed OpenAPI schema compatibility with ChatGPT Custom GPT Actions: upgraded spec from 3.0.0 to 3.1.1, serialized empty parameter objects as `{}` instead of `[]`, and added `components.schemas` required by strict validators. Thanks allanantoni for the detailed report and fix.
 
 = 3.8.9 =
 
