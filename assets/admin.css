@@ -163,6 +163,20 @@
     color: var(--aicom-text-xs);
     letter-spacing: 0.3px;
 }
+.aicom-sidenav-update {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.7em;
+    font-weight: 600;
+    color: #ef4444;
+    text-decoration: none;
+    line-height: 1.4;
+}
+.aicom-sidenav-update:hover,
+.aicom-sidenav-update:focus {
+    color: #dc2626;
+    text-decoration: underline;
+}
 
 /* ── Content area ───────────────────────────────────────────────────────── */
 .aicom-page-content {

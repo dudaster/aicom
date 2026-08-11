@@ -40,7 +40,7 @@ $clients = [
 ];
 
 // Presets we offer in step 2 — only the gentle three. Power users can build
-// custom keys later on the Connect AI Agents page.
+// custom keys later on the Manage API Keys page.
 $gentle_presets = array_intersect_key(
     AICOM_Admin::system_presets(),
     array_flip( [ 'read-only', 'content-assistant', 'elementor-editor' ] )

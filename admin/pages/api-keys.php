@@ -117,7 +117,7 @@ $keys = $wpdb->get_results(
 
     <!-- Page header -->
     <div class="aicom-page-header">
-        <h1><?php esc_html_e( 'Connect AI Agents', 'aicom' ); ?></h1>
+        <h1><?php esc_html_e( 'Manage API Keys', 'aicom' ); ?></h1>
         <p class="aicom-page-desc"><?php esc_html_e( 'Generate and manage API keys that grant AI agents access to your site via MCP.', 'aicom' ); ?></p>
     </div>
 
@@ -187,9 +187,10 @@ $keys = $wpdb->get_results(
                                         <span class="aicom-tree-group-count"></span>
                                     </div>
                                     <div class="aicom-tree-group-body">
-                                    <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
+                                    <?php foreach ( $scopes as $scope_key => $scope_data ) : [ $scope_label, $scope_risk ] = $scope_data; $scope_desc = $scope_data[2] ?? ''; ?>
                                         <label class="aicom-tree-scope-row"
                                                data-scope="<?php echo esc_attr( $scope_key ); ?>"
+                                               <?php if ( $scope_desc ) : ?>title="<?php echo esc_attr( $scope_desc ); ?>"<?php endif; ?>
                                                <?php if ( isset( $scope_implications[ $scope_key ] ) ) : ?>data-implies="<?php echo esc_attr( $scope_implications[ $scope_key ] ); ?>"<?php endif; ?>>
                                             <input type="checkbox" name="scopes[]"
                                                    value="<?php echo esc_attr( $scope_key ); ?>"
@@ -528,9 +529,10 @@ $keys = $wpdb->get_results(
                                             <span class="aicom-tree-group-count"></span>
                                         </div>
                                         <div class="aicom-tree-group-body">
-                                        <?php foreach ( $scopes as $scope_key => [ $scope_label, $scope_risk ] ) : ?>
+                                        <?php foreach ( $scopes as $scope_key => $scope_data ) : [ $scope_label, $scope_risk ] = $scope_data; $scope_desc = $scope_data[2] ?? ''; ?>
                                             <label class="aicom-tree-scope-row"
                                                    data-scope="<?php echo esc_attr( $scope_key ); ?>"
+                                                   <?php if ( $scope_desc ) : ?>title="<?php echo esc_attr( $scope_desc ); ?>"<?php endif; ?>
                                                    <?php if ( isset( $scope_implications[ $scope_key ] ) ) : ?>data-implies="<?php echo esc_attr( $scope_implications[ $scope_key ] ); ?>"<?php endif; ?>>
                                                 <input type="checkbox" name="scopes[]"
                                                        value="<?php echo esc_attr( $scope_key ); ?>"

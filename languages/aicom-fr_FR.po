@@ -99,8 +99,14 @@ msgstr "Tableau de bord"
 #: admin/class-admin.php:176
 #: admin/pages/api-keys.php:111
 #: admin/partials/layout-top.php:8
-msgid "Connect AI Agents"
-msgstr "Connecter des agents IA"
+msgid "Manage API Keys"
+msgstr "Gérer les clés API"
+
+#. translators: %s: new plugin version number
+#: admin/partials/layout-top.php:45
+#, php-format
+msgid "New version %s available. Update now."
+msgstr "Nouvelle version %s disponible. Mettre à jour maintenant."
 
 #: admin/class-admin.php:177
 #: admin/pages/audit-logs.php:117
@@ -2759,6 +2765,30 @@ msgstr "Pages et widgets Elementor"
 #: includes/class-auth.php:58
 msgid "Polylang translations"
 msgstr "Traductions Polylang"
+
+#: includes/class-auth.php:60
+msgid "Read Polylang languages and translation links"
+msgstr "Lire les langues Polylang et les liens de traduction"
+
+#: includes/class-auth.php:60
+msgid "View configured languages, and see which language a post/term/string has and which translations are linked to it. No changes allowed."
+msgstr "Afficher les langues configurées et voir la langue d'un article/terme/chaîne ainsi que les traductions qui lui sont liées. Aucune modification autorisée."
+
+#: includes/class-auth.php:61
+msgid "Manage Polylang Post translations"
+msgstr "Gérer les traductions d'articles Polylang"
+
+#: includes/class-auth.php:61
+msgid "Set the language of a post/page, and link or unlink its translations. Does not allow changing category/tag languages, site string translations, or Polylang's own settings."
+msgstr "Définit la langue d'un article/d'une page et lie ou délie ses traductions. Ne permet pas de modifier les langues des catégories/étiquettes, les traductions des chaînes du site ni les réglages propres de Polylang."
+
+#: includes/class-auth.php:62
+msgid "Manage Polylang Term & String translations"
+msgstr "Gérer les traductions de termes et de chaînes Polylang"
+
+#: includes/class-auth.php:62
+msgid "Set the language of categories/tags and their translation links, and translate site strings (site title, tagline, date/time formats). Does not allow adding/removing languages or changing Polylang's own settings."
+msgstr "Définit la langue des catégories/étiquettes et leurs liens de traduction, et traduit les chaînes du site (titre du site, slogan, formats de date/heure). Ne permet pas d'ajouter/supprimer des langues ni de modifier les réglages propres de Polylang."
 
 #: includes/class-auth.php:59
 msgid "Yoast SEO fields"

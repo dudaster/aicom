@@ -105,8 +105,14 @@ msgstr "Tablou de bord"
 #: admin/class-admin.php:176
 #: admin/pages/api-keys.php:111
 #: admin/partials/layout-top.php:8
-msgid "Connect AI Agents"
-msgstr "Conectează agenți AI"
+msgid "Manage API Keys"
+msgstr "Gestionează cheile API"
+
+#. translators: %s: new plugin version number
+#: admin/partials/layout-top.php:45
+#, php-format
+msgid "New version %s available. Update now."
+msgstr "Versiunea nouă %s este disponibilă. Actualizează acum."
 
 #: admin/class-admin.php:177
 #: admin/pages/audit-logs.php:117
@@ -2773,6 +2779,30 @@ msgstr "Pagini și widget-uri Elementor"
 #: includes/class-auth.php:58
 msgid "Polylang translations"
 msgstr "Traduceri Polylang"
+
+#: includes/class-auth.php:60
+msgid "Read Polylang languages and translation links"
+msgstr "Citește limbile Polylang și legăturile de traducere"
+
+#: includes/class-auth.php:60
+msgid "View configured languages, and see which language a post/term/string has and which translations are linked to it. No changes allowed."
+msgstr "Vizualizează limbile configurate și vezi ce limbă are un articol/termen/șir și ce traduceri îi sunt asociate. Nu permite nicio modificare."
+
+#: includes/class-auth.php:61
+msgid "Manage Polylang Post translations"
+msgstr "Gestionează traducerile de articole Polylang"
+
+#: includes/class-auth.php:61
+msgid "Set the language of a post/page, and link or unlink its translations. Does not allow changing category/tag languages, site string translations, or Polylang's own settings."
+msgstr "Setează limba unui articol/pagină și leagă sau dezleagă traducerile acestuia. Nu permite modificarea limbilor categoriilor/etichetelor, a traducerilor de șiruri ale site-ului sau a setărilor proprii Polylang."
+
+#: includes/class-auth.php:62
+msgid "Manage Polylang Term & String translations"
+msgstr "Gestionează traducerile de termeni și șiruri Polylang"
+
+#: includes/class-auth.php:62
+msgid "Set the language of categories/tags and their translation links, and translate site strings (site title, tagline, date/time formats). Does not allow adding/removing languages or changing Polylang's own settings."
+msgstr "Setează limba categoriilor/etichetelor și legăturile lor de traducere, și traduce șirurile site-ului (titlu site, tagline, formate dată/oră). Nu permite adăugarea/eliminarea de limbi sau modificarea setărilor proprii Polylang."
 
 #: includes/class-auth.php:59
 msgid "Yoast SEO fields"

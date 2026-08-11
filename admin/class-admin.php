@@ -173,7 +173,7 @@ class AICOM_Admin {
         );
 
         add_submenu_page( self::MENU_SLUG, __( 'Dashboard', 'aicom' ),                __( 'Dashboard', 'aicom' ),                self::CAPABILITY, self::MENU_SLUG,        [ $this, 'page_dashboard' ] );
-        add_submenu_page( self::MENU_SLUG, __( 'Connect AI Agents', 'aicom' ),       __( 'Connect AI Agents', 'aicom' ),        self::CAPABILITY, 'aicom-api-keys',       [ $this, 'page_api_keys' ] );
+        add_submenu_page( self::MENU_SLUG, __( 'Manage API Keys', 'aicom' ),         __( 'Manage API Keys', 'aicom' ),          self::CAPABILITY, 'aicom-api-keys',       [ $this, 'page_api_keys' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Activity', 'aicom' ),                __( 'Activity', 'aicom' ),                 self::CAPABILITY, 'aicom-audit-logs',     [ $this, 'page_audit_logs' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Safety', 'aicom' ),                  __( 'Safety', 'aicom' ),                   self::CAPABILITY, 'aicom-safety',         [ $this, 'page_safety' ] );
         add_submenu_page( self::MENU_SLUG, __( 'Capabilities', 'aicom' ),  __( 'Capabilities', 'aicom' ),   self::CAPABILITY, 'aicom-modules',        [ $this, 'page_modules' ] );

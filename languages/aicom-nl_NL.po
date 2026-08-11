@@ -99,8 +99,14 @@ msgstr "Dashboard"
 #: admin/class-admin.php:176
 #: admin/pages/api-keys.php:111
 #: admin/partials/layout-top.php:8
-msgid "Connect AI Agents"
-msgstr "Verbind AI-agents"
+msgid "Manage API Keys"
+msgstr "API-sleutels beheren"
+
+#. translators: %s: new plugin version number
+#: admin/partials/layout-top.php:45
+#, php-format
+msgid "New version %s available. Update now."
+msgstr "Nieuwe versie %s beschikbaar. Nu bijwerken."
 
 #: admin/class-admin.php:177
 #: admin/pages/audit-logs.php:117
@@ -2759,6 +2765,30 @@ msgstr "Elementor-pagina's & widgets"
 #: includes/class-auth.php:58
 msgid "Polylang translations"
 msgstr "Polylang-vertalingen"
+
+#: includes/class-auth.php:60
+msgid "Read Polylang languages and translation links"
+msgstr "Polylang-talen en vertaalkoppelingen lezen"
+
+#: includes/class-auth.php:60
+msgid "View configured languages, and see which language a post/term/string has and which translations are linked to it. No changes allowed."
+msgstr "Geconfigureerde talen bekijken en zien welke taal een bericht/term/string heeft en welke vertalingen eraan gekoppeld zijn. Geen wijzigingen toegestaan."
+
+#: includes/class-auth.php:61
+msgid "Manage Polylang Post translations"
+msgstr "Polylang berichtvertalingen beheren"
+
+#: includes/class-auth.php:61
+msgid "Set the language of a post/page, and link or unlink its translations. Does not allow changing category/tag languages, site string translations, or Polylang's own settings."
+msgstr "Stelt de taal van een bericht/pagina in en koppelt of ontkoppelt de vertalingen ervan. Staat geen wijziging toe van categorie-/tagtalen, sitestring-vertalingen of de eigen Polylang-instellingen."
+
+#: includes/class-auth.php:62
+msgid "Manage Polylang Term & String translations"
+msgstr "Polylang term- en stringvertalingen beheren"
+
+#: includes/class-auth.php:62
+msgid "Set the language of categories/tags and their translation links, and translate site strings (site title, tagline, date/time formats). Does not allow adding/removing languages or changing Polylang's own settings."
+msgstr "Stelt de taal van categorieën/tags en hun vertaalkoppelingen in, en vertaalt sitestrings (sitetitel, tagline, datum-/tijdnotaties). Staat niet toe talen toe te voegen/verwijderen of de eigen Polylang-instellingen te wijzigen."
 
 #: includes/class-auth.php:59
 msgid "Yoast SEO fields"

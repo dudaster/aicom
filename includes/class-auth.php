@@ -57,8 +57,9 @@ class AICOM_Auth {
                 'manage.woocommerce.settings' => [ __( 'Manage WooCommerce settings',     'aicom' ), 'high' ],
                 'read.elementor'              => [ __( 'Read Elementor pages and widgets', 'aicom' ), 'low' ],
                 'manage.elementor'            => [ __( 'Edit Elementor pages and widgets', 'aicom' ), 'med' ],
-                'read.polylang'               => [ __( 'Read Polylang languages and translation links', 'aicom' ), 'low' ],
-                'manage.polylang'             => [ __( 'Manage Polylang translations',    'aicom' ), 'med' ],
+                'read.polylang'               => [ __( 'Read Polylang languages and translation links', 'aicom' ), 'low', __( 'View configured languages, and see which language a post/term/string has and which translations are linked to it. No changes allowed.', 'aicom' ) ],
+                'manage.polylang'             => [ __( 'Manage Polylang Post translations',    'aicom' ), 'med', __( 'Set the language of a post/page, and link or unlink its translations. Does not allow changing category/tag languages, site string translations, or Polylang\'s own settings.', 'aicom' ) ],
+                'manage.polylang.settings'    => [ __( 'Manage Polylang Term & String translations', 'aicom' ), 'high', __( 'Set the language of categories/tags and their translation links, and translate site strings (site title, tagline, date/time formats). Does not allow adding/removing languages or changing Polylang\'s own settings.', 'aicom' ) ],
                 'manage.yoast'                => [ __( 'Edit Yoast SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
                 'manage.clautron'             => [ __( 'Edit Clautron blueprints (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
             ],
@@ -431,6 +432,7 @@ class AICOM_Auth {
             'manage.woocommerce.settings' => 'read.woocommerce',
             'manage.elementor'            => 'read.elementor',
             'manage.polylang'             => 'read.polylang',
+            'manage.polylang.settings'    => 'read.polylang',
         ];
     }
 
