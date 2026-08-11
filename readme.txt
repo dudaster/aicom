@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.9.0
+Stable tag: 3.9.1
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,13 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.9.1 =
+
+* Renamed "Connect AI Agents" admin page/menu to "Manage API Keys" for clarity.
+* Sidenav footer now shows a red "New version available" notice with a link to the Plugins page when an update is available.
+* Fixed `manage.polylang.settings` being unusable: it was required by `pll.term.set_language` and `pll.string.set` but was never registered as a grantable scope, so no API key — not even Full Admin — could hold it.
+* Relabeled Polylang scopes for clarity: `manage.polylang` is now "Manage Polylang Post translations" and `manage.polylang.settings` is "Manage Polylang Term & String translations", each with a tooltip explaining exactly what it does and does not allow.
 
 = 3.9.0 =
 
