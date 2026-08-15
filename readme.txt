@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.9.1
+Stable tag: 3.10.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -178,6 +178,17 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.10.0 =
+
+* Automatic pre-write snapshots: posts, terms, and Elementor pages/templates now get a safety snapshot before every update, trash, delete, or field edit — automatically, even if the agent never calls a backup tool itself.
+* New "Sessions with Snapshots" panel on the Snapshots page — restore every post, term, and Elementor page touched during a session back to its pre-session state with one click. Now also restores Elementor Theme Builder display conditions correctly.
+* MCP responses now always include a `content` field on successful tool calls, for full compatibility with strict MCP clients.
+* Clearer error handling: errors rejected before a tool runs (auth, scope, session, lock) use a standard JSON-RPC integer error code; errors from a tool that actually ran and failed are now reported as `isError` with a description, so agents can see and react to them directly.
+* New opt-in `idempotency_key` argument on write/destructive tools — pass the same key on a retried call and AICOM returns the original result instead of repeating the action (e.g. no duplicate post from a dropped connection and retry).
+* MCP protocol version is now negotiated from the client's request instead of hardcoded, so responses match what each client actually supports.
+* Hardened against corrupted responses: a stray notice from another active plugin, or an unexpected server error, can no longer produce a broken response — agents always get back valid JSON.
+* Tested up to WordPress 7.1.
 
 = 3.9.1 =
 
