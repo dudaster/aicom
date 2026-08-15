@@ -1,7 +1,7 @@
 # AICOM Local ↔ Hub — Management Channel
 
-> **Status:** Implemented on both sides — May 2026.
-> AICOM Local v3.7.0 + DB schema v4.6 · AICOM Hub v0.1.0.
+> **Status:** Implemented on both sides — May 2026, action list current as of August 2026.
+> AICOM Local v3.10.0 + DB schema v4.8 · AICOM Hub v0.1.0.
 > Audience: anyone touching the channel on either plugin. Read first before changing wire format — every byte is shared between two codebases.
 
 ## What this is
@@ -90,7 +90,17 @@ POST
 
 **Actions currently wired** (extend `AICOM_Hub_Channel::dispatch()` and add to `ALLOWED_ACTIONS` to grow):
 - `status.get` — returns `{aicom_version, wp_version, lock_status, active_keys, open_sessions}`
-- `lock.set` — `params: {soft, hard}` — toggles `AICOM_Lock_Manager` soft/hard lock
+- `lock.set` — `params: {soft, hard}` — toggles `AICOM_Lock_Manager` soft/hard lock; unrestricted, no Local Policy Cap (see below)
+- `session.create` — `params: {hub_session_id, label, scopes[], restrictions, expires_at}` — mints a key against Local's authoritative scope tree, capped at `SESSION_MAX_MINUTES` (240 min). Returns `{key_id, plain_key, key_prefix, last4, scopes, restrictions, expires_at, label}` — `plain_key` is one-time output.
+- `session.revoke` — `params: {key_id}` — returns `{key_id, status: 'revoked'}`
+- `key.rotate` — `params: {key_id}` — returns `{key_id, plain_key, last4}` — `plain_key` is one-time output.
+- `key.suspend` — `params: {key_id}` — returns `{key_id, status: 'suspended'}`
+- `key.unsuspend` — `params: {key_id}` — returns `{key_id, status: 'active'}`
+- `key.reset_ip_lock` — `params: {key_id}` — returns `{key_id, reset: true}`
+- `key.archive` — `params: {key_id}` — returns `{key_id, status: 'archived'}`
+- `key.unarchive` — `params: {key_id}` — returns `{key_id, status: 'suspended'}`
+
+All ten are wired on the Hub side too — `AICOMHUB_Client::call()` is action-agnostic, and `admin/class-admin.php` invokes each of them from the Keys/Sites pages.
 
 Anything outside the allowlist is refused with `403 scope_forbidden` **even with a valid signature** — defense in depth.
 
