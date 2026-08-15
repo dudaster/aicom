@@ -275,6 +275,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
             $wpdb->prefix . 'aicom_backups',
             [
                 'created_at'   => current_time( 'mysql', true ),
+                'session_id'   => AICOM_Tool_Router::$current_session_id ?: null,
                 'api_key_id'   => (int) $key_record['id'],
                 'tool_name'    => 'elementor.page.backup',
                 'target_type'  => 'elementor_page',
@@ -486,26 +487,7 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
         }
         update_post_meta( $post_id, '_elementor_conditions', $conditions );
 
-        // Try Elementor Pro Conditions_Manager API (handles cache + option rebuild internally)
-        $method = 'manual';
-        if ( class_exists( '\ElementorPro\Plugin' ) ) {
-            try {
-                $tb = \ElementorPro\Plugin::instance()->modules_manager->get_modules( 'theme-builder' );
-                if ( $tb && method_exists( $tb, 'get_conditions_manager' ) ) {
-                    $cm = $tb->get_conditions_manager();
-                    if ( $cm && method_exists( $cm, 'save_conditions' ) ) {
-                        $cm->save_conditions( $post_id, $conditions );
-                        $method = 'elementor_pro_api';
-                    }
-                }
-            } catch ( \Throwable $e ) {
-                // Fall through to manual rebuild
-            }
-        }
-
-        if ( $method === 'manual' ) {
-            $this->save_conditions_manual( $post_id, $template_type, $conditions );
-        }
+        $method = $this->sync_conditions_cache( $post_id, $template_type, $conditions );
 
         return $this->ok(
             [
@@ -516,6 +498,36 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
             ],
             [ 'target_type' => 'elementor_template', 'target_id' => $post_id ]
         );
+    }
+
+    // ── Public Helpers ────────────────────────────────────────────────────
+
+    /**
+     * Push _elementor_conditions/_elementor_template_type postmeta (already
+     * saved on $post_id) into Elementor's condition cache — the Pro
+     * Conditions_Manager option and its derived caches. Used both right
+     * after a live elementor.template.set_conditions call and after a
+     * session-undo restore, so the two writers stay in sync the same way.
+     * Returns 'elementor_pro_api' or 'manual' depending on which path ran.
+     */
+    public function sync_conditions_cache( int $post_id, string $template_type, array $conditions ): string {
+        if ( class_exists( '\ElementorPro\Plugin' ) ) {
+            try {
+                $tb = \ElementorPro\Plugin::instance()->modules_manager->get_modules( 'theme-builder' );
+                if ( $tb && method_exists( $tb, 'get_conditions_manager' ) ) {
+                    $cm = $tb->get_conditions_manager();
+                    if ( $cm && method_exists( $cm, 'save_conditions' ) ) {
+                        $cm->save_conditions( $post_id, $conditions );
+                        return 'elementor_pro_api';
+                    }
+                }
+            } catch ( \Throwable $e ) {
+                // Fall through to manual rebuild
+            }
+        }
+
+        $this->save_conditions_manual( $post_id, $template_type, $conditions );
+        return 'manual';
     }
 
     // ── Private Helpers ───────────────────────────────────────────────────

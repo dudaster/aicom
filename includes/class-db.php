@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.7';
+    const DB_VERSION    = '4.8';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -129,6 +129,9 @@ class AICOM_DB {
         // silently. This block fixes that regardless of stored version.
         self::ensure_column( 'aicom_logs',    'session_id', 'BIGINT UNSIGNED NULL AFTER request_id' );
         self::ensure_column( 'aicom_backups', 'session_id', 'BIGINT UNSIGNED NULL AFTER request_id' );
+
+        // v4.8: add aicom_idempotency_keys for tool-call idempotency (handled by
+        // dbDelta in create_tables) — brand-new table, nothing to ALTER here.
 
         // v4.0: rename tables from acl_* → aicom_* (second rebrand).
         if ( version_compare( $current, '4.0', '<' ) ) {
@@ -352,6 +355,22 @@ class AICOM_DB {
             KEY idx_seen (seen_at)
         ) $charset;";
 
+        // ── Idempotency Keys ────────────────────────────────────────────────
+        // Dedupe for retried write/destructive/admin_sensitive tool calls that
+        // pass an idempotency_key argument. Claimed atomically via INSERT IGNORE
+        // on the composite PK, same pattern as aicom_hub_nonces above.
+        $sql_idempotency = "CREATE TABLE {$wpdb->prefix}aicom_idempotency_keys (
+            api_key_id      BIGINT UNSIGNED NOT NULL,
+            idempotency_key VARCHAR(191)    NOT NULL,
+            tool_name       VARCHAR(191)    NOT NULL,
+            args_hash       CHAR(64)        NOT NULL,
+            status          VARCHAR(20)     NOT NULL DEFAULT 'in_progress',
+            result_json     LONGTEXT        NULL,
+            created_at      DATETIME        NOT NULL,
+            PRIMARY KEY (api_key_id, idempotency_key),
+            KEY idx_created (created_at)
+        ) $charset;";
+
         dbDelta( $sql_keys );
         dbDelta( $sql_logs );
         dbDelta( $sql_backups );
@@ -361,5 +380,6 @@ class AICOM_DB {
         dbDelta( $sql_skill_revisions );
         dbDelta( $sql_hub_pairings );
         dbDelta( $sql_hub_nonces );
+        dbDelta( $sql_idempotency );
     }
 }

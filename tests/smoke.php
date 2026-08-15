@@ -57,6 +57,15 @@ function is_err( array $r ): bool {
     return isset( $r['error'] );
 }
 
+/**
+ * True for a tool-execution failure (handler ran and failed): result.isError.
+ * Distinct from a gate error (isset($r['error']) after unwrap, see is_err()),
+ * which is rejected before any handler runs.
+ */
+function is_tool_error( array $r ): bool {
+    return ! empty( $r['isError'] );
+}
+
 // ── Create API key with all scopes ─────────────────────────────────────────
 
 // Clean up any leftover terms from crashed previous runs
@@ -117,7 +126,8 @@ ok( 'includes post_tag', in_array( 'post_tag', $tax_slugs ) );
 
 section( 'session enforcement: write without session → error' );
 $r = tool( 'wp.posts.create', [ 'post_title' => 'Should fail', 'post_type' => 'post', 'post_status' => 'draft' ] );
-ok( 'returns NO_ACTIVE_SESSION error', ( $r['error']['code'] ?? '' ) === 'NO_ACTIVE_SESSION', json_encode( $r ) );
+ok( 'returns NO_ACTIVE_SESSION gate error', ( $r['error']['data']['code'] ?? '' ) === 'NO_ACTIVE_SESSION', json_encode( $r ) );
+ok( 'gate error.code is an integer', is_int( $r['error']['code'] ?? null ), json_encode( $r ) );
 
 section( 'session.open' );
 $r = tool( 'session.open', [ 'name' => 'Smoke Test Session', 'description' => 'Automated smoke tests' ] );
@@ -383,7 +393,7 @@ if ( $clone_id ) {
 
 section( 'yoast.status' );
 $r = tool( 'yoast.status', [] );
-if ( is_err( $r ) && strpos( $r['error']['code'] ?? '', 'DEPENDENCY' ) !== false ) {
+if ( is_err( $r ) && strpos( $r['error']['data']['code'] ?? '', 'DEPENDENCY' ) !== false ) {
     echo "  [SKIP] Yoast not active\n";
 } else {
     ok( 'status: no error', ! is_err( $r ), json_encode( $r ) );

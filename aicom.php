@@ -12,7 +12,7 @@
  * Domain Path:       /languages
  * Requires PHP:      7.4
  * Requires at least: 6.0
- * Tested up to:      7.0
+ * Tested up to:      7.1
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -75,6 +75,9 @@ register_activation_hook( __FILE__, function (): void {
     if ( ! wp_next_scheduled( 'aicom_hub_nonce_gc' ) ) {
         wp_schedule_event( time(), 'daily', 'aicom_hub_nonce_gc' );
     }
+    if ( ! wp_next_scheduled( 'aicom_idempotency_gc' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_idempotency_gc' );
+    }
 } );
 
 // ── Deactivation Hook ──────────────────────────────────────────────────────
@@ -83,6 +86,7 @@ register_deactivation_hook( __FILE__, function (): void {
     wp_clear_scheduled_hook( 'aicom_cleanup_backups' );
     wp_clear_scheduled_hook( 'aicom_hub_sync' );
     wp_clear_scheduled_hook( 'aicom_hub_nonce_gc' );
+    wp_clear_scheduled_hook( 'aicom_idempotency_gc' );
 } );
 
 // ── Auto-migrate on version mismatch (e.g. plugin update without deactivate/activate) ─
@@ -105,6 +109,66 @@ add_action( 'plugins_loaded', 'aicom_boot', 5 );
 // wp_xmlrpc_server applies it during set_callbacks().
 add_action( 'plugins_loaded', [ 'AICOM_Lockdown', 'bootstrap' ], 1 );
 
+// ── HTTP response reliability ────────────────────────────────────────────
+// $aicom_dispatching is true only while we are actually inside one of our own
+// HTTP entry points (aicom_safe_dispatch() below) — the shutdown guard uses it
+// so a fatal in a completely unrelated page load is never mistaken for ours.
+$GLOBALS['aicom_dispatching'] = false;
+
+/**
+ * Call AICOM_Tool_Router::dispatch() with an output-buffer guard so a stray
+ * PHP notice/warning from another active plugin (this install runs Elementor,
+ * WooCommerce, Yoast, ACF alongside AICOM) can never corrupt the JSON body —
+ * a corrupted body reads to a client as a hang, not a clean error. Every real
+ * HTTP entry point below calls this instead of AICOM_Tool_Router::dispatch()
+ * directly. See the shutdown handler below for the true-PHP-fatal case, which
+ * this buffer alone cannot catch.
+ */
+function aicom_safe_dispatch( string $body, string $protocol_version_header = '' ): array {
+    $GLOBALS['aicom_dispatching'] = true;
+
+    ob_start();
+    $result = AICOM_Tool_Router::dispatch( $body, $protocol_version_header );
+    $stray  = ob_get_clean();
+
+    if ( $stray !== '' && $stray !== false ) {
+        // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- deliberate diagnostic, not left-over debug code
+        error_log( 'AICOM: discarded stray output during MCP dispatch: ' . substr( $stray, 0, 500 ) );
+    }
+
+    $GLOBALS['aicom_dispatching'] = false;
+    return $result;
+}
+
+// A true PHP fatal (not a catchable Throwable — parse error, memory exhaustion)
+// inside dispatch() stops execution before aicom_safe_dispatch() ever reaches
+// its own ob_get_clean(), and PHP's default shutdown behavior would flush
+// whatever partial/HTML content was buffered with a 200 status. This is the
+// actual fix for "malformed body causes client hang" — the buffer above only
+// catches non-fatal stray output. Infra-level timeouts (PHP-FPM
+// request_terminate_timeout, nginx/Apache) are out of reach here and remain a
+// deployment-config concern.
+register_shutdown_function( function (): void {
+    if ( empty( $GLOBALS['aicom_dispatching'] ) || headers_sent() ) {
+        return;
+    }
+    $error = error_get_last();
+    if ( ! $error || ! in_array( $error['type'], [ E_ERROR, E_PARSE, E_COMPILE_ERROR ], true ) ) {
+        return;
+    }
+    while ( ob_get_level() > 0 ) {
+        ob_end_clean();
+    }
+    header( 'Content-Type: application/json; charset=utf-8' );
+    $body = [
+        'jsonrpc' => '2.0',
+        'error'   => [ 'code' => -32603, 'message' => 'Internal server error', 'data' => [ 'code' => 'INTERNAL_ERROR' ] ],
+    ];
+    // wp_json_encode() may not be available if the fatal happened before WP
+    // finished loading — fall back to the native encoder for this last resort.
+    echo function_exists( 'wp_json_encode' ) ? wp_json_encode( $body ) : json_encode( $body );
+} );
+
 function aicom_boot(): void {
     // Fallback: schedule cron if plugin was already active before this version
     if ( ! wp_next_scheduled( 'aicom_expire_keys' ) ) {
@@ -119,10 +183,14 @@ function aicom_boot(): void {
     if ( ! wp_next_scheduled( 'aicom_hub_nonce_gc' ) ) {
         wp_schedule_event( time(), 'daily', 'aicom_hub_nonce_gc' );
     }
-    add_action( 'aicom_expire_keys',     function() { AICOM_Sessions::close_stale( 2 ); } );
-    add_action( 'aicom_cleanup_backups', [ 'AICOM_Admin', 'run_backup_cleanup' ] );
-    add_action( 'aicom_hub_sync',        [ 'AICOM_Hub_Channel', 'cron_push_all' ] );
-    add_action( 'aicom_hub_nonce_gc',    [ 'AICOM_Hub_Pairing', 'gc_nonces' ] );
+    if ( ! wp_next_scheduled( 'aicom_idempotency_gc' ) ) {
+        wp_schedule_event( time(), 'daily', 'aicom_idempotency_gc' );
+    }
+    add_action( 'aicom_expire_keys',      function() { AICOM_Sessions::close_stale( 2 ); } );
+    add_action( 'aicom_cleanup_backups',  [ 'AICOM_Admin', 'run_backup_cleanup' ] );
+    add_action( 'aicom_hub_sync',         [ 'AICOM_Hub_Channel', 'cron_push_all' ] );
+    add_action( 'aicom_hub_nonce_gc',     [ 'AICOM_Hub_Pairing', 'gc_nonces' ] );
+    add_action( 'aicom_idempotency_gc',   [ 'AICOM_Idempotency', 'gc' ] );
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
         new AICOM_Module_Session(),
@@ -205,7 +273,7 @@ function aicom_boot(): void {
             ] );
         }
         $body   = $request->get_body();
-        $data   = AICOM_Tool_Router::dispatch( $body ?: '{}' );
+        $data   = aicom_safe_dispatch( $body ?: '{}', (string) $request->get_header( 'MCP-Protocol-Version' ) );
         return new WP_REST_Response( $data, 200 );
     }, 10, 3 );
 
@@ -250,8 +318,9 @@ function aicom_boot(): void {
                 wp_send_json( [ 'ok' => true, 'server' => 'AICOM - AI Commander', 'version' => AICOM_VERSION ] );
             }
 
-            $body   = file_get_contents( 'php://input' );
-            $result = AICOM_Tool_Router::dispatch( $body ?: '{}' );
+            $body             = file_get_contents( 'php://input' );
+            $header_protocol  = isset( $_SERVER['HTTP_MCP_PROTOCOL_VERSION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_MCP_PROTOCOL_VERSION'] ) ) : '';
+            $result           = aicom_safe_dispatch( $body ?: '{}', $header_protocol );
 
             wp_send_json( $result );
         }
@@ -273,7 +342,7 @@ function aicom_rest_handler( WP_REST_Request $request ): WP_REST_Response {
 
     // POST = MCP dispatch
     $body   = $request->get_body();
-    $result = AICOM_Tool_Router::dispatch( $body ?: '{}' );
+    $result = aicom_safe_dispatch( $body ?: '{}', (string) $request->get_header( 'MCP-Protocol-Version' ) );
 
     $http_status = isset( $result['error'] ) ? ( $result['error']['http_status'] ?? 400 ) : 200;
     unset( $result['error']['http_status'] );
@@ -299,6 +368,6 @@ function aicom_tool_handler( WP_REST_Request $request ): WP_REST_Response {
         'id'      => 1,
     ] );
 
-    $result = AICOM_Tool_Router::dispatch( $body );
+    $result = aicom_safe_dispatch( $body, (string) $request->get_header( 'MCP-Protocol-Version' ) );
     return new WP_REST_Response( $result, 200 );
 }

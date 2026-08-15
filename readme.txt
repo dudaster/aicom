@@ -2,7 +2,7 @@
 Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: 3.9.1
 Requires PHP: 7.4
 License: GPL-2.0-or-later

@@ -91,6 +91,21 @@ $type_options = [
     'term'           => __( 'Term', 'aicom' ),
     'elementor_page' => __( 'Elementor Page', 'aicom' ),
 ];
+
+// ── Sessions with snapshots (undo-a-whole-session) ─────────────────────────
+// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+$session_summaries = $wpdb->get_results(
+    "SELECT b.session_id, COUNT(*) AS backup_count,
+            MIN(b.created_at) AS first_at, MAX(b.created_at) AS last_at,
+            s.name AS session_name, s.status AS session_status, s.api_key_label
+     FROM $table b
+     LEFT JOIN {$wpdb->prefix}aicom_sessions s ON s.id = b.session_id
+     WHERE b.session_id IS NOT NULL AND b.session_id > 0
+     GROUP BY b.session_id
+     ORDER BY last_at DESC
+     LIMIT 50",
+    ARRAY_A
+);
 ?>
 <?php include AICOM_DIR . 'admin/partials/layout-top.php'; ?>
 
@@ -250,6 +265,77 @@ $type_options = [
     </div>
 
     <?php elseif ( $active_tab === 'snapshots' ) : ?>
+
+    <?php if ( isset( $_GET['restored'] ) ) : ?>
+    <?php $restored_count = absint( $_GET['restored'] ); ?>
+    <div class="notice notice-success is-dismissible">
+        <p>
+            <?php
+            /* translators: %d: number of backups restored */
+            printf( esc_html( _n( '%d backup restored.', '%d backups restored.', $restored_count, 'aicom' ) ), $restored_count );
+            ?>
+        </p>
+    </div>
+    <?php endif; ?>
+    <?php if ( isset( $_GET['restore_error'] ) ) : ?>
+    <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not restore session — invalid session ID.', 'aicom' ); ?></p></div>
+    <?php endif; ?>
+
+    <!-- ── Undo a whole session ──────────────────────────────────────────── -->
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'Sessions with Snapshots', 'aicom' ); ?></h2>
+            <span style="font-size:0.8em;color:var(--aicom-text-sm)"><?php esc_html_e( 'Restore every post, term, and Elementor page touched during a session back to its pre-session state.', 'aicom' ); ?></span>
+        </div>
+        <div class="aicom-card-body" style="padding:0">
+        <?php if ( empty( $session_summaries ) ) : ?>
+            <p style="padding:24px;color:var(--aicom-text-sm);margin:0"><?php esc_html_e( 'No sessions have snapshots yet.', 'aicom' ); ?></p>
+        <?php else : ?>
+            <table class="aicom-keys-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Session', 'aicom' ); ?></th>
+                        <th><?php esc_html_e( 'API Key', 'aicom' ); ?></th>
+                        <th style="width:110px"><?php esc_html_e( 'Snapshots', 'aicom' ); ?></th>
+                        <th style="width:160px"><?php esc_html_e( 'Last activity', 'aicom' ); ?></th>
+                        <th style="width:120px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php foreach ( $session_summaries as $sess ) :
+                    $sess_id   = (int) $sess['session_id'];
+                    $sess_date = substr( (string) $sess['first_at'], 0, 10 );
+                    $audit_url = add_query_arg( [ 'page' => 'aicom-audit-logs', 'tab' => 'sessions', 'session_date' => $sess_date, 'highlight_session' => $sess_id ], admin_url( 'admin.php' ) );
+                ?>
+                    <tr>
+                        <td style="font-size:0.86em">
+                            <a href="<?php echo esc_url( $audit_url ); ?>">#<?php echo $sess_id; ?> <?php echo esc_html( $sess['session_name'] ?: __( '(untitled)', 'aicom' ) ); ?></a>
+                            <?php if ( $sess['session_status'] === 'open' ) : ?><span class="aicom-badge-active" style="margin-left:6px"><?php esc_html_e( 'Active', 'aicom' ); ?></span><?php endif; ?>
+                        </td>
+                        <td style="font-size:0.84em"><?php echo esc_html( $sess['api_key_label'] ?: '—' ); ?></td>
+                        <td class="aicom-key-date"><?php echo (int) $sess['backup_count']; ?></td>
+                        <td class="aicom-key-date"><?php echo esc_html( $sess['last_at'] ); ?></td>
+                        <td>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                <input type="hidden" name="action" value="aicom_save" />
+                                <input type="hidden" name="aicom_action" value="restore_session" />
+                                <input type="hidden" name="session_id" value="<?php echo $sess_id; ?>" />
+                                <input type="hidden" name="_redirect_to" value="backups" />
+                                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                <button type="submit" class="button button-small aicom-btn-danger"
+                                        onclick="return confirm('<?php
+                                            /* translators: %d: backup count */
+                                            echo esc_js( sprintf( __( 'Restore %d snapshot(s) from this session? This overwrites current content for every post/term touched in the session.', 'aicom' ), (int) $sess['backup_count'] ) );
+                                        ?>')"><?php esc_html_e( 'Restore session', 'aicom' ); ?></button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+        </div>
+    </div>
 
     <!-- ── Filters ────────────────────────────────────────────────────────── -->
     <div class="aicom-card">

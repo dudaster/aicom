@@ -31,9 +31,68 @@ class AICOM_Tool_Router {
     /** Scopes of the currently-executing key, set just before the cap filter and cleared after. */
     private static array $current_key_scopes = [];
 
+    // ── MCP protocol version negotiation ────────────────────────────────────
+    // Data-driven (not a string/semver comparison) — MCP version strings aren't
+    // guaranteed to sort, and structuredContent's exact introduction revision
+    // isn't worth hardcoding assumptions about. Add new versions here only.
+    private const PROTOCOL_CAPABILITIES = [
+        '2024-11-05' => [ 'structured_content' => false ],
+        '2025-06-18' => [ 'structured_content' => true ],
+    ];
+    private const DEFAULT_PROTOCOL_VERSION = '2024-11-05';
+    private const LATEST_PROTOCOL_VERSION  = '2025-06-18';
+
+    /**
+     * JSON-RPC 2.0 integer codes for gate errors — failures before a tool handler
+     * ever runs (auth, lock, scope, session, tool-not-found, confirm, idempotency
+     * conflicts). AICOM-specific codes use JSON-RPC's reserved -32000..-32099
+     * server-error range. Append-only: once shipped, never renumber or reuse a
+     * code for a different string — it's a wire contract. The original string
+     * identifier always travels alongside it in error.data.code, so nothing
+     * loses its semantic identity for existing string-code consumers.
+     */
+    private const GATE_ERROR_CODES = [
+        'PARSE_ERROR'             => -32700,
+        'INVALID_REQUEST'         => -32600,
+        'TOOL_NOT_FOUND'          => -32602, // "unknown tool" ~ invalid params.name, per MCP spec's own example
+        'HANDLER_MISSING'         => -32603, // true internal/infra fault, not a client mistake
+        'AUTH_FAILED'             => -32001,
+        'DENIED_SCOPE'            => -32002,
+        'NO_ACTIVE_SESSION'       => -32003,
+        'CONFIRM_REQUIRED'        => -32004,
+        'HARD_LOCK_ACTIVE'        => -32005,
+        'SOFT_LOCK_ACTIVE'        => -32006,
+        'RATE_LIMITED'            => -32007,
+        'DEPENDENCY_MISSING'      => -32008,
+        'BLOCKED_WORKING_HOURS'   => -32009,
+        'IDEMPOTENCY_CONFLICT'    => -32010,
+        'IDEMPOTENCY_IN_PROGRESS' => -32011,
+    ];
+    private const DEFAULT_GATE_ERROR_CODE = -32000;
+
+    /**
+     * Tools that mutate an existing post/term get a silent snapshot into
+     * wp_aicom_backups before execution — independent of whether the key
+     * has manage.backups or whether the model remembered to call backup.*.create.
+     */
+    private const AUTO_BACKUP_MAP = [
+        'wp.posts.update' => [ 'type' => 'post', 'id_arg' => 'id' ],
+        'wp.posts.trash'  => [ 'type' => 'post', 'id_arg' => 'id' ],
+        'wp.posts.delete' => [ 'type' => 'post', 'id_arg' => 'id' ],
+        'wp.terms.update' => [ 'type' => 'term', 'id_arg' => 'term_id', 'taxonomy_arg' => 'taxonomy' ],
+        'wp.terms.delete' => [ 'type' => 'term', 'id_arg' => 'term_id', 'taxonomy_arg' => 'taxonomy' ],
+
+        'elementor.widget.update_field'    => [ 'type' => 'elementor', 'id_arg' => 'post_id' ],
+        'elementor.page.bulk_update_texts' => [ 'type' => 'elementor', 'id_arg' => 'post_id' ],
+
+        // Writes _elementor_conditions/_elementor_template_type postmeta on an existing
+        // elementor_library post — a full post+meta snapshot already covers it.
+        'elementor.template.set_conditions' => [ 'type' => 'post', 'id_arg' => 'post_id' ],
+    ];
+
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
-    public static function dispatch( string $raw_body ): array {
+    public static function dispatch( string $raw_body, string $protocol_version_header = '' ): array {
         $remote_ip = self::remote_ip();
         $start     = microtime( true );
         $payload   = json_decode( $raw_body, true, 64 );
@@ -50,16 +109,16 @@ class AICOM_Tool_Router {
         // ── JSON-RPC 2.0 batch: top-level JSON array (empty or indexed) ──
         if ( is_array( $payload ) && ( empty( $payload ) || array_key_exists( 0, $payload ) ) ) {
             if ( empty( $payload ) ) {
-                return self::mcp_error( 'INVALID_REQUEST', 'Empty batch array', wp_generate_uuid4(), null );
+                return self::build_gate_error( 'INVALID_REQUEST', 'Empty batch array', wp_generate_uuid4(), null );
             }
             $responses = [];
             foreach ( $payload as $item ) {
                 if ( ! is_array( $item ) ) {
-                    $responses[] = self::mcp_error( 'INVALID_REQUEST', 'Batch item must be an object', wp_generate_uuid4(), null );
+                    $responses[] = self::build_gate_error( 'INVALID_REQUEST', 'Batch item must be an object', wp_generate_uuid4(), null );
                     continue;
                 }
                 $rpc_id = $item['id'] ?? null;
-                $result = self::run( $item, $remote_ip );
+                $result = self::run( $item, $remote_ip, $protocol_version_header );
                 if ( $rpc_id !== null ) {
                     $responses[] = $result; // notifications (no id) are processed but not returned
                 }
@@ -68,21 +127,22 @@ class AICOM_Tool_Router {
         }
 
         // ── Single request ────────────────────────────────────────────────
-        return self::run( is_array( $payload ) ? $payload : [], $remote_ip );
+        return self::run( is_array( $payload ) ? $payload : [], $remote_ip, $protocol_version_header );
     }
 
     /**
      * Process a single pre-parsed JSON-RPC/shorthand payload through the full 12-step pipeline.
      */
-    private static function run( array $payload, string $remote_ip ): array {
+    private static function run( array $payload, string $remote_ip, string $protocol_version_header = '' ): array {
         $start      = microtime( true );
         $request_id = wp_generate_uuid4();
         $rpc_id     = null;
 
         // ── Step 1: Parse ─────────────────────────────────────────────────
         // Extract JSON-RPC id (present when client uses MCP standard format)
-        $rpc_id     = $payload['id'] ?? null;
-        $rpc_method = trim( (string) ( $payload['method'] ?? '' ) );
+        $rpc_id           = $payload['id'] ?? null;
+        $rpc_method       = trim( (string) ( $payload['method'] ?? '' ) );
+        $protocol_version = self::resolve_protocol_version( $payload, $protocol_version_header );
 
         if ( $rpc_method === 'tools/call' && isset( $payload['params']['name'] ) ) {
             // MCP standard: {"jsonrpc":"2.0","method":"tools/call","params":{"name":"...","arguments":{}},"id":1}
@@ -121,8 +181,13 @@ class AICOM_Tool_Router {
         // Handled before lock/auth/session so strict MCP clients can complete
         // their initialize handshake. No tool is invoked, no state is mutated.
         if ( $rpc_method === 'initialize' ) {
+            $requested_version  = (string) ( $payload['params']['protocolVersion'] ?? '' );
+            $negotiated_version = isset( self::PROTOCOL_CAPABILITIES[ $requested_version ] )
+                ? $requested_version
+                : self::LATEST_PROTOCOL_VERSION; // spec fallback: respond with a version we support, client decides whether to proceed
+
             return self::jsonrpc_wrap( [
-                'protocolVersion' => '2024-11-05',
+                'protocolVersion' => $negotiated_version,
                 'capabilities'    => [
                     'tools' => [ 'listChanged' => false ],
                 ],
@@ -137,6 +202,8 @@ class AICOM_Tool_Router {
                     '3. session.open(name:"label", description:"what and why")  →  required before any write tool',
                     '',
                     'Errors:',
+                    '  Gate errors (request rejected before the tool ran) use a top-level "error" object — error.code is an integer, the original identifier is in error.data.code (e.g. error.data.code === "NO_ACTIVE_SESSION").',
+                    '  Tool-execution errors (the tool ran and failed) are a normal result with result.isError === true and result.content describing the failure.',
                     '  NO_ACTIVE_SESSION  → do step 3 first',
                     '  TOOL_NOT_FOUND     → do step 1; call aicom.recipes for task guidance',
                     '  DENIED_SCOPE       → your key lacks the required scope; ask the site admin',
@@ -216,7 +283,7 @@ class AICOM_Tool_Router {
                 'params_json' => self::safe_json( $arguments ),
             ] );
 
-            return self::mcp_error( $lock_code, ucwords( str_replace( '_', ' ', $lock_status ) ), $request_id, $rpc_id );
+            return self::build_gate_error( $lock_code, ucwords( str_replace( '_', ' ', $lock_status ) ), $request_id, $rpc_id );
         }
 
         // ── Step 3: Auth ──────────────────────────────────────────────────
@@ -362,7 +429,7 @@ class AICOM_Tool_Router {
         }
         // Warn about remaining unknown params
         if ( ! empty( $schema_keys ) ) {
-            $reserved    = [ 'dry_run', 'confirm' ];
+            $reserved    = [ 'dry_run', 'confirm', 'idempotency_key' ];
             $unknown     = array_diff( array_keys( $arguments ), $schema_keys, $reserved );
             if ( ! empty( $unknown ) ) {
                 $hints = [];
@@ -382,11 +449,84 @@ class AICOM_Tool_Router {
             }
         }
 
+        // ── Step 9c: Auto-backup ──────────────────────────────────────────
+        // Best-effort snapshot before a post/term gets overwritten or removed.
+        // Failures here must never block the actual tool call.
+        if ( ! $is_dry_run ) {
+            self::maybe_auto_backup( $tool_name, $arguments, $key_record );
+        }
+
+        // ── Step 9d: Idempotency claim ─────────────────────────────────────
+        // Opt-in: only applies when the caller passes idempotency_key on a
+        // write/destructive/admin_sensitive tool. Dedupes retried write calls
+        // (dropped connection, flaky client) so they can't duplicate side effects.
+        $idempotency_key       = (string) ( $arguments['idempotency_key'] ?? '' );
+        $idempotent_applicable = $idempotency_key !== ''
+            && ! $is_dry_run
+            && in_array( $tool_class, [ 'write', 'destructive', 'admin_sensitive' ], true );
+
+        if ( $idempotent_applicable ) {
+            $claim = AICOM_Idempotency::claim( $key_id, $idempotency_key, $tool_name, $arguments );
+
+            if ( $claim['status'] === 'conflict' ) {
+                return self::keyed_error(
+                    $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module,
+                    'IDEMPOTENCY_CONFLICT',
+                    'This idempotency_key was already used for a different tool or different arguments. Use a new idempotency_key for a different operation.',
+                    'validation_failed', 409, $arguments, $start, $rpc_id
+                );
+            }
+
+            if ( $claim['status'] === 'in_progress' ) {
+                return self::keyed_error(
+                    $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module,
+                    'IDEMPOTENCY_IN_PROGRESS',
+                    'Another request with this idempotency_key is still executing. Wait for it to finish before retrying.',
+                    'validation_failed', 409, $arguments, $start, $rpc_id
+                );
+            }
+
+            if ( $claim['status'] === 'replay' ) {
+                $cached = $claim['result'];
+
+                AICOM_Audit_Logger::log( [
+                    'request_id'    => $request_id,
+                    'session_id'    => self::$current_session_id ?: null,
+                    'remote_ip'     => $remote_ip,
+                    'api_key_id'    => $key_id,
+                    'api_key_label' => $key_label,
+                    'tool_name'     => $tool_name,
+                    'module'        => $tool_module,
+                    'tool_class'    => $tool_class,
+                    'status'        => 'idempotent_replay',
+                    'http_status'   => 200,
+                    'duration_ms'   => self::elapsed( $start ),
+                    'params_json'   => self::safe_json( $arguments ),
+                ] );
+
+                if ( ! empty( $cached['is_error'] ) ) {
+                    return self::build_tool_error( $cached['payload'] ?? [], $request_id, $rpc_id );
+                }
+                $payload = (array) ( $cached['payload'] ?? [] );
+                $payload['request_id'] = $request_id;
+                return self::build_success_result( $payload, (array) ( $cached['meta'] ?? [] ), $protocol_version, $rpc_id );
+            }
+            // $claim['status'] === 'claimed' → fall through to Step 10 as normal.
+        }
+
         // ── Step 10: Execute ──────────────────────────────────────────────
         $handler = $tool_meta['handler'];
 
         if ( ! is_callable( $handler ) ) {
-            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'HANDLER_MISSING', 'Tool handler not callable', 'error', 500, $arguments, $start, $rpc_id );
+            return self::build_gate_error( 'HANDLER_MISSING', 'Tool handler not callable', $request_id, $rpc_id );
+        }
+
+        // Long-running admin_sensitive tools (e.g. wp.plugins.update_all) may call
+        // out to wordpress.org — bump the execution time limit so PHP doesn't hard-kill
+        // mid-response with no output. Infra-level timeouts (FPM/nginx/Apache) are out
+        // of reach here and remain a deployment-config concern, not something this fixes.
+        if ( $tool_class === 'admin_sensitive' ) {
+            @set_time_limit( 120 );
         }
 
         // Grant only the WP capabilities that the key's scopes actually need.
@@ -404,8 +544,15 @@ class AICOM_Tool_Router {
             self::$current_key_scopes = [];
         }
 
+        // A caught exception means the handler DID start running — per MCP spec this is
+        // a tool-execution failure (isError:true + content), not a protocol-level error.
+        // Normalize it into the same shape a handler's own err() return would produce so
+        // it falls through into the unified Step 12 handling below.
         if ( $exec_exception !== null ) {
-            return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'EXECUTION_ERROR', $exec_exception->getMessage(), 'error', 500, $arguments, $start, $rpc_id );
+            $result = [
+                'error'       => [ 'code' => 'EXECUTION_ERROR', 'message' => $exec_exception->getMessage(), 'status_code' => 'error' ],
+                'http_status' => 500,
+            ];
         }
 
         // ── Step 11: Touch key ────────────────────────────────────────────
@@ -438,6 +585,13 @@ class AICOM_Tool_Router {
             'result_summary_json' => ! $is_error ? self::safe_json( $meta['summary'] ?? [] ) : null,
         ] );
 
+        // Tool-execution failure (handler ran and returned err(), or threw): per the MCP
+        // spec this is reported inside a *successful* result (isError:true + content),
+        // not as a top-level JSON-RPC error — the model needs to see and react to it.
+        if ( $is_error ) {
+            return self::build_tool_error( $result['error'], $request_id, $rpc_id );
+        }
+
         // Strip internal keys before returning
         unset( $result['_meta'], $result['http_status'] );
         $result['request_id'] = $request_id;
@@ -447,7 +601,21 @@ class AICOM_Tool_Router {
             $result['_warnings'] = $arguments['_param_warnings'];
         }
 
-        return self::jsonrpc_wrap( $result, $rpc_id );
+        // Cache for idempotent replay. Only successes are cached — a failed call
+        // leaves the claim row as 'in_progress' so it becomes reclaimable after
+        // the staleness window instead of permanently caching a possibly-transient
+        // failure for up to 48h.
+        if ( $idempotent_applicable ) {
+            AICOM_Idempotency::complete( $key_id, $idempotency_key, [ 'is_error' => false, 'payload' => $result, 'meta' => $meta ] );
+        }
+
+        // tools/list is a distinct top-level RPC method, not a tools/call CallToolResult —
+        // it must NOT get content/isError/structuredContent wrapping.
+        if ( $tool_name === 'tools/list' ) {
+            return self::jsonrpc_wrap( $result, $rpc_id );
+        }
+
+        return self::build_success_result( $result, $meta, $protocol_version, $rpc_id );
     }
 
     // ── Error Builders ────────────────────────────────────────────────────
@@ -482,7 +650,7 @@ class AICOM_Tool_Router {
             'error_message' => $message,
         ] );
 
-        return self::mcp_error( strtoupper( $status_code ), $message, $request_id, $rpc_id );
+        return self::build_gate_error( strtoupper( $status_code ), $message, $request_id, $rpc_id );
     }
 
     /**
@@ -518,37 +686,143 @@ class AICOM_Tool_Router {
             'params_json'   => self::safe_json( $arguments ),
         ] );
 
-        return self::mcp_error( $error_code, $message, $request_id, $rpc_id );
-    }
-
-    private static function mcp_error( string $code, string $message, string $request_id, $rpc_id = null ): array {
-        $response = [
-            'error'      => [ 'code' => $code, 'message' => $message ],
-            'request_id' => $request_id,
-        ];
-        return self::jsonrpc_wrap( $response, $rpc_id );
+        return self::build_gate_error( $error_code, $message, $request_id, $rpc_id );
     }
 
     /**
-     * Wrap response in JSON-RPC 2.0 envelope when client sent a jsonrpc request (id present).
-     * For error responses, error stays at top level per JSON-RPC spec.
-     * For success responses, payload moves into result key.
+     * Build a top-level JSON-RPC "error" response for a failure that happened
+     * BEFORE any tool handler ran (lock, auth, scope, session, tool-not-found,
+     * confirm, idempotency conflicts, ...). See build_tool_error() for failures
+     * that happen at/after handler execution — those are a different MCP shape.
+     *
+     * JSON-RPC-enveloped requests (client sent "id"): error.code is the mapped
+     * integer per GATE_ERROR_CODES; the original string identifier is preserved
+     * in error.data.code so nothing loses its semantic identity.
+     *
+     * Legacy shorthand requests (no "id"): error.code stays the original string —
+     * JSON-RPC integer-code conformance is moot without a jsonrpc/id envelope,
+     * and this preserves whatever weak-local-model integrations already parse.
+     */
+    private static function build_gate_error( string $string_code, string $message, string $request_id, $rpc_id = null ): array {
+        if ( $rpc_id === null ) {
+            return [
+                'error'      => [ 'code' => $string_code, 'message' => $message ],
+                'request_id' => $request_id,
+            ];
+        }
+
+        $int_code = self::GATE_ERROR_CODES[ $string_code ] ?? self::DEFAULT_GATE_ERROR_CODE;
+
+        return [
+            'jsonrpc' => '2.0',
+            'id'      => $rpc_id,
+            'error'   => [
+                'code'    => $int_code,
+                'message' => $message,
+                'data'    => [ 'code' => $string_code, 'request_id' => $request_id ],
+            ],
+        ];
+    }
+
+    /**
+     * Build a *successful* JSON-RPC result for a tool-execution failure — the
+     * handler ran (or started to) and returned err(), or threw. Per the MCP
+     * spec this is reported inside the result (isError:true + content), not as
+     * a top-level JSON-RPC error, so the model can see and react to it.
+     * The legacy flat error shape ($handler_error) is preserved inside the
+     * result for back-compat with existing consumers of result.error.code.
+     */
+    private static function build_tool_error( array $handler_error, string $request_id, $rpc_id = null ): array {
+        $message = $handler_error['message'] ?? 'Tool execution failed';
+        $result  = [
+            'isError'    => true,
+            'content'    => [ [ 'type' => 'text', 'text' => $message ] ],
+            'error'      => $handler_error,
+            'request_id' => $request_id,
+        ];
+        return self::jsonrpc_wrap( $result, $rpc_id );
+    }
+
+    /**
+     * Build a successful tools/call CallToolResult. Existing flat fields in
+     * $result are kept verbatim for back-compat; content is always added;
+     * structuredContent mirrors the flat fields only when the negotiated
+     * protocol version supports it (absent, e.g., for 2024-11-05 clients).
+     */
+    private static function build_success_result( array $result, array $meta, string $protocol_version, $rpc_id = null ): array {
+        $result['content'] = [ [ 'type' => 'text', 'text' => self::summarize_result( $result, $meta ) ] ];
+
+        if ( self::protocol_supports( $protocol_version, 'structured_content' ) ) {
+            $structured = $result;
+            unset( $structured['content'] );
+            $result['structuredContent'] = $structured;
+        }
+
+        return self::jsonrpc_wrap( $result, $rpc_id );
+    }
+
+    /**
+     * Generic human-readable summary for the mandatory content field. Prefers
+     * the handler's own _meta.summary (many already set one); otherwise falls
+     * back to a compact JSON rendering of the visible result fields.
+     */
+    private static function summarize_result( array $result, array $meta ): string {
+        if ( ! empty( $meta['summary'] ) && is_array( $meta['summary'] ) ) {
+            $parts = [];
+            foreach ( $meta['summary'] as $k => $v ) {
+                $parts[] = is_bool( $v ) ? ( $v ? $k : "not $k" ) : "$k: $v";
+            }
+            if ( $parts ) {
+                return implode( ', ', $parts );
+            }
+        }
+
+        $visible = $result;
+        unset( $visible['request_id'], $visible['_warnings'] );
+        if ( empty( $visible ) ) {
+            return 'OK';
+        }
+        $encoded = wp_json_encode( $visible );
+        return $encoded !== false ? $encoded : 'OK';
+    }
+
+    private static function protocol_supports( string $protocol_version, string $capability ): bool {
+        return (bool) ( self::PROTOCOL_CAPABILITIES[ $protocol_version ][ $capability ] ?? false );
+    }
+
+    /**
+     * Resolve the MCP protocol version to use when serializing THIS request's
+     * response. HTTP is stateless here — no connection survives from
+     * initialize() to a later tools/call — so the version is re-declared on
+     * every request: an MCP-Protocol-Version header takes priority (matches
+     * the Streamable HTTP transport convention of resending it after
+     * initialize), falling back to an optional top-level "protocolVersion"
+     * field in the JSON-RPC body for simple clients, falling back to the
+     * conservative default if neither is present or recognized.
+     */
+    private static function resolve_protocol_version( array $payload, string $header_version ): string {
+        if ( $header_version !== '' && isset( self::PROTOCOL_CAPABILITIES[ $header_version ] ) ) {
+            return $header_version;
+        }
+        $body_version = (string) ( $payload['protocolVersion'] ?? '' );
+        if ( $body_version !== '' && isset( self::PROTOCOL_CAPABILITIES[ $body_version ] ) ) {
+            return $body_version;
+        }
+        return self::DEFAULT_PROTOCOL_VERSION;
+    }
+
+    /**
+     * Wrap a non-tool-call response (handshake/list/meta, or an already-built
+     * success-shaped tool result) in the JSON-RPC 2.0 envelope. Gate errors and
+     * tool-execution errors build their own envelope directly (build_gate_error()/
+     * build_tool_error()) since their shapes diverge from the plain success case.
      */
     private static function jsonrpc_wrap( array $response, $rpc_id ): array {
         if ( $rpc_id === null ) {
             return $response; // legacy / shorthand format — no wrapping
         }
 
-        $base = [ 'jsonrpc' => '2.0', 'id' => $rpc_id ];
-
-        if ( isset( $response['error'] ) ) {
-            return $base + [
-                'error'      => $response['error'],
-                'request_id' => $response['request_id'] ?? null,
-            ];
-        }
-
-        return $base + [ 'result' => $response ];
+        return [ 'jsonrpc' => '2.0', 'id' => $rpc_id, 'result' => $response ];
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -762,6 +1036,46 @@ class AICOM_Tool_Router {
         }
         arsort( $found );
         return array_slice( array_keys( $found ), 0, 3 );
+    }
+
+    /**
+     * Snapshot the post/term this tool is about to mutate, using the same
+     * backup.post.create / backup.term.create handlers a model would call
+     * explicitly. Runs with the executing key's identity for attribution,
+     * but does not require that key to hold manage.backups — this is a
+     * router-level safety net, not a user-invoked tool call.
+     */
+    private static function maybe_auto_backup( string $tool_name, array $arguments, array $key_record ): void {
+        if ( ! isset( self::AUTO_BACKUP_MAP[ $tool_name ] ) ) {
+            return;
+        }
+
+        $spec = self::AUTO_BACKUP_MAP[ $tool_name ];
+        $id   = (int) ( $arguments[ $spec['id_arg'] ] ?? 0 );
+
+        if ( ! $id ) {
+            return;
+        }
+
+        try {
+            if ( $spec['type'] === 'elementor' ) {
+                ( new AICOM_Module_Elementor() )->handle_backup( [ 'post_id' => $id ], $key_record, false );
+                return;
+            }
+
+            $backup = new AICOM_Module_Backup();
+
+            if ( $spec['type'] === 'post' ) {
+                $backup->handle_post_create( [ 'post_id' => $id ], $key_record, false );
+            } elseif ( $spec['type'] === 'term' ) {
+                $backup->handle_term_create( [
+                    'term_id'  => $id,
+                    'taxonomy' => (string) ( $arguments[ $spec['taxonomy_arg'] ] ?? '' ),
+                ], $key_record, false );
+            }
+        } catch ( Throwable $e ) {
+            // Swallow — a failed safety snapshot must not block the real write.
+        }
     }
 
     private static function is_rate_limited( string $ip ): bool {

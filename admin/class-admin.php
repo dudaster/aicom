@@ -522,7 +522,7 @@ class AICOM_Admin {
                         var res = await callEndpoint(mcp);
                         if (res.body && res.body.result) {
                             setResult('ok', '✓ ' + lblOk);
-                        } else if (res.body && res.body.error && res.body.error.code === 'AUTH_FAILED') {
+                        } else if (res.body && res.body.error && res.body.error.data && res.body.error.data.code === 'AUTH_FAILED') {
                             // Likely Apache stripped the Authorization header — try the fallback.
                             var res2 = await callEndpoint(fallback);
                             if (res2.body && res2.body.result) {
@@ -1067,12 +1067,16 @@ class AICOM_Admin {
     }
 
     private function handle_restore_session( int $session_id ): void {
+        $back_to = sanitize_key( wp_unslash( $_POST['_redirect_to'] ?? '' ) ) === 'backups'
+            ? 'admin.php?page=aicom-backups&tab=snapshots'
+            : 'admin.php?page=aicom-audit-logs&tab=sessions';
+
         if ( ! $session_id ) {
-            wp_safe_redirect( admin_url( 'admin.php?page=aicom-audit-logs&tab=sessions&restore_error=1' ) );
+            wp_safe_redirect( admin_url( $back_to . '&restore_error=1' ) );
             exit;
         }
         $restored = self::do_restore_session( $session_id );
-        wp_safe_redirect( admin_url( 'admin.php?page=aicom-audit-logs&tab=sessions&restored=' . $restored ) );
+        wp_safe_redirect( admin_url( $back_to . '&restored=' . $restored ) );
         exit;
     }
 
@@ -1250,6 +1254,18 @@ class AICOM_Admin {
         $restored = 0;
 
         foreach ( $backups as $backup ) {
+            if ( $backup['target_type'] === 'elementor_page' ) {
+                $target_post_id = (int) $backup['target_id'];
+                if ( $target_post_id && get_post( $target_post_id ) && $backup['payload_json'] ) {
+                    // wp_slash() counteracts update_post_meta's internal wp_unslash() — mirrors
+                    // AICOM_Module_Elementor::handle_restore().
+                    update_post_meta( $target_post_id, '_elementor_data', wp_slash( $backup['payload_json'] ) );
+                    update_post_meta( $target_post_id, '_elementor_edit_mode', 'builder' );
+                    $restored++;
+                }
+                continue;
+            }
+
             $payload = json_decode( $backup['payload_json'], true );
             if ( ! $payload ) {
                 continue;
@@ -1285,6 +1301,26 @@ class AICOM_Admin {
                 foreach ( $payload['terms'] ?? [] as $tax => $term_ids ) {
                     wp_set_post_terms( $original_id, $term_ids, $tax );
                 }
+
+                // Elementor Theme Builder templates cache their display conditions in a
+                // separate global option — restoring _elementor_conditions postmeta alone
+                // leaves that option stale, so push it through the same sync path
+                // elementor.template.set_conditions uses.
+                if ( ( $post_data['post_type'] ?? '' ) === 'elementor_library'
+                    && array_key_exists( '_elementor_conditions', $payload['meta'] ?? [] )
+                    && class_exists( 'AICOM_Module_Elementor' )
+                ) {
+                    $restored_conditions = get_post_meta( $original_id, '_elementor_conditions', true );
+                    $restored_type       = (string) get_post_meta( $original_id, '_elementor_template_type', true );
+                    if ( $restored_type ) {
+                        ( new AICOM_Module_Elementor() )->sync_conditions_cache(
+                            $original_id,
+                            $restored_type,
+                            is_array( $restored_conditions ) ? $restored_conditions : []
+                        );
+                    }
+                }
+
                 clean_post_cache( $original_id );
                 $restored++;
 

@@ -13,7 +13,8 @@ Local-side files involved:
 - `includes/class-hub-pairing.php` — pairing-token lifecycle, pairing store, nonce dedupe
 - `includes/class-hub-channel.php` — REST routes `/pair` + `/management`, cron sync push
 - `admin/pages/safety.php` — "AICOM Hub Pairing" card (token generation UI)
-- DB v4.6: tables `wp_aicom_hub_pairings`, `wp_aicom_hub_nonces`
+- DB v4.7: tables `wp_aicom_hub_pairings`, `wp_aicom_hub_nonces`
+- DB v4.8: table `wp_aicom_idempotency_keys` (MCP tool-call idempotency, see `includes/class-idempotency.php`)
 
 ## Companion plugin
 
