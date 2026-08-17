@@ -419,19 +419,24 @@ class AICOM_Tool_Router {
             'media_id'  => 'id',           // e.g. media.* tools use 'id', not 'media_id'
             'slug'      => 'post_name',    // wp.posts.* uses 'post_name'; wp.terms.* already has its own 'slug' field
         ];
-        $schema_keys = array_keys( $tool_meta['input_schema'] ?? [] );
+        $schema_keys      = array_keys( $tool_meta['input_schema'] ?? [] );
+        $applied_aliases  = [];
         foreach ( $aliases as $wrong => $correct ) {
             if ( isset( $arguments[ $wrong ] ) && ! isset( $arguments[ $correct ] ) ) {
                 // Only apply alias if correct key is in schema and wrong key is not
                 if ( in_array( $correct, $schema_keys, true ) && ! in_array( $wrong, $schema_keys, true ) ) {
                     $arguments[ $correct ] = $arguments[ $wrong ];
                     unset( $arguments[ $wrong ] );
+                    $applied_aliases[] = "\"$wrong\" was used as \"$correct\"";
                 }
             }
         }
+        if ( ! empty( $applied_aliases ) ) {
+            $arguments['_aliases_applied'] = $applied_aliases;
+        }
         // Warn about remaining unknown params
         if ( ! empty( $schema_keys ) ) {
-            $reserved    = [ 'dry_run', 'confirm', 'idempotency_key' ];
+            $reserved    = [ 'dry_run', 'confirm', 'idempotency_key', '_aliases_applied' ];
             $unknown     = array_diff( array_keys( $arguments ), $schema_keys, $reserved );
             if ( ! empty( $unknown ) ) {
                 $hints = [];
@@ -591,7 +596,7 @@ class AICOM_Tool_Router {
         // spec this is reported inside a *successful* result (isError:true + content),
         // not as a top-level JSON-RPC error — the model needs to see and react to it.
         if ( $is_error ) {
-            return self::build_tool_error( $result['error'], $request_id, $rpc_id );
+            return self::build_tool_error( $result['error'], $request_id, $rpc_id, $arguments['_aliases_applied'] ?? [] );
         }
 
         // Strip internal keys before returning
@@ -601,6 +606,12 @@ class AICOM_Tool_Router {
         // Surface unknown parameter warnings in the result
         if ( isset( $arguments['_param_warnings'] ) ) {
             $result['_warnings'] = $arguments['_param_warnings'];
+        }
+
+        // Surface auto-corrected parameter aliases (e.g. "slug" used as "post_name")
+        // so the caller can see exactly what the router silently rewrote.
+        if ( isset( $arguments['_aliases_applied'] ) ) {
+            $result['_aliases_applied'] = $arguments['_aliases_applied'];
         }
 
         // Cache for idempotent replay. Only successes are cached — a failed call
@@ -734,7 +745,7 @@ class AICOM_Tool_Router {
      * The legacy flat error shape ($handler_error) is preserved inside the
      * result for back-compat with existing consumers of result.error.code.
      */
-    private static function build_tool_error( array $handler_error, string $request_id, $rpc_id = null ): array {
+    private static function build_tool_error( array $handler_error, string $request_id, $rpc_id = null, array $aliases_applied = [] ): array {
         $message = $handler_error['message'] ?? 'Tool execution failed';
         $result  = [
             'isError'    => true,
@@ -742,6 +753,9 @@ class AICOM_Tool_Router {
             'error'      => $handler_error,
             'request_id' => $request_id,
         ];
+        if ( ! empty( $aliases_applied ) ) {
+            $result['_aliases_applied'] = $aliases_applied;
+        }
         return self::jsonrpc_wrap( $result, $rpc_id );
     }
 

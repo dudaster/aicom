@@ -39,7 +39,15 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'write',
             'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
-            'description'     => 'Set the language of a post.',
+            'description'     => 'Set the language of a post. Step 2 of the full translation workflow: '
+                . '(1) create the translated post as a draft with wp.posts.create, '
+                . '(2) set its language with this tool, '
+                . '(3) link it to the source post with pll.post.link_translation, '
+                . '(4) assign the translated category with wp.terms.assign_to_post, '
+                . '(5) set the featured image with media.set_featured, '
+                . '(6) verify with wp.posts.get and pll.post.get_translations. '
+                . 'Response includes persisted/verified so you can confirm the language actually stuck. '
+                . 'Example: {"post_id": 456, "language": "en"}',
             'input_schema'    => [
                 'post_id'  => [ 'type' => 'integer', 'required' => true ],
                 'language' => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug (e.g. "en", "ro").' ],
@@ -62,7 +70,11 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'admin_sensitive',
             'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
-            'description'     => 'Link posts as translations. Pass translations as {"en": 123, "ro": 456, "uk": 789}. Existing group members not mentioned are preserved.',
+            'description'     => 'Link posts as translations — step 3 of the translation workflow (both posts must '
+                . 'already have their language set via pll.post.set_language). Pass translations as '
+                . '{"en": 123, "ro": 456, "uk": 789}. Existing group members not mentioned are preserved. '
+                . 'Requires confirm=true. Response includes persisted/verified re-read from the group. '
+                . 'Example: {"translations": {"ro": 11432, "en": 11435}, "confirm": true}',
             'input_schema'    => [
                 'translations' => [ 'type' => 'object', 'required' => true, 'description' => 'Map of language_slug => post_id for all translations to link.' ],
                 'confirm'      => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
@@ -74,7 +86,8 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'admin_sensitive',
             'required_scopes' => [ 'write.wp.posts', $manage ],
             'dependency'      => $dep,
-            'description'     => 'Unlink a post from its translations group (confirm=true required).',
+            'description'     => 'Unlink a post from its translations group (confirm=true required). '
+                . 'Example: {"post_id": 456, "confirm": true}',
             'input_schema'    => [
                 'post_id' => [ 'type' => 'integer', 'required' => true ],
                 'confirm' => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
@@ -97,7 +110,9 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'write',
             'required_scopes' => [ 'manage.taxonomies', $settings ],
             'dependency'      => $dep,
-            'description'     => 'Set the language of a term.',
+            'description'     => 'Set the language of a term (category/tag). Analogous to pll.post.set_language but '
+                . 'for taxonomy terms — set language first, then link with pll.term.link_translation. '
+                . 'Response includes persisted/verified. Example: {"term_id": 330, "language": "en"}',
             'input_schema'    => [
                 'term_id'  => [ 'type' => 'integer', 'required' => true ],
                 'language' => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug (e.g. "en", "ro").' ],
@@ -143,7 +158,10 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'required_scopes'  => [ 'write.wp.posts', $settings ],
             'supports_dry_run' => true,
             'dependency'       => $dep,
-            'description'      => 'Set the Polylang translation of a string for a specific language. Works on free and Pro. Use wp_option for WordPress core strings.',
+            'description'      => 'Set the Polylang translation of a string for a specific language. Works on free and Pro. '
+                . 'Use wp_option for WordPress core strings. Response includes persisted/verified, re-read from the '
+                . 'database (not the value just written) so a failed save is never reported as success. '
+                . 'Example: {"wp_option": "blogdescription", "language": "ro", "translation": "Sit tradus"}',
             'input_schema'     => [
                 'wp_option'   => [ 'type' => 'string', 'description' => 'WP option name to translate: blogname, blogdescription, date_format, time_format.' ],
                 'name'        => [ 'type' => 'string', 'description' => 'Polylang string name (alternative to wp_option, requires pll_get_strings — Polylang Pro).' ],
@@ -158,7 +176,10 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'class'           => 'admin_sensitive',
             'required_scopes' => [ 'manage.taxonomies', $settings ],
             'dependency'      => $dep,
-            'description'     => 'Link terms as translations. Pass translations as {"en": 5, "ro": 8, "uk": 11}. Existing group members not mentioned are preserved.',
+            'description'     => 'Link terms as translations (both terms must already have their language set via '
+                . 'pll.term.set_language). Pass translations as {"en": 5, "ro": 8, "uk": 11}. Existing group members '
+                . 'not mentioned are preserved. Requires confirm=true. Response includes persisted/verified. '
+                . 'Example: {"translations": {"ro": 330, "en": 331}, "confirm": true}',
             'input_schema'    => [
                 'translations' => [ 'type' => 'object', 'required' => true, 'description' => 'Map of language_slug => term_id for all translations to link.' ],
                 'confirm'      => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
@@ -217,10 +238,24 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             pll_set_post_language( $post_id, $lang );
         }
 
-        return $this->ok(
-            [ 'post_id' => $post_id, 'language' => $lang, 'updated' => true ],
-            [ 'target_type' => 'post', 'target_id' => $post_id ]
-        );
+        // Read-after-write: Polylang can silently no-op (e.g. post type not
+        // translatable) — confirm the language actually stuck.
+        $persisted = function_exists( 'pll_get_post_language' ) ? pll_get_post_language( $post_id ) : null;
+        $verified  = $persisted === $lang;
+
+        $data = [
+            'post_id'   => $post_id,
+            'language'  => $lang,
+            'updated'   => $verified,
+            'requested' => $lang,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = "Post language is '$persisted' after the write, not '$lang'.";
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     public function handle_post_get_translations( array $args, array $key_record, bool $dry_run ): array {
@@ -274,10 +309,28 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             pll_save_post_translations( $merged );
         }
 
-        return $this->ok(
-            [ 'linked' => true, 'group' => $merged ],
-            [ 'target_type' => 'pll_translation', 'target_id' => implode( '-', array_values( $merged ) ) ]
-        );
+        // Read-after-write: confirm the group actually persisted as requested —
+        // Polylang can drop an entry if that post's language doesn't match the
+        // slug it was linked under.
+        $persisted = [];
+        if ( function_exists( 'pll_get_post_translations' ) ) {
+            $anchor_id = reset( $merged );
+            $persisted = $anchor_id ? pll_get_post_translations( $anchor_id ) : [];
+        }
+        $verified = empty( array_diff_assoc( $new_map, $persisted ) );
+
+        $data = [
+            'linked'    => $verified,
+            'group'     => $merged,
+            'requested' => $new_map,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = 'Some requested translation links are not reflected after the write — check that each post is set to the matching language first.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'pll_translation', 'target_id' => implode( '-', array_values( $merged ) ) ] );
     }
 
     public function handle_post_unlink_translation( array $args, array $key_record, bool $dry_run ): array {
@@ -298,10 +351,20 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             }
         }
 
-        return $this->ok(
-            [ 'post_id' => $post_id, 'unlinked' => true ],
-            [ 'target_type' => 'post', 'target_id' => $post_id ]
-        );
+        $persisted = function_exists( 'pll_get_post_translations' ) ? pll_get_post_translations( $post_id ) : [];
+        $verified  = count( $persisted ) <= 1;
+
+        $data = [
+            'post_id'   => $post_id,
+            'unlinked'  => $verified,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = 'Post is still linked to other translations after the write.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     // Returns a PLL_Language object by slug without relying on PLL()->model,
@@ -481,16 +544,29 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
         $mo->add_entry( $mo->make_entry( $original, (string) $translation ) );
         $mo->export_to_db( $lang_obj );
 
-        return $this->ok(
-            [
-                'label'       => $resolved['label'],
-                'original'    => $original,
-                'language'    => $language,
-                'translation' => $translation,
-                'updated'     => true,
-            ],
-            [ 'target_type' => 'pll_string', 'target_id' => $resolved['label'] . '/' . $language ]
-        );
+        // Read-after-write: re-import a fresh MO from the DB (not the $mo
+        // instance we just wrote, which would trivially "confirm" itself)
+        // and look up what actually landed.
+        $verify_mo = new PLL_MO();
+        $verify_mo->import_from_db( $lang_obj );
+        $persisted = $verify_mo->translate( $original );
+        $verified  = $persisted === (string) $translation;
+
+        $data = [
+            'label'       => $resolved['label'],
+            'original'    => $original,
+            'language'    => $language,
+            'translation' => $translation,
+            'updated'     => $verified,
+            'requested'   => (string) $translation,
+            'persisted'   => $persisted,
+            'verified'    => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = 'Translation does not match what was requested after re-reading it from the database.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'pll_string', 'target_id' => $resolved['label'] . '/' . $language ] );
     }
 
     public function handle_term_get_language( array $args, array $key_record, bool $dry_run ): array {
@@ -524,10 +600,22 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             pll_set_term_language( $term_id, $lang );
         }
 
-        return $this->ok(
-            [ 'term_id' => $term_id, 'language' => $lang, 'updated' => true ],
-            [ 'target_type' => 'term', 'target_id' => $term_id ]
-        );
+        $persisted = function_exists( 'pll_get_term_language' ) ? pll_get_term_language( $term_id ) : null;
+        $verified  = $persisted === $lang;
+
+        $data = [
+            'term_id'   => $term_id,
+            'language'  => $lang,
+            'updated'   => $verified,
+            'requested' => $lang,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = "Term language is '$persisted' after the write, not '$lang'.";
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'term', 'target_id' => $term_id ] );
     }
 
     public function handle_term_get_translations( array $args, array $key_record, bool $dry_run ): array {
@@ -579,9 +667,24 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             pll_save_term_translations( $merged );
         }
 
-        return $this->ok(
-            [ 'linked' => true, 'group' => $merged ],
-            [ 'target_type' => 'pll_term_translation', 'target_id' => implode( '-', array_values( $merged ) ) ]
-        );
+        $persisted = [];
+        if ( function_exists( 'pll_get_term_translations' ) ) {
+            $anchor_id = reset( $merged );
+            $persisted = $anchor_id ? pll_get_term_translations( $anchor_id ) : [];
+        }
+        $verified = empty( array_diff_assoc( $new_map, $persisted ) );
+
+        $data = [
+            'linked'    => $verified,
+            'group'     => $merged,
+            'requested' => $new_map,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = 'Some requested translation links are not reflected after the write — check that each term is set to the matching language first.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'pll_term_translation', 'target_id' => implode( '-', array_values( $merged ) ) ] );
     }
 }

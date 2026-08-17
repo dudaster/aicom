@@ -63,11 +63,50 @@ class AICOM_Module_Session extends AICOM_Module_Base {
             );
         }
 
-        return $this->ok( [
-            'session_id' => (int) $result['id'],
-            'name'       => $result['name'],
-            'opened_at'  => $result['opened_at'],
-        ] );
+        return $this->ok( array_merge(
+            [
+                'session_id' => (int) $result['id'],
+                'name'       => $result['name'],
+                'opened_at'  => $result['opened_at'],
+            ],
+            $this->capability_report( $key_record )
+        ) );
+    }
+
+    /**
+     * Available/missing scopes relevant to the site's active modules, so the
+     * agent can tell upfront whether it can complete a task (e.g. a Polylang
+     * translation workflow) before it starts and hits DENIED_SCOPE mid-way.
+     * Scopes for inactive optional modules (WooCommerce, Elementor, Polylang,
+     * Yoast, Clautron) are excluded from missing_scopes — they're not
+     * actionable noise if the plugin isn't even installed.
+     */
+    private function capability_report( array $key_record ): array {
+        $optional_module_keywords = [
+            'woocommerce' => 'woocommerce',
+            'elementor'   => 'elementor',
+            'polylang'    => 'polylang',
+            'yoast'       => 'yoast',
+            'clautron'    => 'clautron',
+        ];
+        $active_modules = AICOM_Module_Detector::get_active_modules();
+
+        $all_scopes = AICOM_Auth::scope_slugs();
+        $key_scopes = json_decode( $key_record['scopes_json'] ?? '[]', true ) ?: [];
+
+        $relevant_scopes = array_values( array_filter( $all_scopes, function ( $slug ) use ( $optional_module_keywords, $active_modules ) {
+            foreach ( $optional_module_keywords as $needle => $module ) {
+                if ( strpos( $slug, $needle ) !== false ) {
+                    return in_array( $module, $active_modules, true );
+                }
+            }
+            return true; // core scope — always relevant
+        } ) );
+
+        return [
+            'available_scopes' => array_values( array_intersect( $all_scopes, $key_scopes ) ),
+            'missing_scopes'   => array_values( array_diff( $relevant_scopes, $key_scopes ) ),
+        ];
     }
 
     public function handle_close( array $args, array $key_record, bool $dry_run ): array {

@@ -276,11 +276,28 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_attach' => [ 'media_id' => $id, 'post_id' => $post_id ] ] );
         }
 
-        wp_update_post( [ 'ID' => $id, 'post_parent' => $post_id ] );
-        return $this->ok(
-            [ 'id' => $id, 'post_id' => $post_id, 'attached' => true ],
-            [ 'target_type' => 'attachment', 'target_id' => $id ]
-        );
+        $result = wp_update_post( [ 'ID' => $id, 'post_parent' => $post_id ], true );
+        if ( is_wp_error( $result ) ) {
+            return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
+        }
+
+        // Read-after-write: confirm the attachment's post_parent actually changed.
+        $persisted_parent = (int) get_post_field( 'post_parent', $id );
+        $verified          = $persisted_parent === $post_id;
+
+        $data = [
+            'id'        => $id,
+            'post_id'   => $post_id,
+            'attached'  => $verified,
+            'requested' => [ 'post_parent' => $post_id ],
+            'persisted' => [ 'post_parent' => $persisted_parent ],
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = "Attachment's post_parent is $persisted_parent after the write, not $post_id.";
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'attachment', 'target_id' => $id ] );
     }
 
     public function handle_set_featured( array $args, array $key_record, bool $dry_run ): array {
@@ -295,11 +312,30 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_set_featured' => [ 'media_id' => $id, 'post_id' => $post_id ] ] );
         }
 
-        set_post_thumbnail( $post_id, $id );
-        return $this->ok(
-            [ 'post_id' => $post_id, 'featured_image_id' => $id, 'updated' => true ],
-            [ 'target_type' => 'post', 'target_id' => $post_id ]
-        );
+        $success = set_post_thumbnail( $post_id, $id );
+
+        // Read-after-write: confirm the featured image actually stuck rather
+        // than trusting set_post_thumbnail's boolean alone.
+        $persisted_id = (int) get_post_thumbnail_id( $post_id );
+        $verified     = $persisted_id === $id;
+
+        if ( ! $success && ! $verified ) {
+            return $this->err( 'WP_ERROR', 'Failed to set featured image', 'error', 500 );
+        }
+
+        $data = [
+            'post_id'            => $post_id,
+            'featured_image_id'  => $id,
+            'updated'            => $verified,
+            'requested'          => [ 'featured_image_id' => $id ],
+            'persisted'          => [ 'featured_image_id' => $persisted_id ],
+            'verified'           => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = "Featured image is $persisted_id after the write, not $id.";
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     // ── File Handlers ─────────────────────────────────────────────────────
