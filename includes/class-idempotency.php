@@ -21,7 +21,7 @@ class AICOM_Idempotency {
     const GC_HOURS = 48;
 
     /** Argument keys never included in the args_hash — router-injected or reserved. */
-    const HASH_EXCLUDE_KEYS = [ 'idempotency_key', 'dry_run', 'confirm', '_param_warnings' ];
+    const HASH_EXCLUDE_KEYS = [ 'idempotency_key', 'dry_run', 'confirm', '_param_warnings', '_aliases_applied' ];
 
     /**
      * Attempt to claim an idempotency key for this call. Returns one of:

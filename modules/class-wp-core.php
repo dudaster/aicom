@@ -971,10 +971,27 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
         }
 
-        return $this->ok(
-            [ 'post_id' => $post_id, 'assigned' => $term_ids ],
-            [ 'target_type' => 'post', 'target_id' => $post_id ]
-        );
+        // Read-after-write: confirm the requested terms actually stuck. A term
+        // can silently fail to persist (e.g. Polylang remapping a category to
+        // the post's language), so re-read rather than trust wp_set_post_terms's
+        // return value alone.
+        $persisted_ids = wp_get_post_terms( $post_id, $taxonomy, [ 'fields' => 'ids' ] );
+        $persisted_ids = is_wp_error( $persisted_ids ) ? [] : array_map( 'intval', $persisted_ids );
+        $verified      = empty( array_diff( $term_ids, $persisted_ids ) );
+
+        $data = [
+            'post_id'   => $post_id,
+            'assigned'  => $term_ids,
+            'requested' => $term_ids,
+            'persisted' => $persisted_ids,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $missing         = array_values( array_diff( $term_ids, $persisted_ids ) );
+            $data['warning'] = 'Requested term IDs ' . implode( ', ', $missing ) . ' are not present after the write — check for a taxonomy restriction or a language/translation plugin remapping the term.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     public function handle_terms_remove_from_post( array $args, array $key_record, bool $dry_run ): array {
@@ -990,10 +1007,25 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
 
         wp_set_post_terms( $post_id, [], $taxonomy );
-        return $this->ok(
-            [ 'post_id' => $post_id, 'terms_removed' => true ],
-            [ 'target_type' => 'post', 'target_id' => $post_id ]
-        );
+
+        // Read-after-write: for hierarchical taxonomies (category in particular),
+        // WordPress can silently re-assign the site's default term instead of
+        // leaving the post with none — confirm what's actually there now.
+        $persisted_ids = wp_get_post_terms( $post_id, $taxonomy, [ 'fields' => 'ids' ] );
+        $persisted_ids = is_wp_error( $persisted_ids ) ? [] : array_map( 'intval', $persisted_ids );
+        $verified      = empty( $persisted_ids );
+
+        $data = [
+            'post_id'       => $post_id,
+            'terms_removed' => $verified,
+            'persisted'     => $persisted_ids,
+            'verified'      => $verified,
+        ];
+        if ( ! $verified ) {
+            $data['warning'] = 'Terms are still present after removal — WordPress may have auto-assigned the default term for this taxonomy.';
+        }
+
+        return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );
     }
 
     public function handle_meta_get( array $args, array $key_record, bool $dry_run ): array {
