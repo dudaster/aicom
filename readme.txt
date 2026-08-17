@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.10.0
+Stable tag: 3.11.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,14 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.11.0 =
+
+* `wp.posts.update` and `wp.terms.update` no longer report `updated: true` when no actual field was supplied — they now return `updated: false` with a clear warning, and `changed_fields` listing exactly what changed when something did.
+* Parameter aliasing extended (`slug`, `media_id`) and now reported back in the response as `_aliases_applied`, so you can see exactly what the plugin auto-corrected instead of it happening silently.
+* Read-after-write verification added to the write paths where a silent mismatch is realistic: assigning/removing post terms, attaching media/setting a featured image, and every Polylang write tool (set language, link/unlink translations, string translations). Each now re-reads the actual state and reports `requested`/`persisted`/`verified`, with a warning if they don't match — catches cases like WordPress re-assigning a default category, or Polylang silently rejecting a language change.
+* `session.open` now reports `available_scopes` and `missing_scopes` for the key, scoped to the site's active modules, so an agent can tell upfront whether it has what it needs for a task like a translation workflow — before it starts, not after hitting a scope error partway through.
+* Polylang translation tools now include a full JSON example and the canonical 6-step workflow order (create draft, set language, link translations, assign translated category, set featured image, verify) directly in their tool descriptions.
 
 = 3.10.0 =
 
