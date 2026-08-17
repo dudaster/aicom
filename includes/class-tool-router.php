@@ -415,7 +415,9 @@ class AICOM_Tool_Router {
             'title'     => 'post_title',
             'content'   => 'post_content',
             'excerpt'   => 'post_excerpt',
-            'post_id'   => 'id',           // e.g. wp.posts.update uses 'id'
+            'post_id'   => 'id',           // e.g. wp.posts.update/media.* use 'id'
+            'media_id'  => 'id',           // e.g. media.* tools use 'id', not 'media_id'
+            'slug'      => 'post_name',    // wp.posts.* uses 'post_name'; wp.terms.* already has its own 'slug' field
         ];
         $schema_keys = array_keys( $tool_meta['input_schema'] ?? [] );
         foreach ( $aliases as $wrong => $correct ) {
@@ -768,9 +770,17 @@ class AICOM_Tool_Router {
      */
     private static function summarize_result( array $result, array $meta ): string {
         if ( ! empty( $meta['summary'] ) && is_array( $meta['summary'] ) ) {
-            $parts = [];
-            foreach ( $meta['summary'] as $k => $v ) {
-                $parts[] = is_bool( $v ) ? ( $v ? $k : "not $k" ) : "$k: $v";
+            $summary = $meta['summary'];
+            $is_list = array_keys( $summary ) === range( 0, count( $summary ) - 1 );
+
+            if ( $is_list ) {
+                // e.g. a changed_fields list — join values directly, not "0: x, 1: y".
+                $parts = array_map( 'strval', $summary );
+            } else {
+                $parts = [];
+                foreach ( $summary as $k => $v ) {
+                    $parts[] = is_bool( $v ) ? ( $v ? $k : "not $k" ) : "$k: $v";
+                }
             }
             if ( $parts ) {
                 return implode( ', ', $parts );
