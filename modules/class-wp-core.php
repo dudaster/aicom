@@ -665,6 +665,18 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             $data['post_date_gmt'] = get_gmt_from_date( $date );
         }
 
+        // ID is always present; anything beyond it is a real requested change.
+        $changed_fields = array_values( array_diff( array_keys( $data ), [ 'ID', 'post_date_gmt' ] ) );
+
+        if ( empty( $changed_fields ) ) {
+            return $this->ok( [
+                'id'             => $id,
+                'updated'        => false,
+                'changed_fields' => [],
+                'warning'        => 'No update fields were supplied — nothing was changed.',
+            ] );
+        }
+
         $result = wp_update_post( $data, true );
         if ( is_wp_error( $result ) ) {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
@@ -672,14 +684,15 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
         return $this->ok(
             [
-                'id'       => $id,
-                'updated'  => true,
-                'status'   => get_post_status( $id ),
-                'modified' => get_post_field( 'post_modified', $id ),
-                'edit_url' => get_edit_post_link( $id, 'raw' ),
-                'view_url' => get_permalink( $id ),
+                'id'             => $id,
+                'updated'        => true,
+                'changed_fields' => $changed_fields,
+                'status'         => get_post_status( $id ),
+                'modified'       => get_post_field( 'post_modified', $id ),
+                'edit_url'       => get_edit_post_link( $id, 'raw' ),
+                'view_url'       => get_permalink( $id ),
             ],
-            [ 'target_type' => 'post', 'target_id' => $id, 'summary' => array_keys( $data ) ]
+            [ 'target_type' => 'post', 'target_id' => $id, 'summary' => $changed_fields ]
         );
     }
 
@@ -883,14 +896,23 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         if ( isset( $args['description'] ) ) $term_data['description'] = sanitize_text_field( $args['description'] );
         if ( isset( $args['parent'] ) )      $term_data['parent']      = (int) $args['parent'];
 
+        if ( empty( $term_data ) ) {
+            return $this->ok( [
+                'term_id'        => $term_id,
+                'updated'        => false,
+                'changed_fields' => [],
+                'warning'        => 'No update fields were supplied — nothing was changed.',
+            ] );
+        }
+
         $result = wp_update_term( $term_id, $taxonomy, $term_data );
         if ( is_wp_error( $result ) ) {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
         }
 
         return $this->ok(
-            [ 'term_id' => $term_id, 'updated' => true ],
-            [ 'target_type' => 'term', 'target_id' => $term_id ]
+            [ 'term_id' => $term_id, 'updated' => true, 'changed_fields' => array_keys( $term_data ) ],
+            [ 'target_type' => 'term', 'target_id' => $term_id, 'summary' => array_keys( $term_data ) ]
         );
     }
 
