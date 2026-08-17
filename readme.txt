@@ -32,11 +32,15 @@ AICOM puts you in charge at every level:
 
 = Backup & Restore =
 
-Before every significant change, your agent can snapshot the current state of a post or term. If something goes wrong, restore the exact previous version in one call. Backups are stored in the database, organised by session, and can be cleaned up automatically based on age or total size.
+AICOM automatically snapshots a post, term, or Elementor page/template right before your agent updates, trashes, deletes, or edits it — no extra step required, even if the agent never calls a backup tool itself. If something goes wrong, restore the exact previous version in one call, or undo an entire session at once: the Snapshots page lists every session that touched content, with a one-click **Restore session** button that reverts every post, term, and Elementor page it modified — including Elementor Theme Builder display conditions. Backups are stored in the database and can be cleaned up automatically based on age or total size.
 
 = Full Audit Trail =
 
 Every request is logged: timestamp, remote IP, API key label, tool used, parameters, result, and response time. Logs are grouped into **named sessions** — when an agent opens a session, all its actions are recorded together so you can review, replay, or undo an entire workflow at once. The Audit Logs page includes a session activity chart and a direct Restore button for each session.
+
+= Built for Reliable Automation =
+
+AICOM speaks strict MCP JSON-RPC: every successful call returns a `content` field for full client compatibility, protocol errors use standard integer codes, and errors from a tool that actually ran are reported as `isError` so your agent can see and react to them. Pass an `idempotency_key` on any write call and a retried request (dropped connection, flaky client) returns the original result instead of repeating the action — no duplicate posts from an accidental double-send. Responses are hardened against corrupted output, so your agent always gets valid JSON back.
 
 = Accessibility Audits — New in v3.2.0 =
 
@@ -54,7 +58,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **WordPress Core** — posts, pages, custom post types, terms, meta, options, menus, plugins
 * **Media** — upload, update, delete media; direct file system access
 * **Users & Roles** — create, update, manage users and role assignments
-* **Backup** — per-post and per-term snapshots, session-based restore
+* **Backup** — automatic snapshots for posts, terms, and Elementor pages/templates before every write; session-wide restore
 * **Sessions** — named audit sessions with grouped action history
 * **Accessibility** — site-wide alt text audit, post-level WCAG check, alt text fixes
 * **WooCommerce** *(optional)* — products, categories, settings
@@ -152,6 +156,14 @@ Yes, in two ways: (1) assign only `read.wp` scopes to the API key, or (2) enable
 
 Yes. Send `"dry_run": true` in your request parameters. The operation will be validated and simulated but no data will be changed. The audit log will record it as a dry run.
 
+= Does my agent need to remember to back things up before making changes? =
+
+No. AICOM automatically snapshots a post, term, or Elementor page before your agent updates, trashes, deletes, or edits it — this happens at the plugin level regardless of what the agent does or forgets to do. You can restore any individual snapshot, or undo an entire session (every post, term, and Elementor page it touched) in one click from the Snapshots page.
+
+= What happens if my AI agent sends the same write request twice? =
+
+Pass an `"idempotency_key"` in the request arguments. If AICOM sees the same key again — from a dropped connection, a retry, or a duplicate send — it returns the original result instead of repeating the action, so you never end up with two copies of the same post from one intended change.
+
 = Does it log what AI agents do? =
 
 Yes. Every request is logged to the audit log with timestamp, remote IP, API key label, tool name, parameters, result summary, and response duration. The log is accessible from **AICOM → Audit Logs** and can be filtered by date, key, or tool name.
@@ -175,7 +187,7 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
 4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
 5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, Clautron) with status and registered tools.
-6. **Backups** — Overview of all post and term snapshots created before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Backup Snapshots tab lists every snapshot with its session, tool class, and a one-click restore button.
+6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
 
