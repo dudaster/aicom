@@ -95,11 +95,24 @@ class AICOM_Tool_Registry {
                 $schema['required'] = $required;
             }
 
+            // 'class' (AICOM's own public/discovery/read/write/destructive/admin_sensitive
+            // taxonomy) is NOT part of the MCP Tool schema — a strict client validating
+            // ListToolsResult with an extra='forbid' Pydantic model rejects the entire
+            // list over one unexpected field. Map it onto the spec's own ToolAnnotations
+            // hints instead, which exist for exactly this purpose. The router strips this
+            // 'annotations' key entirely for protocol versions that don't support it yet
+            // (e.g. 2024-11-05), so nothing version-specific reaches an older client either.
+            $read_only_classes = [ 'public', 'discovery', 'read' ];
+            $annotations = [
+                'readOnlyHint'    => in_array( $meta['class'], $read_only_classes, true ),
+                'destructiveHint' => $meta['class'] === 'destructive',
+            ];
+
             return [
                 'name'        => $meta['tool_name'],
                 'description' => $meta['description'],
-                'class'       => $meta['class'],
                 'inputSchema' => $schema,
+                'annotations' => $annotations,
             ];
         }, $tools ) );
     }

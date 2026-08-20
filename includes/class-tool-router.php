@@ -36,8 +36,8 @@ class AICOM_Tool_Router {
     // guaranteed to sort, and structuredContent's exact introduction revision
     // isn't worth hardcoding assumptions about. Add new versions here only.
     private const PROTOCOL_CAPABILITIES = [
-        '2024-11-05' => [ 'structured_content' => false ],
-        '2025-06-18' => [ 'structured_content' => true ],
+        '2024-11-05' => [ 'structured_content' => false, 'tool_annotations' => false ],
+        '2025-06-18' => [ 'structured_content' => true,  'tool_annotations' => true ],
     ];
     private const DEFAULT_PROTOCOL_VERSION = '2024-11-05';
     private const LATEST_PROTOCOL_VERSION  = '2025-06-18';
@@ -237,8 +237,12 @@ class AICOM_Tool_Router {
         // "tools/list" is excluded — it goes through the normal pipeline to handle_tools_list which returns full schemas.
         // Returns compact list (name + class only) to avoid flooding small context windows.
         if ( in_array( $tool_name, [ 'tools', 'list_tools' ], true ) ) {
-            $full    = AICOM_Tool_Registry::to_mcp_list( AICOM_Module_Detector::get_active_modules() );
-            $compact = array_map( fn( $t ) => [ 'name' => $t['name'], 'class' => $t['class'] ?? '' ], $full );
+            // Pulled from the internal registry (not to_mcp_list()'s wire shape) —
+            // this compact shorthand is an AICOM-specific extension, not a real
+            // MCP tools/list response, so it can freely include AICOM's own
+            // 'class' taxonomy without a spec-conformance concern.
+            $full    = AICOM_Tool_Registry::get_for_modules( AICOM_Module_Detector::get_active_modules() );
+            $compact = array_values( array_map( fn( $t ) => [ 'name' => $t['tool_name'], 'class' => $t['class'] ?? '' ], $full ) );
             return self::jsonrpc_wrap( [
                 'tools'      => $compact,
                 'total'      => count( $compact ),
@@ -625,6 +629,16 @@ class AICOM_Tool_Router {
         // tools/list is a distinct top-level RPC method, not a tools/call CallToolResult —
         // it must NOT get content/isError/structuredContent wrapping.
         if ( $tool_name === 'tools/list' ) {
+            // Each tool's 'annotations' (ToolAnnotations) is only part of the MCP
+            // Tool schema from the version that introduced it — strip it entirely
+            // for older negotiated versions so nothing version-specific reaches a
+            // client that doesn't expect the field at all.
+            if ( ! self::protocol_supports( $protocol_version, 'tool_annotations' ) && isset( $result['tools'] ) && is_array( $result['tools'] ) ) {
+                foreach ( $result['tools'] as &$tool_def ) {
+                    unset( $tool_def['annotations'] );
+                }
+                unset( $tool_def );
+            }
             return self::jsonrpc_wrap( $result, $rpc_id );
         }
 
