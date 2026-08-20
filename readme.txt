@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.11.1
+Stable tag: 3.12.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -63,7 +63,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **Accessibility** — site-wide alt text audit, post-level WCAG check, alt text fixes
 * **WooCommerce** *(optional)* — products, categories, settings
 * **Elementor** *(optional)* — page creation from template, widget inspection, theme builder conditions
-* **Polylang** *(optional)* — translations, language assignment, string management
+* **Polylang** *(optional)* — translations, language assignment, string management, and one-call bilingual post pair creation
 * **Yoast SEO** *(optional)* — read and write SEO titles, meta descriptions, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
 * **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
@@ -190,6 +190,15 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.12.0 =
+
+* Fixed a bug where `tools/list` invoked as an ordinary tool call (rather than the standard `tools/list` request) was missing the required `content` field, causing strict MCP clients to reject it.
+* `tools/list` now only shows the tools an API key can actually call — a key without a given scope no longer sees (and can't waste a round-trip on) tools it would immediately get denied for. Every tool list is scoped to the calling key's real permissions.
+* Errors rejected before a tool runs now include a `retryable` hint, so an agent can tell whether hammering the same call again could ever help, instead of assuming the server is unreachable.
+* New tool `pll.create_bilingual_pair`: create a translated draft, set its language, link it to the source post, optionally assign a category and featured image, and verify every step — all in one call. Works from an existing source post, or from scratch (pass `source_language` + `source_post_title` to create both language versions in a single call, with no pre-existing post needed).
+* `dry_run` and `idempotency_key` are now documented directly in every eligible tool's schema, instead of being accepted but invisible — some strict MCP clients validate outgoing calls against the schema and would silently refuse to send an undocumented parameter.
+* `wp.posts.create` now reports `requested`/`persisted`/`verified` so you can see exactly what WordPress actually stored versus what was asked for (e.g. a duplicate slug getting a "-2" suffix). Extended the same pattern to `wp.posts.update`, `wp.terms.create`, `wp.terms.update`, `wp.meta.set`, and `wp.meta.set_many`.
 
 = 3.11.1 =
 
