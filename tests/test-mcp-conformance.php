@@ -233,13 +233,27 @@ function assert_tools_list_schema( string $protocol_version, bool $annotations_e
         'body'    => json_encode( [ 'jsonrpc' => '2.0', 'method' => 'tools/list', 'id' => 1 ] ),
         'timeout' => 15,
     ] );
-    $body  = ! is_wp_error( $res ) ? json_decode( wp_remote_retrieve_body( $res ), true ) : null;
-    $tools = $body['result']['tools'] ?? null;
+    $raw_body = ! is_wp_error( $res ) ? wp_remote_retrieve_body( $res ) : '';
+    $body     = $raw_body !== '' ? json_decode( $raw_body, true ) : null;
+    $tools    = $body['result']['tools'] ?? null;
 
     ok( "[$protocol_version] tools/list request succeeded", is_array( $tools ) && ! empty( $tools ), json_encode( $body ) );
     if ( ! is_array( $tools ) ) {
         return;
     }
+
+    // Regression check for a real incident: PHP's json_encode can't tell an
+    // empty associative array from an empty list, and defaults to "[]" for
+    // either — a zero-parameter tool's inputSchema.properties must be "{}"
+    // on the wire, not "[]", or a strict JSON-Schema client (Pydantic
+    // dict_type validation) rejects the whole ListToolsResult. json_decode
+    // with assoc=true collapses this same distinction back on the way in, so
+    // this checks the raw response TEXT directly instead of the decoded array.
+    ok(
+        "[$protocol_version] no empty-list \"properties\":[] on the wire (must be {})",
+        strpos( $raw_body, '"properties":[]' ) === false,
+        strpos( $raw_body, '"properties":[]' ) !== false ? 'found literal "properties":[] in the raw response body' : ''
+    );
 
     $violations = [];
     foreach ( $tools as $t ) {
