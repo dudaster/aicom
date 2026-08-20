@@ -205,7 +205,72 @@ ok( '2025-06-18 HAS structuredContent', isset( $new_body['result']['structuredCo
 ok( 'structuredContent mirrors flat id field', ( $new_body['result']['structuredContent']['id'] ?? null ) === ( $new_body['result']['id'] ?? null ), json_encode( $new_body ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 6. HTTP response is always valid, parseable JSON (output-buffer guard)
+// 6. tools/list strictly matches the MCP Tool schema per negotiated version
+// ═══════════════════════════════════════════════════════════════════════════
+// Regression test for a real incident: AICOM used to add a non-standard
+// top-level 'class' field to every tool object. A strict MCP client (Pydantic
+// model with extra='forbid') rejects the ENTIRE ListToolsResult the moment a
+// single tool has an unexpected field — every tool call is broken, not just
+// content-shape issues. This asserts every tool's key set is an exact subset
+// of what the negotiated protocol version's Tool schema allows, and reports
+// every offending tool/field (not just a count) if it isn't.
+
+section( 'tools/list — strict per-tool schema, per negotiated protocol version' );
+
+function assert_tools_list_schema( string $protocol_version, bool $annotations_expected ): void {
+    global $endpoint, $key;
+    $allowed_top_level = [ 'name', 'description', 'inputSchema' ];
+    if ( $annotations_expected ) {
+        $allowed_top_level[] = 'annotations';
+    }
+
+    $res = wp_remote_post( $endpoint, [
+        'headers' => [
+            'Content-Type'         => 'application/json',
+            'Authorization'        => 'Bearer ' . $key['plain_key'],
+            'MCP-Protocol-Version' => $protocol_version,
+        ],
+        'body'    => json_encode( [ 'jsonrpc' => '2.0', 'method' => 'tools/list', 'id' => 1 ] ),
+        'timeout' => 15,
+    ] );
+    $body  = ! is_wp_error( $res ) ? json_decode( wp_remote_retrieve_body( $res ), true ) : null;
+    $tools = $body['result']['tools'] ?? null;
+
+    ok( "[$protocol_version] tools/list request succeeded", is_array( $tools ) && ! empty( $tools ), json_encode( $body ) );
+    if ( ! is_array( $tools ) ) {
+        return;
+    }
+
+    $violations = [];
+    foreach ( $tools as $t ) {
+        $extra = array_diff( array_keys( $t ), $allowed_top_level );
+        if ( $extra ) {
+            $violations[] = ( $t['name'] ?? '?' ) . ': unexpected field(s) ' . implode( ',', $extra );
+        }
+        if ( ! isset( $t['name'] ) || ! is_string( $t['name'] ) ) {
+            $violations[] = ( $t['name'] ?? '?' ) . ': name missing or not a string';
+        }
+        if ( ! isset( $t['inputSchema'] ) || ( $t['inputSchema']['type'] ?? '' ) !== 'object' ) {
+            $violations[] = ( $t['name'] ?? '?' ) . ': inputSchema missing or not type:object';
+        }
+        $has_annotations = array_key_exists( 'annotations', $t );
+        if ( $has_annotations !== $annotations_expected ) {
+            $violations[] = ( $t['name'] ?? '?' ) . ': annotations ' . ( $has_annotations ? 'present but not expected' : 'expected but missing' ) . " for $protocol_version";
+        }
+    }
+
+    ok(
+        "[$protocol_version] every tool matches the Tool schema exactly (" . count( $tools ) . ' tools checked)',
+        empty( $violations ),
+        empty( $violations ) ? '' : ( count( $violations ) . ' violation(s): ' . implode( ' | ', array_slice( $violations, 0, 15 ) ) )
+    );
+}
+
+assert_tools_list_schema( '2024-11-05', false );
+assert_tools_list_schema( '2025-06-18', true );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 7. HTTP response is always valid, parseable JSON (output-buffer guard)
 // ═══════════════════════════════════════════════════════════════════════════
 
 section( 'HTTP response body is always valid JSON' );
