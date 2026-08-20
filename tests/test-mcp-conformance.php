@@ -339,6 +339,87 @@ $raw_decoded = json_decode( $raw_body, true );
 ok( 'malformed-JSON request still gets a valid JSON body back', $raw_decoded !== null, $raw_body );
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 8. pll.create_bilingual_pair — atomic composite tool, graceful degradation
+// ═══════════════════════════════════════════════════════════════════════════
+
+if ( function_exists( 'pll_languages_list' ) ) {
+    section( 'pll.create_bilingual_pair' );
+
+    $bp_source_id = wp_insert_post( [
+        'post_title'  => 'Bilingual Pair Source',
+        'post_type'   => 'post',
+        'post_status' => 'publish',
+    ], true );
+    $cleanup_posts[] = $bp_source_id;
+
+    $bp_full_key = AICOM_Auth::create_key( 'Bilingual Pair Full', [
+        'read.wp', 'write.wp.posts', 'manage.polylang', 'manage.taxonomies', 'manage.media',
+    ] );
+    $bp_narrow_key = AICOM_Auth::create_key( 'Bilingual Pair Narrow', [
+        'read.wp', 'write.wp.posts', 'manage.polylang',
+    ] );
+
+    if ( function_exists( 'pll_set_post_language' ) && ! is_wp_error( $bp_source_id ) ) {
+        pll_set_post_language( $bp_source_id, 'en' );
+
+        $bp_category = wp_insert_term( 'Bilingual Pair Test Category', 'category' );
+        $bp_cat_id   = is_wp_error( $bp_category ) ? 0 : $bp_category['term_id'];
+
+        // Full-scope key: every step should complete.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $bp_full_key['plain_key'];
+        rpc( 'session.open', [ 'name' => 'bilingual pair full test' ] );
+        $bp_full = rpc( 'pll.create_bilingual_pair', [
+            'source_post_id'  => $bp_source_id,
+            'target_language' => 'ro',
+            'post_title'      => 'Bilingual Pair Target',
+            'category_id'     => $bp_cat_id,
+        ] );
+        rpc( 'session.close', [] );
+
+        ok( 'full-scope: succeeds', ( $bp_full['result']['success'] ?? false ) === true, json_encode( $bp_full ) );
+        ok( 'full-scope: not partial', ( $bp_full['result']['partial'] ?? true ) === false, json_encode( $bp_full ) );
+        ok( 'full-scope: draft, never published', ( $bp_full['result']['status'] ?? '' ) === 'draft', json_encode( $bp_full ) );
+        ok( 'full-scope: source language auto-detected', ( $bp_full['result']['source_language'] ?? '' ) === 'en', json_encode( $bp_full ) );
+        ok( 'full-scope: translation link verified both ways', ( $bp_full['result']['translations']['en'] ?? null ) === $bp_source_id, json_encode( $bp_full ) );
+        ok( 'full-scope: all requested steps completed, none pending', $bp_full['result']['verified'] ?? false, json_encode( $bp_full ) );
+        ok( 'full-scope: category step completed', in_array( 'assigned_category', $bp_full['result']['completed_steps'] ?? [], true ), json_encode( $bp_full ) );
+        $bp_target_id = $bp_full['result']['post_id'] ?? 0;
+        if ( $bp_target_id ) $cleanup_posts[] = $bp_target_id;
+
+        // Narrow-scope key: core steps succeed, category step gracefully skipped (not failed).
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $bp_narrow_key['plain_key'];
+        rpc( 'session.open', [ 'name' => 'bilingual pair narrow test' ] );
+        $bp_narrow = rpc( 'pll.create_bilingual_pair', [
+            'source_post_id'  => $bp_source_id,
+            'target_language' => 'ro',
+            'post_title'      => 'Bilingual Pair Target (narrow)',
+            'category_id'     => $bp_cat_id,
+        ] );
+        rpc( 'session.close', [] );
+
+        ok( 'narrow-scope: still succeeds overall (core steps unaffected)', ( $bp_narrow['result']['success'] ?? false ) === true, json_encode( $bp_narrow ) );
+        ok( 'narrow-scope: reported as partial', ( $bp_narrow['result']['partial'] ?? false ) === true, json_encode( $bp_narrow ) );
+        ok( 'narrow-scope: draft was still created and linked', in_array( 'linked_translation', $bp_narrow['result']['completed_steps'] ?? [], true ), json_encode( $bp_narrow ) );
+        ok( 'narrow-scope: category step reported pending with INSUFFICIENT_SCOPE, not a hard failure', strpos( json_encode( $bp_narrow['result']['pending_steps'] ?? [] ), 'INSUFFICIENT_SCOPE' ) !== false, json_encode( $bp_narrow ) );
+        $bp_narrow_target_id = $bp_narrow['result']['post_id'] ?? 0;
+        if ( $bp_narrow_target_id ) $cleanup_posts[] = $bp_narrow_target_id;
+
+        if ( $bp_cat_id ) {
+            wp_delete_term( $bp_cat_id, 'category' );
+        }
+    }
+
+    $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key']; // restore the main test key
+    $wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $bp_full_key['id'] ] );
+    $wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $bp_narrow_key['id'] ] );
+    $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $bp_full_key['id'] ] );
+    $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $bp_narrow_key['id'] ] );
+} else {
+    section( 'pll.create_bilingual_pair' );
+    echo "  [SKIP] Polylang not active in this environment\n";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Cleanup
 // ═══════════════════════════════════════════════════════════════════════════
 

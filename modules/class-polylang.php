@@ -186,6 +186,33 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             ],
             'handler'         => [ $this, 'handle_term_link_translation' ],
         ] );
+
+        $this->register( 'pll.create_bilingual_pair', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'write.wp.posts', $manage ],
+            'dependency'       => $dep,
+            'supports_dry_run' => true,
+            'description'      => 'Atomic composite tool for the full translation workflow in one call: creates a '
+                . 'new draft, sets its language, links it to the source post as a translation, optionally assigns '
+                . 'a category and featured image, then re-reads and verifies every step. Never publishes — the new '
+                . 'post is always created as a draft regardless of the source post\'s status. If category_id or '
+                . 'featured_media_id is given but the key lacks manage.taxonomies/manage.media, that specific step '
+                . 'is skipped (not failed) and reported in pending_steps — draft creation, language, and '
+                . 'translation linking still complete on their own scopes. '
+                . 'Example: {"source_post_id": 11432, "target_language": "en", "post_title": "...", '
+                . '"post_content": "...", "category_id": 330, "featured_media_id": 11433}',
+            'input_schema'     => [
+                'source_post_id'    => [ 'type' => 'integer', 'required' => true, 'description' => 'Existing post to translate from — its language is read automatically via Polylang.' ],
+                'target_language'   => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug for the new draft (e.g. "en", "ro").' ],
+                'post_title'        => [ 'type' => 'string',  'required' => true ],
+                'post_content'      => [ 'type' => 'string' ],
+                'post_excerpt'      => [ 'type' => 'string' ],
+                'post_name'         => [ 'type' => 'string',  'description' => 'URL slug for the new draft.' ],
+                'category_id'       => [ 'type' => 'integer', 'description' => 'Category term ID (in the target language) to assign. Requires manage.taxonomies — skipped, not failed, if the key lacks it.' ],
+                'featured_media_id' => [ 'type' => 'integer', 'description' => 'Attachment ID to set as the featured image. Requires manage.media — skipped, not failed, if the key lacks it.' ],
+            ],
+            'handler'          => [ $this, 'handle_create_bilingual_pair' ],
+        ] );
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────
@@ -686,5 +713,166 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
         }
 
         return $this->ok( $data, [ 'target_type' => 'pll_term_translation', 'target_id' => implode( '-', array_values( $merged ) ) ] );
+    }
+
+    public function handle_create_bilingual_pair( array $args, array $key_record, bool $dry_run ): array {
+        $source_post_id  = $this->require_int( $args, 'source_post_id' );
+        $target_language = sanitize_key( $args['target_language'] ?? '' );
+        $title           = $this->require_string( $args, 'post_title' );
+
+        if ( ! $source_post_id || ! $target_language || ! $title ) {
+            return $this->err( 'MISSING_PARAM', 'Parameters source_post_id, target_language, and post_title are required', 'validation_failed' );
+        }
+
+        $source_post = get_post( $source_post_id );
+        if ( ! $source_post ) {
+            return $this->err( 'NOT_FOUND', "Source post $source_post_id not found", 'error', 404 );
+        }
+
+        if ( ! function_exists( 'pll_get_post_language' ) || ! function_exists( 'pll_set_post_language' ) || ! function_exists( 'pll_save_post_translations' ) ) {
+            return $this->err( 'UNAVAILABLE', 'Required Polylang functions not available', 'error', 500 );
+        }
+
+        $source_language = pll_get_post_language( $source_post_id );
+        if ( ! $source_language ) {
+            return $this->err( 'INVALID_PARAM', "Source post $source_post_id has no Polylang language set — set one with pll.post.set_language first", 'validation_failed' );
+        }
+        if ( $source_language === $target_language ) {
+            return $this->err( 'INVALID_PARAM', "target_language ($target_language) is the same as the source post's language ($source_language)", 'validation_failed' );
+        }
+
+        if ( ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $target_language ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $target_language", 'denied_allowlist', 403 );
+        }
+
+        if ( $dry_run ) {
+            return $this->ok( [
+                'dry_run'      => true,
+                'would_create' => [
+                    'source_post_id'  => $source_post_id,
+                    'source_language' => $source_language,
+                    'target_language' => $target_language,
+                    'post_title'      => $title,
+                ],
+            ] );
+        }
+
+        $completed_steps = [];
+        $pending_steps   = [];
+
+        // Step 1: create draft — always draft, never publishes regardless of the source post's status.
+        $post_data = [
+            'post_title'   => sanitize_text_field( $title ),
+            'post_content' => wp_kses_post( $args['post_content'] ?? '' ),
+            'post_status'  => 'draft',
+            'post_type'    => $source_post->post_type,
+            'post_author'  => (int) ( $key_record['created_by_user_id'] ?? 0 ),
+        ];
+        if ( isset( $args['post_excerpt'] ) ) {
+            $post_data['post_excerpt'] = sanitize_text_field( $args['post_excerpt'] );
+        }
+        if ( isset( $args['post_name'] ) ) {
+            $post_data['post_name'] = sanitize_title( $args['post_name'] );
+        }
+
+        $new_post_id = wp_insert_post( $post_data, true );
+        if ( is_wp_error( $new_post_id ) ) {
+            return $this->err( 'WP_ERROR', $new_post_id->get_error_message(), 'error', 500 );
+        }
+        $completed_steps[] = 'created_draft';
+
+        // Step 2: set language
+        pll_set_post_language( $new_post_id, $target_language );
+        $persisted_language = pll_get_post_language( $new_post_id );
+        if ( $persisted_language === $target_language ) {
+            $completed_steps[] = 'set_language';
+        } else {
+            $pending_steps[] = [ 'step' => 'set_language', 'reason' => "Language did not persist as $target_language (got " . ( $persisted_language ?: 'none' ) . ')' ];
+        }
+
+        // Step 3: link translation — preserve any other languages already in the source's group.
+        $translations = [ $source_language => $source_post_id, $target_language => $new_post_id ];
+        if ( function_exists( 'pll_get_post_translations' ) ) {
+            foreach ( pll_get_post_translations( $source_post_id ) as $lang => $pid ) {
+                if ( ! isset( $translations[ $lang ] ) ) {
+                    $translations[ $lang ] = $pid;
+                }
+            }
+        }
+        pll_save_post_translations( $translations );
+        $persisted_translations = function_exists( 'pll_get_post_translations' ) ? pll_get_post_translations( $new_post_id ) : [];
+        if ( ( $persisted_translations[ $source_language ] ?? null ) === $source_post_id ) {
+            $completed_steps[] = 'linked_translation';
+        } else {
+            $pending_steps[] = [ 'step' => 'linked_translation', 'reason' => 'Translation link not confirmed after write' ];
+        }
+
+        // Step 4: assign category — optional, gracefully skipped (not failed) without manage.taxonomies.
+        $category_result = null;
+        if ( isset( $args['category_id'] ) ) {
+            $category_id = (int) $args['category_id'];
+            if ( ! empty( AICOM_Auth::missing_scopes( $key_record, [ 'manage.taxonomies' ] ) ) ) {
+                $pending_steps[] = [ 'step' => 'assigned_category', 'reason' => 'INSUFFICIENT_SCOPE: manage.taxonomies not granted to this key' ];
+            } else {
+                wp_set_post_terms( $new_post_id, [ $category_id ], 'category', false );
+                $persisted_terms  = wp_get_post_terms( $new_post_id, 'category', [ 'fields' => 'ids' ] );
+                $persisted_terms  = is_wp_error( $persisted_terms ) ? [] : array_map( 'intval', $persisted_terms );
+                $category_result  = [ 'requested' => $category_id, 'persisted' => $persisted_terms ];
+                if ( in_array( $category_id, $persisted_terms, true ) ) {
+                    $completed_steps[] = 'assigned_category';
+                } else {
+                    $pending_steps[] = [ 'step' => 'assigned_category', 'reason' => "Category $category_id not present after write — check the taxonomy allowlist or a Polylang category-language mapping" ];
+                }
+            }
+        }
+
+        // Step 5: featured image — optional, gracefully skipped (not failed) without manage.media.
+        $featured_result = null;
+        if ( isset( $args['featured_media_id'] ) ) {
+            $media_id = (int) $args['featured_media_id'];
+            if ( ! empty( AICOM_Auth::missing_scopes( $key_record, [ 'manage.media' ] ) ) ) {
+                $pending_steps[] = [ 'step' => 'set_featured_image', 'reason' => 'INSUFFICIENT_SCOPE: manage.media not granted to this key' ];
+            } else {
+                set_post_thumbnail( $new_post_id, $media_id );
+                $persisted_thumb = (int) get_post_thumbnail_id( $new_post_id );
+                $featured_result = [ 'requested' => $media_id, 'persisted' => $persisted_thumb ];
+                if ( $persisted_thumb === $media_id ) {
+                    $completed_steps[] = 'set_featured_image';
+                } else {
+                    $pending_steps[] = [ 'step' => 'set_featured_image', 'reason' => "Featured image is $persisted_thumb after the write, not $media_id" ];
+                }
+            }
+        }
+
+        // Step 6: verify — always runs, reflects the true final state of everything above.
+        $final_post = get_post( $new_post_id );
+        $completed_steps[] = 'verified';
+
+        $result = [
+            'success'         => true,
+            'partial'         => ! empty( $pending_steps ),
+            'post_id'         => $new_post_id,
+            'source_post_id'  => $source_post_id,
+            'source_language' => $source_language,
+            'target_language' => $target_language,
+            'status'          => $final_post->post_status,
+            'edit_url'        => get_edit_post_link( $new_post_id, 'raw' ),
+            'view_url'        => get_permalink( $new_post_id ),
+            'translations'    => $persisted_translations,
+            'completed_steps' => $completed_steps,
+            'pending_steps'   => $pending_steps,
+            'verified'        => empty( $pending_steps ),
+        ];
+        if ( $category_result !== null ) {
+            $result['category'] = $category_result;
+        }
+        if ( $featured_result !== null ) {
+            $result['featured_image'] = $featured_result;
+        }
+
+        return $this->ok(
+            $result,
+            [ 'target_type' => 'post', 'target_id' => $new_post_id, 'summary' => [ 'created_bilingual_pair' => true ] ]
+        );
     }
 }
