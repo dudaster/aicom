@@ -610,15 +610,40 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'WP_ERROR', $id->get_error_message(), 'error', 500 );
         }
 
+        // Read-after-write: WordPress can silently transform or drop fields (a
+        // duplicate slug gets a "-2" suffix, a post type that doesn't support
+        // excerpts ignores it, sanitizers can alter title/content) — compare
+        // what was actually requested against what's actually stored rather
+        // than assuming wp_insert_post's success means every field landed as sent.
+        $persisted = get_post( $id );
+        $requested = [ 'post_title' => $data['post_title'], 'post_status' => $data['post_status'] ];
+        $stored    = [ 'post_title' => $persisted->post_title, 'post_status' => $persisted->post_status ];
+        foreach ( [ 'post_excerpt', 'post_name' ] as $field ) {
+            if ( isset( $data[ $field ] ) ) {
+                $requested[ $field ] = $data[ $field ];
+                $stored[ $field ]    = $persisted->$field;
+            }
+        }
+        $mismatched = array_keys( array_diff_assoc( $requested, $stored ) );
+        $verified   = empty( $mismatched );
+
+        $result = [
+            'id'        => $id,
+            'post_type' => $post_type,
+            'title'     => get_the_title( $id ),
+            'status'    => get_post_status( $id ),
+            'edit_url'  => get_edit_post_link( $id, 'raw' ),
+            'view_url'  => get_permalink( $id ),
+            'requested' => $requested,
+            'persisted' => $stored,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $result['warning'] = 'Field(s) ' . implode( ', ', $mismatched ) . ' were not stored exactly as requested — check for a duplicate slug suffix, a post-type field restriction, or sanitization.';
+        }
+
         return $this->ok(
-            [
-                'id'       => $id,
-                'post_type'=> $post_type,
-                'title'    => get_the_title( $id ),
-                'status'   => get_post_status( $id ),
-                'edit_url' => get_edit_post_link( $id, 'raw' ),
-                'view_url' => get_permalink( $id ),
-            ],
+            $result,
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => [ 'created' => true ] ]
         );
     }

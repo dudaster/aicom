@@ -101,6 +101,10 @@ class AICOM_Tool_Router {
         // Writes _elementor_conditions/_elementor_template_type postmeta on an existing
         // elementor_library post — a full post+meta snapshot already covers it.
         'elementor.template.set_conditions' => [ 'type' => 'post', 'id_arg' => 'post_id' ],
+
+        // Creates a NEW draft (nothing to snapshot there), but also rewrites the
+        // SOURCE post's Polylang translation-group meta — snapshot that existing post.
+        'pll.create_bilingual_pair' => [ 'type' => 'post', 'id_arg' => 'source_post_id' ],
     ];
 
     // ── Main Dispatch ─────────────────────────────────────────────────────
