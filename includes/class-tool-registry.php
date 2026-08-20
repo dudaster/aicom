@@ -71,10 +71,21 @@ class AICOM_Tool_Registry {
     }
 
     /**
-     * MCP tools/list response format.
+     * MCP tools/list response format. When $key_record is given, tools the
+     * key can't actually call (missing required scope, after implied-scope
+     * expansion) are excluded entirely — a key without read.skills never
+     * needed to see skills.list only to fail calling it, and every key gets
+     * a shorter, cheaper-to-load tool list scoped to what it can really do.
+     * Pass an empty $key_record (the default) to get the unfiltered list.
      */
-    public static function to_mcp_list( array $active_modules ): array {
+    public static function to_mcp_list( array $active_modules, array $key_record = [] ): array {
         $tools = self::get_for_modules( $active_modules );
+
+        if ( ! empty( $key_record ) ) {
+            $tools = array_filter( $tools, static function ( array $meta ) use ( $key_record ): bool {
+                return empty( AICOM_Auth::missing_scopes( $key_record, $meta['required_scopes'] ) );
+            } );
+        }
 
         return array_values( array_map( static function ( array $meta ): array {
             $props = [];

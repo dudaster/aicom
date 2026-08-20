@@ -99,6 +99,28 @@ ok( 'method=tools/list: NO content (ListToolsResult, not CallToolResult)', ! iss
 ok( 'method=tools/list: still has tools array', isset( $via_method['result']['tools'] ) && is_array( $via_method['result']['tools'] ), json_encode( $via_method ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 1c. tools/list is filtered to what the calling key can actually call
+// ═══════════════════════════════════════════════════════════════════════════
+// Regression test for a real report: a key without read.skills still saw
+// skills.list/skills.match in tools/list, only to fail calling them — wasting
+// both context and a round-trip. Tools requiring an ungranted scope must not
+// appear at all.
+
+section( 'tools/list — scoped to the calling key\'s actual permissions' );
+$narrow_key = AICOM_Auth::create_key( 'Narrow Scope Test', [ 'read.wp' ] );
+$narrow_endpoint_body = json_encode( [ 'jsonrpc' => '2.0', 'method' => 'tools/list', 'id' => 1 ] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $narrow_key['plain_key'];
+$narrow_result = AICOM_Tool_Router::dispatch( $narrow_endpoint_body );
+$narrow_names  = array_column( $narrow_result['result']['tools'] ?? [], 'name' );
+
+ok( 'read.wp-only key does NOT see skills.list (needs read.skills)', ! in_array( 'skills.list', $narrow_names, true ), json_encode( array_slice( $narrow_names, 0, 20 ) ) );
+ok( 'read.wp-only key does NOT see wp.posts.create (needs write.wp.posts)', ! in_array( 'wp.posts.create', $narrow_names, true ) );
+ok( 'read.wp-only key DOES see wp.posts.list (needs only read.wp)', in_array( 'wp.posts.list', $narrow_names, true ) );
+
+$wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $narrow_key['id'] ] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key']; // restore the main test key
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 2. Gate error: integer error.code + string preserved in error.data.code
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -107,6 +129,7 @@ $r = rpc( 'nonexistent.tool.xyz', [] );
 ok( 'top-level error present', isset( $r['error'] ) && ! isset( $r['result'] ), json_encode( $r ) );
 ok( 'error.code is an integer', is_int( $r['error']['code'] ?? null ), json_encode( $r ) );
 ok( 'error.data.code is TOOL_NOT_FOUND', ( $r['error']['data']['code'] ?? '' ) === 'TOOL_NOT_FOUND', json_encode( $r ) );
+ok( 'error.data.retryable is false for TOOL_NOT_FOUND (needs a different tool name, not a retry)', ( $r['error']['data']['retryable'] ?? null ) === false, json_encode( $r ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 3. Tool-execution error: NOT a top-level error, isError + content instead

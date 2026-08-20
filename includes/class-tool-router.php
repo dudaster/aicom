@@ -71,6 +71,19 @@ class AICOM_Tool_Router {
     private const DEFAULT_GATE_ERROR_CODE = -32000;
 
     /**
+     * Gate error codes where retrying the SAME request unmodified, after a
+     * short wait, might succeed on its own — no corrective action needed.
+     * Everything else defaults to non-retryable: the caller has to actually
+     * change something first (get a key, open a session, request a
+     * different scope, fix a parameter, wait for an admin to lift a lock).
+     * Surfaced as error.data.retryable so a client doesn't have to guess
+     * whether hammering the same call again is ever going to help — this
+     * was reported as a real client-side issue: some clients treat any
+     * repeated gate error as "server unreachable" after a few tries.
+     */
+    private const RETRYABLE_GATE_ERRORS = [ 'RATE_LIMITED', 'IDEMPOTENCY_IN_PROGRESS' ];
+
+    /**
      * Tools that mutate an existing post/term get a silent snapshot into
      * wp_aicom_backups before execution — independent of whether the key
      * has manage.backups or whether the model remembered to call backup.*.create.
@@ -754,7 +767,11 @@ class AICOM_Tool_Router {
             'error'   => [
                 'code'    => $int_code,
                 'message' => $message,
-                'data'    => [ 'code' => $string_code, 'request_id' => $request_id ],
+                'data'    => [
+                    'code'       => $string_code,
+                    'request_id' => $request_id,
+                    'retryable'  => in_array( $string_code, self::RETRYABLE_GATE_ERRORS, true ),
+                ],
             ],
         ];
     }

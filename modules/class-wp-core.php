@@ -410,7 +410,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
         return $this->ok( [
             'instructions' => $instructions,
-            'tools'        => AICOM_Tool_Registry::to_mcp_list( $active ),
+            'tools'        => AICOM_Tool_Registry::to_mcp_list( $active, $key_record ),
         ] );
     }
 
