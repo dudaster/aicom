@@ -90,7 +90,21 @@ class AICOM_Tool_Registry {
                 static fn( $d ) => ! empty( $d['required'] )
             ) );
 
-            $schema = [ 'type' => 'object', 'properties' => $props ];
+            // Force an object even when empty: PHP's json_encode has no way to
+            // tell an empty associative array from an empty list, and defaults
+            // to emitting "[]" for either. A tool with no parameters
+            // (input_schema = []) would then produce "properties": [] instead
+            // of {} on the wire — a strict JSON-Schema client (Pydantic
+            // dict_type validation) rejects the entire tools/list response
+            // over exactly this, even though only the zero-parameter tools
+            // are technically malformed. Same fix already applied to the
+            // OpenAPI schema generator (class-schema-generator.php) for the
+            // same reason — mirrored here for the MCP tools/list path.
+            $schema = [
+                'type'                 => 'object',
+                'properties'           => empty( $props ) ? new stdClass() : $props,
+                'additionalProperties' => false,
+            ];
             if ( $required ) {
                 $schema['required'] = $required;
             }
