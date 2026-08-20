@@ -404,6 +404,29 @@ if ( function_exists( 'pll_languages_list' ) ) {
         $bp_narrow_target_id = $bp_narrow['result']['post_id'] ?? 0;
         if ( $bp_narrow_target_id ) $cleanup_posts[] = $bp_narrow_target_id;
 
+        // From-scratch mode: no pre-existing source post — create both sides in one call,
+        // and confirm the post_type override is honored instead of being flagged as unknown.
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $bp_full_key['plain_key'];
+        rpc( 'session.open', [ 'name' => 'bilingual pair from-scratch test' ] );
+        $bp_scratch = rpc( 'pll.create_bilingual_pair', [
+            'source_language'   => 'en',
+            'source_post_title' => 'Bilingual Pair Scratch Source',
+            'target_language'   => 'ro',
+            'post_title'        => 'Bilingual Pair Scratch Target',
+            'post_type'         => 'post',
+        ] );
+        rpc( 'session.close', [] );
+
+        ok( 'from-scratch: succeeds without a pre-existing source', ( $bp_scratch['result']['success'] ?? false ) === true, json_encode( $bp_scratch ) );
+        ok( 'from-scratch: mode reported correctly', ( $bp_scratch['result']['mode'] ?? '' ) === 'from_scratch', json_encode( $bp_scratch ) );
+        ok( 'from-scratch: source post was created too', in_array( 'created_source_draft', $bp_scratch['result']['completed_steps'] ?? [], true ), json_encode( $bp_scratch ) );
+        ok( 'from-scratch: post_type honored, not flagged unknown', ! isset( $bp_scratch['result']['_warnings'] ), json_encode( $bp_scratch ) );
+        ok( 'from-scratch: both source and target are drafts', ( $bp_scratch['result']['status'] ?? '' ) === 'draft', json_encode( $bp_scratch ) );
+        $bp_scratch_source_id = $bp_scratch['result']['source_post_id'] ?? 0;
+        $bp_scratch_target_id = $bp_scratch['result']['post_id'] ?? 0;
+        if ( $bp_scratch_source_id ) $cleanup_posts[] = $bp_scratch_source_id;
+        if ( $bp_scratch_target_id ) $cleanup_posts[] = $bp_scratch_target_id;
+
         if ( $bp_cat_id ) {
             wp_delete_term( $bp_cat_id, 'category' );
         }

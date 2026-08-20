@@ -707,16 +707,37 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
         }
 
+        // Read-after-write: compare each requested field against what's actually
+        // stored now — a duplicate slug gets a "-2" suffix, sanitizers can alter
+        // title/content, a post type may not support every field.
+        $persisted = get_post( $id );
+        $requested = [];
+        $stored    = [];
+        foreach ( $changed_fields as $field ) {
+            $requested[ $field ] = $data[ $field ];
+            $stored[ $field ]    = $persisted->$field;
+        }
+        $mismatched = array_keys( array_diff_assoc( $requested, $stored ) );
+        $verified   = empty( $mismatched );
+
+        $response = [
+            'id'             => $id,
+            'updated'        => true,
+            'changed_fields' => $changed_fields,
+            'status'         => get_post_status( $id ),
+            'modified'       => get_post_field( 'post_modified', $id ),
+            'edit_url'       => get_edit_post_link( $id, 'raw' ),
+            'view_url'       => get_permalink( $id ),
+            'requested'      => $requested,
+            'persisted'      => $stored,
+            'verified'       => $verified,
+        ];
+        if ( ! $verified ) {
+            $response['warning'] = 'Field(s) ' . implode( ', ', $mismatched ) . ' were not stored exactly as requested — check for a duplicate slug suffix, a post-type field restriction, or sanitization.';
+        }
+
         return $this->ok(
-            [
-                'id'             => $id,
-                'updated'        => true,
-                'changed_fields' => $changed_fields,
-                'status'         => get_post_status( $id ),
-                'modified'       => get_post_field( 'post_modified', $id ),
-                'edit_url'       => get_edit_post_link( $id, 'raw' ),
-                'view_url'       => get_permalink( $id ),
-            ],
+            $response,
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => $changed_fields ]
         );
     }
@@ -892,15 +913,35 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'parent'      => (int) ( $args['parent'] ?? 0 ),
         ];
 
-        $result = wp_insert_term( sanitize_text_field( $name ), $taxonomy, $term_data );
+        $clean_name = sanitize_text_field( $name );
+        $result     = wp_insert_term( $clean_name, $taxonomy, $term_data );
         if ( is_wp_error( $result ) ) {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
         }
 
-        return $this->ok(
-            [ 'term_id' => $result['term_id'], 'taxonomy' => $taxonomy, 'name' => $name ],
-            [ 'target_type' => 'term', 'target_id' => $result['term_id'] ]
-        );
+        // Read-after-write: WordPress can adjust a duplicate slug, or a parent term
+        // in a non-hierarchical taxonomy is silently ignored — confirm what stuck.
+        $term      = get_term( $result['term_id'], $taxonomy );
+        $requested = [ 'name' => $clean_name, 'slug' => $term_data['slug'], 'description' => $term_data['description'], 'parent' => $term_data['parent'] ];
+        $stored    = is_wp_error( $term ) || ! $term
+            ? []
+            : [ 'name' => $term->name, 'slug' => $term->slug, 'description' => $term->description, 'parent' => (int) $term->parent ];
+        $mismatched = array_keys( array_diff_assoc( $requested, $stored ) );
+        $verified   = empty( $mismatched );
+
+        $response = [
+            'term_id'   => $result['term_id'],
+            'taxonomy'  => $taxonomy,
+            'name'      => $clean_name,
+            'requested' => $requested,
+            'persisted' => $stored,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $response['warning'] = 'Field(s) ' . implode( ', ', $mismatched ) . ' were not stored exactly as requested — check for a duplicate slug or a non-hierarchical taxonomy ignoring parent.';
+        }
+
+        return $this->ok( $response, [ 'target_type' => 'term', 'target_id' => $result['term_id'] ] );
     }
 
     public function handle_terms_update( array $args, array $key_record, bool $dry_run ): array {
@@ -935,10 +976,27 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'WP_ERROR', $result->get_error_message(), 'error', 500 );
         }
 
-        return $this->ok(
-            [ 'term_id' => $term_id, 'updated' => true, 'changed_fields' => array_keys( $term_data ) ],
-            [ 'target_type' => 'term', 'target_id' => $term_id, 'summary' => array_keys( $term_data ) ]
-        );
+        $term      = get_term( $term_id, $taxonomy );
+        $stored    = [];
+        foreach ( array_keys( $term_data ) as $field ) {
+            $stored[ $field ] = is_wp_error( $term ) || ! $term ? null : ( $field === 'parent' ? (int) $term->parent : $term->$field );
+        }
+        $mismatched = array_keys( array_diff_assoc( $term_data, $stored ) );
+        $verified   = empty( $mismatched );
+
+        $response = [
+            'term_id'        => $term_id,
+            'updated'        => true,
+            'changed_fields' => array_keys( $term_data ),
+            'requested'      => $term_data,
+            'persisted'      => $stored,
+            'verified'       => $verified,
+        ];
+        if ( ! $verified ) {
+            $response['warning'] = 'Field(s) ' . implode( ', ', $mismatched ) . ' were not stored exactly as requested — check for a duplicate slug or a non-hierarchical taxonomy ignoring parent.';
+        }
+
+        return $this->ok( $response, [ 'target_type' => 'term', 'target_id' => $term_id, 'summary' => array_keys( $term_data ) ] );
     }
 
     public function handle_terms_delete( array $args, array $key_record, bool $dry_run ): array {
@@ -1098,10 +1156,25 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         // wp_slash() counteracts update_post_meta's internal wp_unslash(), preserving backslashes in JSON strings
         update_post_meta( $post_id, $meta_key, is_string( $meta_value ) ? wp_slash( $meta_value ) : $meta_value );
 
-        return $this->ok(
-            [ 'post_id' => $post_id, 'meta_key' => $meta_key, 'updated' => true ],
-            [ 'target_type' => 'post_meta', 'target_id' => $post_id ]
-        );
+        // Read-after-write: update_post_meta()'s own return value is unreliable here
+        // (it returns false both on failure AND when the new value equals the old
+        // one) — read the value straight back instead of trusting the boolean.
+        $persisted_value = get_post_meta( $post_id, $meta_key, true );
+        $verified        = $persisted_value === $meta_value;
+
+        $response = [
+            'post_id'   => $post_id,
+            'meta_key'  => $meta_key,
+            'updated'   => $verified,
+            'requested' => $meta_value,
+            'persisted' => $persisted_value,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $response['warning'] = "Meta key '$meta_key' does not match the requested value after the write.";
+        }
+
+        return $this->ok( $response, [ 'target_type' => 'post_meta', 'target_id' => $post_id ] );
     }
 
     public function handle_meta_set_many( array $args, array $key_record, bool $dry_run ): array {
@@ -1139,10 +1212,30 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             update_post_meta( $post_id, $key, is_string( $value ) ? wp_slash( $value ) : $value );
         }
 
-        return $this->ok(
-            [ 'post_id' => $post_id, 'updated' => array_keys( $meta ) ],
-            [ 'target_type' => 'post_meta', 'target_id' => $post_id ]
-        );
+        // Read-after-write for every key in the batch — update_post_meta()'s own
+        // return value is unreliable (false both on failure and on a no-op write).
+        $persisted  = [];
+        $mismatched = [];
+        foreach ( $meta as $key => $value ) {
+            $persisted[ $key ] = get_post_meta( $post_id, $key, true );
+            if ( $persisted[ $key ] !== $value ) {
+                $mismatched[] = $key;
+            }
+        }
+        $verified = empty( $mismatched );
+
+        $response = [
+            'post_id'   => $post_id,
+            'updated'   => array_keys( $meta ),
+            'requested' => $meta,
+            'persisted' => $persisted,
+            'verified'  => $verified,
+        ];
+        if ( ! $verified ) {
+            $response['warning'] = 'Key(s) ' . implode( ', ', $mismatched ) . ' do not match the requested value after the write.';
+        }
+
+        return $this->ok( $response, [ 'target_type' => 'post_meta', 'target_id' => $post_id ] );
     }
 
     public function handle_meta_delete( array $args, array $key_record, bool $dry_run ): array {
