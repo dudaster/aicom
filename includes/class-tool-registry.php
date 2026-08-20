@@ -87,13 +87,31 @@ class AICOM_Tool_Registry {
             } );
         }
 
-        return array_values( array_map( static function ( array $meta ): array {
+        $write_classes = [ 'write', 'destructive', 'admin_sensitive' ];
+
+        return array_values( array_map( static function ( array $meta ) use ( $write_classes ): array {
             $props = [];
             foreach ( $meta['input_schema'] as $param => $def ) {
                 $prop = $def;
                 // Remove internal-only keys not part of JSON Schema
                 unset( $prop['required'] );
                 $props[ $param ] = $prop;
+            }
+
+            // dry_run and idempotency_key are accepted by the router for every
+            // eligible tool (Step 9d) regardless of whether a tool's own
+            // input_schema happens to mention them — but every schema also
+            // declares additionalProperties:false, so a client that validates
+            // its own outgoing request against the schema (not just the
+            // response) would refuse to send either one if it's undocumented.
+            // Inject them centrally here instead of hand-editing every write
+            // tool's registration, so the schema always matches what the
+            // router actually accepts.
+            if ( $meta['supports_dry_run'] && ! isset( $props['dry_run'] ) ) {
+                $props['dry_run'] = [ 'type' => 'boolean', 'description' => 'Validate and simulate without writing any data.' ];
+            }
+            if ( in_array( $meta['class'], $write_classes, true ) && ! isset( $props['idempotency_key'] ) ) {
+                $props['idempotency_key'] = [ 'type' => 'string', 'description' => 'Optional. Repeating this exact call with the same key returns the original result instead of repeating the action — safe to retry after a dropped connection or timeout.' ];
             }
 
             $required = array_keys( array_filter(

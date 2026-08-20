@@ -192,24 +192,34 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'required_scopes'  => [ 'write.wp.posts', $manage ],
             'dependency'       => $dep,
             'supports_dry_run' => true,
-            'description'      => 'Atomic composite tool for the full translation workflow in one call: creates a '
-                . 'new draft, sets its language, links it to the source post as a translation, optionally assigns '
-                . 'a category and featured image, then re-reads and verifies every step. Never publishes — the new '
-                . 'post is always created as a draft regardless of the source post\'s status. If category_id or '
-                . 'featured_media_id is given but the key lacks manage.taxonomies/manage.media, that specific step '
-                . 'is skipped (not failed) and reported in pending_steps — draft creation, language, and '
-                . 'translation linking still complete on their own scopes. '
-                . 'Example: {"source_post_id": 11432, "target_language": "en", "post_title": "...", '
-                . '"post_content": "...", "category_id": 330, "featured_media_id": 11433}',
+            'description'      => 'Atomic composite tool for the full translation workflow in one call. Two modes: '
+                . '(1) pass source_post_id to translate an existing post — its language is read automatically via '
+                . 'Polylang; or (2) omit source_post_id and pass source_language + source_post_title (+ optional '
+                . 'source_post_content/excerpt/name) to create BOTH the source post and its translation from '
+                . 'scratch in one call. Either way this creates the target draft, sets its language, links it to '
+                . 'the source as a translation, optionally assigns a category and featured image, then re-reads '
+                . 'and verifies every step. Never publishes — both posts are always created/left as drafts. If '
+                . 'category_id or featured_media_id is given but the key lacks manage.taxonomies/manage.media, '
+                . 'that specific step is skipped (not failed) and reported in pending_steps. '
+                . 'Example (existing source): {"source_post_id": 11432, "target_language": "en", '
+                . '"post_title": "...", "post_content": "...", "category_id": 330, "featured_media_id": 11433}. '
+                . 'Example (from scratch): {"source_language": "ro", "source_post_title": "...", '
+                . '"target_language": "en", "post_title": "..."}',
             'input_schema'     => [
-                'source_post_id'    => [ 'type' => 'integer', 'required' => true, 'description' => 'Existing post to translate from — its language is read automatically via Polylang.' ],
-                'target_language'   => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug for the new draft (e.g. "en", "ro").' ],
-                'post_title'        => [ 'type' => 'string',  'required' => true ],
-                'post_content'      => [ 'type' => 'string' ],
-                'post_excerpt'      => [ 'type' => 'string' ],
-                'post_name'         => [ 'type' => 'string',  'description' => 'URL slug for the new draft.' ],
-                'category_id'       => [ 'type' => 'integer', 'description' => 'Category term ID (in the target language) to assign. Requires manage.taxonomies — skipped, not failed, if the key lacks it.' ],
-                'featured_media_id' => [ 'type' => 'integer', 'description' => 'Attachment ID to set as the featured image. Requires manage.media — skipped, not failed, if the key lacks it.' ],
+                'source_post_id'      => [ 'type' => 'integer', 'description' => 'Existing post to translate from — its language is read automatically via Polylang. Omit this and use source_language + source_post_title instead to create both posts from scratch.' ],
+                'source_language'     => [ 'type' => 'string',  'description' => 'Language slug for a NEW source post (e.g. "ro"). Only used, and required, when source_post_id is omitted.' ],
+                'source_post_title'   => [ 'type' => 'string',  'description' => 'Title for the new source post. Required when source_post_id is omitted.' ],
+                'source_post_content' => [ 'type' => 'string',  'description' => 'Content for the new source post (from-scratch mode only).' ],
+                'source_post_excerpt' => [ 'type' => 'string',  'description' => 'Excerpt for the new source post (from-scratch mode only).' ],
+                'source_post_name'    => [ 'type' => 'string',  'description' => 'URL slug for the new source post (from-scratch mode only).' ],
+                'target_language'     => [ 'type' => 'string',  'required' => true, 'description' => 'Language slug for the target-language draft (e.g. "en", "ro").' ],
+                'post_title'          => [ 'type' => 'string',  'required' => true, 'description' => 'Title for the target-language draft.' ],
+                'post_content'        => [ 'type' => 'string' ],
+                'post_excerpt'        => [ 'type' => 'string' ],
+                'post_name'           => [ 'type' => 'string',  'description' => 'URL slug for the target-language draft.' ],
+                'post_type'           => [ 'type' => 'string',  'description' => 'Post type for both posts. Defaults to the source post\'s existing type when source_post_id is given, or "post" in from-scratch mode.' ],
+                'category_id'         => [ 'type' => 'integer', 'description' => 'Category term ID (in the target language) to assign to the target draft. Requires manage.taxonomies — skipped, not failed, if the key lacks it.' ],
+                'featured_media_id'   => [ 'type' => 'integer', 'description' => 'Attachment ID to set as the featured image on the target draft. Requires manage.media — skipped, not failed, if the key lacks it.' ],
             ],
             'handler'          => [ $this, 'handle_create_bilingual_pair' ],
         ] );
@@ -716,31 +726,53 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
     }
 
     public function handle_create_bilingual_pair( array $args, array $key_record, bool $dry_run ): array {
-        $source_post_id  = $this->require_int( $args, 'source_post_id' );
-        $target_language = sanitize_key( $args['target_language'] ?? '' );
-        $title           = $this->require_string( $args, 'post_title' );
+        $source_post_id   = $this->require_int( $args, 'source_post_id' );
+        $source_language  = sanitize_key( $args['source_language'] ?? '' );
+        $source_title     = $this->require_string( $args, 'source_post_title' );
+        $target_language  = sanitize_key( $args['target_language'] ?? '' );
+        $title            = $this->require_string( $args, 'post_title' );
+        $from_scratch      = ! $source_post_id;
 
-        if ( ! $source_post_id || ! $target_language || ! $title ) {
-            return $this->err( 'MISSING_PARAM', 'Parameters source_post_id, target_language, and post_title are required', 'validation_failed' );
+        if ( ! $target_language || ! $title ) {
+            return $this->err( 'MISSING_PARAM', 'Parameters target_language and post_title are required', 'validation_failed' );
         }
-
-        $source_post = get_post( $source_post_id );
-        if ( ! $source_post ) {
-            return $this->err( 'NOT_FOUND', "Source post $source_post_id not found", 'error', 404 );
+        if ( $from_scratch && ( ! $source_language || ! $source_title ) ) {
+            return $this->err( 'MISSING_PARAM', 'source_post_id was omitted — provide source_language and source_post_title to create the source post from scratch instead', 'validation_failed' );
         }
 
         if ( ! function_exists( 'pll_get_post_language' ) || ! function_exists( 'pll_set_post_language' ) || ! function_exists( 'pll_save_post_translations' ) ) {
             return $this->err( 'UNAVAILABLE', 'Required Polylang functions not available', 'error', 500 );
         }
 
-        $source_language = pll_get_post_language( $source_post_id );
-        if ( ! $source_language ) {
-            return $this->err( 'INVALID_PARAM', "Source post $source_post_id has no Polylang language set — set one with pll.post.set_language first", 'validation_failed' );
-        }
-        if ( $source_language === $target_language ) {
-            return $this->err( 'INVALID_PARAM', "target_language ($target_language) is the same as the source post's language ($source_language)", 'validation_failed' );
+        $post_type = sanitize_key( $args['post_type'] ?? '' );
+        $source_post = null;
+
+        if ( ! $from_scratch ) {
+            $source_post = get_post( $source_post_id );
+            if ( ! $source_post ) {
+                return $this->err( 'NOT_FOUND', "Source post $source_post_id not found", 'error', 404 );
+            }
+            $source_language = pll_get_post_language( $source_post_id );
+            if ( ! $source_language ) {
+                return $this->err( 'INVALID_PARAM', "Source post $source_post_id has no Polylang language set — set one with pll.post.set_language first", 'validation_failed' );
+            }
+            if ( ! $post_type ) {
+                $post_type = $source_post->post_type;
+            }
+        } elseif ( ! $post_type ) {
+            $post_type = 'post';
         }
 
+        if ( $source_language === $target_language ) {
+            return $this->err( 'INVALID_PARAM', "target_language ($target_language) is the same as the source language ($source_language)", 'validation_failed' );
+        }
+        // Only check the source language's allowlist in from-scratch mode — that's the
+        // only case this tool actually SETS it. For an existing source post, the language
+        // was already established by a prior (separately-authorized) action; this tool is
+        // just reading and referencing it, not assigning it, so it shouldn't be re-gated here.
+        if ( $from_scratch && ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $source_language ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $source_language", 'denied_allowlist', 403 );
+        }
         if ( ! AICOM_Policy_Engine::check_language_allowlist( $key_record, $target_language ) ) {
             return $this->err( 'DENIED_ALLOWLIST', "Language not in allowlist: $target_language", 'denied_allowlist', 403 );
         }
@@ -749,9 +781,11 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             return $this->ok( [
                 'dry_run'      => true,
                 'would_create' => [
+                    'mode'            => $from_scratch ? 'from_scratch' : 'from_existing_source',
                     'source_post_id'  => $source_post_id,
                     'source_language' => $source_language,
                     'target_language' => $target_language,
+                    'post_type'       => $post_type,
                     'post_title'      => $title,
                 ],
             ] );
@@ -760,12 +794,42 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
         $completed_steps = [];
         $pending_steps   = [];
 
-        // Step 1: create draft — always draft, never publishes regardless of the source post's status.
+        // Step 0 (from-scratch mode only): create the source post itself first.
+        if ( $from_scratch ) {
+            $source_data = [
+                'post_title'   => sanitize_text_field( $source_title ),
+                'post_content' => wp_kses_post( $args['source_post_content'] ?? '' ),
+                'post_status'  => 'draft',
+                'post_type'    => $post_type,
+                'post_author'  => (int) ( $key_record['created_by_user_id'] ?? 0 ),
+            ];
+            if ( isset( $args['source_post_excerpt'] ) ) {
+                $source_data['post_excerpt'] = sanitize_text_field( $args['source_post_excerpt'] );
+            }
+            if ( isset( $args['source_post_name'] ) ) {
+                $source_data['post_name'] = sanitize_title( $args['source_post_name'] );
+            }
+
+            $source_post_id = wp_insert_post( $source_data, true );
+            if ( is_wp_error( $source_post_id ) ) {
+                return $this->err( 'WP_ERROR', 'Failed to create source post: ' . $source_post_id->get_error_message(), 'error', 500 );
+            }
+            $completed_steps[] = 'created_source_draft';
+
+            pll_set_post_language( $source_post_id, $source_language );
+            if ( pll_get_post_language( $source_post_id ) === $source_language ) {
+                $completed_steps[] = 'set_source_language';
+            } else {
+                $pending_steps[] = [ 'step' => 'set_source_language', 'reason' => "Source language did not persist as $source_language" ];
+            }
+        }
+
+        // Step 1: create the target-language draft — always draft, never publishes.
         $post_data = [
             'post_title'   => sanitize_text_field( $title ),
             'post_content' => wp_kses_post( $args['post_content'] ?? '' ),
             'post_status'  => 'draft',
-            'post_type'    => $source_post->post_type,
+            'post_type'    => $post_type,
             'post_author'  => (int) ( $key_record['created_by_user_id'] ?? 0 ),
         ];
         if ( isset( $args['post_excerpt'] ) ) {
@@ -851,10 +915,12 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
         $result = [
             'success'         => true,
             'partial'         => ! empty( $pending_steps ),
+            'mode'            => $from_scratch ? 'from_scratch' : 'from_existing_source',
             'post_id'         => $new_post_id,
             'source_post_id'  => $source_post_id,
             'source_language' => $source_language,
             'target_language' => $target_language,
+            'post_type'       => $post_type,
             'status'          => $final_post->post_status,
             'edit_url'        => get_edit_post_link( $new_post_id, 'raw' ),
             'view_url'        => get_permalink( $new_post_id ),
@@ -863,6 +929,10 @@ class AICOM_Module_Polylang extends AICOM_Module_Base {
             'pending_steps'   => $pending_steps,
             'verified'        => empty( $pending_steps ),
         ];
+        if ( $from_scratch ) {
+            $result['source_edit_url'] = get_edit_post_link( $source_post_id, 'raw' );
+            $result['source_view_url'] = get_permalink( $source_post_id );
+        }
         if ( $category_result !== null ) {
             $result['category'] = $category_result;
         }
