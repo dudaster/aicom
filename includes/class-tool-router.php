@@ -626,19 +626,27 @@ class AICOM_Tool_Router {
             AICOM_Idempotency::complete( $key_id, $idempotency_key, [ 'is_error' => false, 'payload' => $result, 'meta' => $meta ] );
         }
 
-        // tools/list is a distinct top-level RPC method, not a tools/call CallToolResult —
-        // it must NOT get content/isError/structuredContent wrapping.
-        if ( $tool_name === 'tools/list' ) {
-            // Each tool's 'annotations' (ToolAnnotations) is only part of the MCP
-            // Tool schema from the version that introduced it — strip it entirely
-            // for older negotiated versions so nothing version-specific reaches a
-            // client that doesn't expect the field at all.
-            if ( ! self::protocol_supports( $protocol_version, 'tool_annotations' ) && isset( $result['tools'] ) && is_array( $result['tools'] ) ) {
-                foreach ( $result['tools'] as &$tool_def ) {
-                    unset( $tool_def['annotations'] );
-                }
-                unset( $tool_def );
+        // Each tool's 'annotations' (ToolAnnotations) is only part of the MCP Tool
+        // schema from the version that introduced it — strip it entirely for older
+        // negotiated versions so nothing version-specific reaches a client that
+        // doesn't expect the field at all. Applies regardless of how tools/list
+        // was invoked (see the two branches immediately below).
+        if ( $tool_name === 'tools/list' && ! self::protocol_supports( $protocol_version, 'tool_annotations' ) && isset( $result['tools'] ) && is_array( $result['tools'] ) ) {
+            foreach ( $result['tools'] as &$tool_def ) {
+                unset( $tool_def['annotations'] );
             }
+            unset( $tool_def );
+        }
+
+        // tools/list is a distinct top-level RPC method (ListToolsResult, no content
+        // field) ONLY when the client actually sent method:"tools/list". AICOM also
+        // registers "tools/list" as an ordinary callable tool (it shows up in the
+        // list like any other), so a client that instead calls it via
+        // method:"tools/call", params.name:"tools/list" made a genuine tools/call —
+        // and per spec that response MUST be a CallToolResult with content, same as
+        // any other tool, or a strict client rejects it just like the ListToolsResult
+        // issues fixed earlier. $rpc_method (not $tool_name) is what distinguishes them.
+        if ( $tool_name === 'tools/list' && $rpc_method === 'tools/list' ) {
             return self::jsonrpc_wrap( $result, $rpc_id );
         }
 

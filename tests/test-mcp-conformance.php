@@ -81,6 +81,24 @@ $post_id = $r['result']['id'] ?? 0;
 if ( $post_id ) $cleanup_posts[] = $post_id;
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 1b. tools/list has TWO valid invocation paths with DIFFERENT required shapes:
+//     method:"tools/list" -> ListToolsResult (no content field)
+//     method:"tools/call", params.name:"tools/list" -> ordinary CallToolResult
+//     (WITH content) — AICOM registers tools/list as a real callable tool, so
+//     a client is entitled to invoke it either way and must get the shape that
+//     matches how it actually asked.
+// ═══════════════════════════════════════════════════════════════════════════
+
+section( 'tools/list — shape depends on how it was invoked, not just the tool name' );
+$via_call = rpc( 'tools/list', [] );
+ok( 'tools/call name=tools/list: has content (real CallToolResult)', isset( $via_call['result']['content'][0]['text'] ), json_encode( $via_call ) );
+ok( 'tools/call name=tools/list: still has tools array', isset( $via_call['result']['tools'] ) && is_array( $via_call['result']['tools'] ), json_encode( $via_call ) );
+
+$via_method = AICOM_Tool_Router::dispatch( json_encode( [ 'jsonrpc' => '2.0', 'method' => 'tools/list', 'id' => 1 ] ) );
+ok( 'method=tools/list: NO content (ListToolsResult, not CallToolResult)', ! isset( $via_method['result']['content'] ), json_encode( $via_method ) );
+ok( 'method=tools/list: still has tools array', isset( $via_method['result']['tools'] ) && is_array( $via_method['result']['tools'] ), json_encode( $via_method ) );
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 2. Gate error: integer error.code + string preserved in error.data.code
 // ═══════════════════════════════════════════════════════════════════════════
 
