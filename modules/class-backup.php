@@ -189,8 +189,8 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
 
         $payload = [
             'post'  => (array) $post,
-            'meta'  => $meta,
-            'terms' => $terms,
+            'meta'  => AICOM_Json::obj( $meta ),
+            'terms' => AICOM_Json::obj( $terms ),
         ];
 
         if ( $dry_run ) {

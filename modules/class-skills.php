@@ -336,7 +336,19 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
             [
                 'target_type' => 'skill',
                 'target_id'   => (string) $skill['id'],
-                'summary'     => [ 'action' => 'run_skill', 'slug' => $skill['slug'], 'version' => $skill['version'] ],
+                // Deliberately no 'summary' here: unlike a write confirmation
+                // ("created: true"), the full result IS the payload the model
+                // needs to execute — steps/rules/input_schema/permissions.
+                // With a summary set, content[0].text collapses to a one-line
+                // label ("action: run_skill, slug: ...") and the actual
+                // workflow only reaches structuredContent, which a client
+                // only gets if it negotiated a protocol version that
+                // supports it. A strict content-only client (e.g. a Pydantic
+                // CallToolResult model with extra='ignore') would then see
+                // the label and nothing else. Omitting summary makes
+                // summarize_result() fall back to JSON-encoding the whole
+                // result into content[0].text, so the workflow is always
+                // there regardless of protocol version or client leniency.
             ]
         );
     }

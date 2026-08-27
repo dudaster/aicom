@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.12.0
+ * Version:           3.13.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,9 +18,32 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.12.0' );
+define( 'AICOM_VERSION', '3.13.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
+
+// ── PHP 8.0 string-function polyfills ────────────────────────────────────────
+// "Requires PHP: 7.4" above is a real, tested floor (a real user's host is on
+// PHP 7.4) — str_contains()/str_starts_with()/str_ends_with() are PHP 8.0+
+// builtins with no bundled equivalent before that, so any use of them
+// anywhere in the plugin is a straight fatal (undefined function) on 7.x,
+// not a graceful degradation. Defined once, guarded, so individual call
+// sites can keep using the readable native names.
+if ( ! function_exists( 'str_contains' ) ) {
+    function str_contains( string $haystack, string $needle ): bool {
+        return $needle === '' || strpos( $haystack, $needle ) !== false;
+    }
+}
+if ( ! function_exists( 'str_starts_with' ) ) {
+    function str_starts_with( string $haystack, string $needle ): bool {
+        return $needle === '' || strncmp( $haystack, $needle, strlen( $needle ) ) === 0;
+    }
+}
+if ( ! function_exists( 'str_ends_with' ) ) {
+    function str_ends_with( string $haystack, string $needle ): bool {
+        return $needle === '' || substr( $haystack, -strlen( $needle ) ) === $needle;
+    }
+}
 
 // ── Autoloader ─────────────────────────────────────────────────────────────
 spl_autoload_register( function ( string $class ): void {

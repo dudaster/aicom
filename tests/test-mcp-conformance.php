@@ -443,6 +443,98 @@ if ( function_exists( 'pll_languages_list' ) ) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Regression: session.open immediately followed by a write call, no sleep
+// (real report: a write sent as a separate HTTP request right after
+// session.open could sometimes see NO_ACTIVE_SESSION before the session
+// became visible). In-process dispatch() calls are already separate PHP
+// executions of the router from a cold static-state standpoint (no shared
+// in-memory session cache exists to begin with — see class-tool-router.php
+// Step 3.5), so back-to-back calls here exercise the same
+// AICOM_Sessions::get_active() read path a real second HTTP request would.
+// ═══════════════════════════════════════════════════════════════════════════
+section( 'session.open -> immediate write, no sleep' );
+
+$race_key = AICOM_Auth::create_key( 'Session Race Test', [ 'read.wp', 'manage.skills' ] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $race_key['plain_key'];
+
+$race_open = rpc( 'session.open', [ 'name' => 'race test', 'description' => 'no sleep before the next call' ] );
+ok( 'session.open succeeded', isset( $race_open['result']['session_id'] ), json_encode( $race_open ) );
+
+$race_write = rpc( 'skills.create', [
+    'slug' => 'race_test_skill_' . time(),
+    'name' => 'Race Test Skill',
+    'dry_run' => true,
+] );
+ok(
+    'write immediately after open (same request cycle, no sleep) does not get NO_ACTIVE_SESSION',
+    empty( $race_write['result']['isError'] ) && ! isset( $race_write['error'] ),
+    json_encode( $race_write )
+);
+
+rpc( 'session.close', [] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key']; // restore main test key
+$wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $race_key['id'] ] );
+$wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $race_key['id'] ] );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Regression: skills.run must deliver the full workflow via content[0].text
+// alone — a strict content-only client (no MCP-Protocol-Version header, so
+// structuredContent is never included; and a Pydantic-style model that
+// drops any flat result fields it doesn't recognize) must still be able to
+// parse steps/rules/input_schema/permissions/inputs out of content[0].text.
+// ═══════════════════════════════════════════════════════════════════════════
+section( 'skills.run — content-only client sees the full workflow' );
+
+$run_key = AICOM_Auth::create_key( 'Skills Run Content Test', [ 'read.wp', 'manage.skills', 'read.skills' ] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $run_key['plain_key'];
+
+rpc( 'session.open', [ 'name' => 'skills.run content test', 'description' => 'verify full workflow reaches content-only clients' ] );
+
+$run_slug = 'content_only_run_skill_' . time();
+$run_created = rpc( 'skills.create', [
+    'slug'         => $run_slug,
+    'name'         => 'Content-Only Run Skill',
+    'steps'        => [ [ 'action' => 'noop' ] ],
+    'rules'        => [ 'must_confirm' => true ],
+    'input_schema' => [ 'type' => 'object', 'properties' => [ 'foo' => [ 'type' => 'string' ] ] ],
+] );
+$run_skill_id = $run_created['result']['id'] ?? null;
+ok( 'setup: skill created', $run_skill_id !== null, json_encode( $run_created ) );
+
+if ( $run_skill_id ) {
+    rpc( 'skills.activate', [ 'id' => $run_skill_id ] );
+
+    // No protocol_version_header passed -> dispatch() falls back to the
+    // conservative default, exactly like a client that never sent
+    // MCP-Protocol-Version — structuredContent is omitted (see
+    // AICOM_Tool_Router::PROTOCOL_CAPABILITIES), so content is the only
+    // place the workflow can legally arrive.
+    $run = AICOM_Tool_Router::dispatch( json_encode( [
+        'jsonrpc' => '2.0',
+        'method'  => 'tools/call',
+        'params'  => [ 'name' => 'skills.run', 'arguments' => [ 'id' => $run_skill_id, 'inputs' => [ 'foo' => 'bar' ] ] ],
+        'id'      => 1,
+    ] ) );
+
+    ok( 'skills.run has no structuredContent for this protocol version', ! isset( $run['result']['structuredContent'] ), json_encode( $run ) );
+
+    $content_text = $run['result']['content'][0]['text'] ?? '';
+    $decoded      = json_decode( $content_text, true );
+
+    ok( 'content[0].text is valid JSON', is_array( $decoded ), $content_text );
+    ok( 'content-only client sees steps', $decoded && array_key_exists( 'steps', $decoded ) && $decoded['steps'] === [ [ 'action' => 'noop' ] ], $content_text );
+    ok( 'content-only client sees rules', $decoded && array_key_exists( 'rules', $decoded ) && $decoded['rules'] === [ 'must_confirm' => true ], $content_text );
+    ok( 'content-only client sees input_schema', $decoded && array_key_exists( 'input_schema', $decoded ), $content_text );
+    ok( 'content-only client sees permissions', $decoded && array_key_exists( 'permissions', $decoded ), $content_text );
+    ok( 'content-only client sees inputs', $decoded && array_key_exists( 'inputs', $decoded ) && $decoded['inputs'] === [ 'foo' => 'bar' ], $content_text );
+}
+
+rpc( 'session.close', [] );
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key']; // restore main test key
+$wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $run_key['id'] ] );
+$wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $run_key['id'] ] );
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Cleanup
 // ═══════════════════════════════════════════════════════════════════════════
 

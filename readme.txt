@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.12.0
+Stable tag: 3.13.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,17 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.13.0 =
+
+* **Critical fix**: removed all PHP 8.0+ only syntax (`match` expressions, `str_contains`/`str_starts_with`/`str_ends_with`, a union return type) that had crept into the codebase despite the plugin declaring `Requires PHP: 7.4` — on real PHP 7.x hosting this caused a hard parse error on plugin load, taking down the entire site's admin. Verified clean with `php -l` under real PHP 7.4, not just a newer local environment. Reported by a user running on shared hosting; thank you.
+* New tool `tools/search`: keyword search over tool names/descriptions, tuned for weak/local models that don't know exact tool names — handles full-sentence queries, common synonyms (e.g. "photo" → featured image, "shop" → WooCommerce), typo tolerance, and plurals.
+* New tool `tools/describe`: fetch one tool's full definition by exact name — the on-demand counterpart to `tools/search`, useful when you already know the name but not the parameters.
+* New per-key setting **Compact Tool List** (API Keys → Create/Edit): for small/local models, `tools/list` drops each parameter's description text to cut context size, while always keeping name/type/`required` for every tool (read and write alike) so a call can still be built correctly. Each tool's own top-level description (including worked examples) is never shortened. Off by default — capable models see the same full list as before.
+* Fixed `skills.run` not delivering the skill's `steps`/`rules`/`input_schema`/`permissions` to MCP clients that only read the `content` field (rather than the optional `structuredContent`, which isn't sent unless the client negotiates a newer protocol version) — the full workflow now always lands in `content` too.
+* Hardened session enforcement: a write/destructive/admin_sensitive call sent immediately after `session.open` now retries the active-session check briefly instead of failing outright, and the resulting `NO_ACTIVE_SESSION` error (on the rare case it's still not visible) is now marked `retryable`.
+* New **IP Rate Limits** section (Safety page): see every IP currently blocked by the failed-authentication rate limiter, with time remaining, and unban one on demand instead of waiting out the cooldown.
+* Fixed the Audit Logs "Today"/"7 days"/"30 days"/"Year" filters computing their date boundary in the site's local calendar day but comparing it against UTC-stored timestamps — on a site with a non-zero UTC offset this could silently return zero results for a period that actually had activity. Timestamps in the Audit Logs table are now also shown in a clearer `date / time` format.
 
 = 3.12.0 =
 

@@ -97,6 +97,18 @@ class AICOM_Policy_Engine {
         return ! empty( $r['dry_run_only'] );
     }
 
+    /**
+     * When true, tools/list omits parameter schemas for this key (full
+     * details still available on demand via tools/search / tools/describe).
+     * For small/local models that get overwhelmed or blow their context on
+     * a full ~100-tool schema dump; opt-in per key so capable models keep
+     * seeing everything up front, unchanged.
+     */
+    public static function compact_tools( array $key_record ): bool {
+        $r = self::restrictions( $key_record );
+        return ! empty( $r['compact_tools'] );
+    }
+
     // ── Private Helpers ───────────────────────────────────────────────────
 
     private static function restrictions( array $key_record ): array {

@@ -600,6 +600,14 @@ class AICOM_Admin {
                 wp_safe_redirect( add_query_arg( 'updated', 'lockdown', admin_url( 'admin.php?page=aicom-safety' ) ) );
                 exit;
 
+            case 'clear_rate_limit':
+                $ip = sanitize_text_field( wp_unslash( $_POST['ip'] ?? '' ) );
+                if ( $ip ) {
+                    AICOM_Tool_Router::clear_rate_limit( $ip );
+                }
+                wp_safe_redirect( add_query_arg( 'ip_unbanned', $ip ? '1' : '0', admin_url( 'admin.php?page=aicom-safety' ) ) );
+                exit;
+
             case 'generate_pairing_token':
                 // One-time bootstrap token for AICOM Hub pairing (PRD §16.2).
                 // Plaintext is stashed in a short-lived transient so the next
@@ -619,7 +627,8 @@ class AICOM_Admin {
                     sanitize_textarea_field( wp_unslash( $_POST['ip_allowlist'] ?? '' ) ),
                     sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
                     ! empty( $_POST['ip_lock'] ),
-                    self::read_working_hours_from_post()
+                    self::read_working_hours_from_post(),
+                    ! empty( $_POST['compact_tools'] )
                 );
                 break;
 
@@ -673,7 +682,8 @@ class AICOM_Admin {
                     sanitize_text_field( wp_unslash( $_POST['expires_at'] ?? '' ) ),
                     ! empty( $_POST['rotate_secret'] ),
                     ! empty( $_POST['ip_lock'] ),
-                    self::read_working_hours_from_post()
+                    self::read_working_hours_from_post(),
+                    ! empty( $_POST['compact_tools'] )
                 );
                 break;
 
@@ -879,7 +889,7 @@ class AICOM_Admin {
         }
     }
 
-    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '', bool $ip_lock = false, array $working_hours = [] ): void {
+    private function handle_create_key( string $label, array $scopes, bool $dry_run_only, string $ip_allowlist_raw, string $expires_raw = '', bool $ip_lock = false, array $working_hours = [], bool $compact_tools = false ): void {
         if ( ! $label ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=missing_label' ) );
             exit;
@@ -897,6 +907,9 @@ class AICOM_Admin {
         }
         if ( ! empty( $working_hours['enabled'] ) ) {
             $restrictions['working_hours'] = $working_hours;
+        }
+        if ( $compact_tools ) {
+            $restrictions['compact_tools'] = true;
         }
         $this->apply_resource_restrictions( $restrictions );
 
@@ -1000,7 +1013,7 @@ class AICOM_Admin {
         exit;
     }
 
-    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate, bool $ip_lock = false, array $working_hours = [] ): void {
+    private function handle_edit_key( int $id, array $scopes, bool $dry_run_only, string $ip_raw, string $expires_raw, bool $rotate, bool $ip_lock = false, array $working_hours = [], bool $compact_tools = false ): void {
         if ( ! $id ) {
             wp_safe_redirect( admin_url( 'admin.php?page=aicom-api-keys&error=invalid_key' ) );
             exit;
@@ -1027,6 +1040,9 @@ class AICOM_Admin {
         }
         if ( ! empty( $working_hours['enabled'] ) ) {
             $restrictions['working_hours'] = $working_hours;
+        }
+        if ( $compact_tools ) {
+            $restrictions['compact_tools'] = true;
         }
         $this->apply_resource_restrictions( $restrictions );
         $expires_ts  = $expires_raw ? strtotime( $expires_raw ) : false;
