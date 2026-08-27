@@ -38,6 +38,27 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'handler'         => [ $this, 'handle_tools_list' ],
         ] );
 
+        $this->register( 'tools/search', [
+            'class'           => 'discovery',
+            'required_scopes' => [],
+            'description'     => 'Keyword search over tool names and descriptions, scoped to what your key can call. Use this instead of tools/list when you know what you want to do but not which tool does it, or to avoid loading the full tool list into context. Returns full tool definitions (same shape as tools/list) for the best matches, ranked by relevance.',
+            'input_schema'    => [
+                'query' => [ 'type' => 'string', 'required' => true, 'description' => 'Keyword(s) describing what you want to do, e.g. "translate post", "featured image", "woocommerce product price".' ],
+                'limit' => [ 'type' => 'integer', 'default' => 10, 'description' => 'Max results to return (1-25).' ],
+            ],
+            'handler' => [ $this, 'handle_tools_search' ],
+        ] );
+
+        $this->register( 'tools/describe', [
+            'class'           => 'discovery',
+            'required_scopes' => [],
+            'description'     => 'Get the full definition (description + parameter schema) for one tool by exact name. Use this after tools/search or tools/list points you at a tool name but you need its actual parameters — cheaper than re-fetching the whole tool list.',
+            'input_schema'    => [
+                'name' => [ 'type' => 'string', 'required' => true, 'description' => 'Exact tool name, e.g. "wp.posts.create".' ],
+            ],
+            'handler' => [ $this, 'handle_tools_describe' ],
+        ] );
+
         $this->register( 'site.summary', [
             'class'           => 'discovery',
             'required_scopes' => [],
@@ -400,18 +421,56 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             ? 'You have an active session: "' . $active_session['name'] . '" (ID ' . $active_session['id'] . '). You may proceed with write/destructive tools.'
             : 'IMPORTANT: You do NOT have an active session. Before calling any write, destructive, or admin_sensitive tool you MUST first call session.open. Provide a clear name (e.g. "Update homepage hero text") and a description of what you plan to do and why (e.g. "Rewriting the hero headline and subtext to match the new brand guidelines"). This is required — not optional. Read-only and discovery tools work without a session.';
 
-        $lock_note = match ( $lock_status ) {
+        $lock_notes = [
             'hard_locked' => 'SAFETY: The site is HARD LOCKED — only public/discovery tools are allowed.',
             'soft_locked' => 'SAFETY: The site is SOFT LOCKED — read and discovery tools only; all write operations are blocked.',
-            default       => '',
-        };
+        ];
+        $lock_note = $lock_notes[ $lock_status ] ?? '';
 
-        $instructions = trim( implode( "\n\n", array_filter( [ $session_note, $lock_note ] ) ) );
+        $compact      = AICOM_Policy_Engine::compact_tools( $key_record );
+        $compact_note = $compact
+            ? 'NOTE: To save context, each tool\'s parameter descriptions are omitted below — names, types, and required fields are still shown for every tool (read AND write), so you can build a correct call without them. The tool\'s own top-level description (including any worked example) is never shortened. If you need a parameter\'s full description, call tools/describe(name:"tool.name") — or use tools/search(query:"...") when you don\'t know the exact name.'
+                . "\n\nTo call any tool, send exactly this shape: {\"name\": \"<tool name>\", \"arguments\": {<param>: <value>, ...}}. Example: {\"name\": \"wp.posts.create\", \"arguments\": {\"post_title\": \"Hello\", \"post_status\": \"draft\"}}."
+            : '';
+
+        $instructions = trim( implode( "\n\n", array_filter( [ $session_note, $lock_note, $compact_note ] ) ) );
 
         return $this->ok( [
             'instructions' => $instructions,
-            'tools'        => AICOM_Tool_Registry::to_mcp_list( $active, $key_record ),
+            'tools'        => AICOM_Tool_Registry::to_mcp_list( $active, $key_record, $compact ),
         ] );
+    }
+
+    public function handle_tools_search( array $args, array $key_record, bool $dry_run ): array {
+        $query = trim( (string) ( $args['query'] ?? '' ) );
+        if ( $query === '' ) {
+            return $this->err( 'MISSING_PARAM', 'query is required.' );
+        }
+        $limit  = (int) ( $args['limit'] ?? 10 );
+        $active = AICOM_Module_Detector::get_active_modules();
+        $tools  = AICOM_Tool_Search::search( $query, $active, $key_record, $limit );
+
+        if ( empty( $tools ) ) {
+            return $this->ok( [
+                'tools' => [],
+                'hint'  => 'No tool matched that query for your key\'s permissions. Try broader keywords, or call tools/list to see everything you can access.',
+            ] );
+        }
+        return $this->ok( [ 'tools' => $tools ] );
+    }
+
+    public function handle_tools_describe( array $args, array $key_record, bool $dry_run ): array {
+        $name = trim( (string) ( $args['name'] ?? '' ) );
+        if ( $name === '' ) {
+            return $this->err( 'MISSING_PARAM', 'name is required.' );
+        }
+        $active = AICOM_Module_Detector::get_active_modules();
+        $tool   = AICOM_Tool_Registry::describe( $name, $active, $key_record );
+
+        if ( $tool === null ) {
+            return $this->err( 'TOOL_NOT_FOUND', "No tool named \"$name\" is available to this key — it may not exist, its module may be inactive, or your key lacks the required scope. Try tools/search(query:\"...\") to find the right name." );
+        }
+        return $this->ok( [ 'tool' => $tool ] );
     }
 
     public function handle_site_info( array $args, array $key_record, bool $dry_run ): array {
@@ -548,7 +607,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'parent'         => (int) $post->post_parent,
             'menu_order'     => (int) $post->menu_order,
             'comment_status' => $post->comment_status,
-            'terms'          => $terms_map,
+            'terms'          => AICOM_Json::obj( $terms_map ),
             'edit_url'       => get_edit_post_link( $post->ID, 'raw' ),
             'view_url'       => get_permalink( $post->ID ),
         ], [ 'target_type' => 'post', 'target_id' => $id ] );
@@ -1129,7 +1188,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
         // Return all meta (respects allowlist if set)
         $all_meta = get_post_meta( $post_id );
-        return $this->ok( [ 'post_id' => $post_id, 'meta' => $all_meta ] );
+        return $this->ok( [ 'post_id' => $post_id, 'meta' => AICOM_Json::obj( $all_meta ) ] );
     }
 
     public function handle_meta_set( array $args, array $key_record, bool $dry_run ): array {

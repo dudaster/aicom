@@ -81,7 +81,11 @@ class AICOM_Tool_Router {
      * was reported as a real client-side issue: some clients treat any
      * repeated gate error as "server unreachable" after a few tries.
      */
-    private const RETRYABLE_GATE_ERRORS = [ 'RATE_LIMITED', 'IDEMPOTENCY_IN_PROGRESS' ];
+    // NO_ACTIVE_SESSION included because, even after the in-router retry
+    // loop (see Step 3.5) exhausts, a client-side retry after session.open
+    // is still a reasonable next move — not "you configured this wrong",
+    // unlike e.g. DENIED_SCOPE.
+    private const RETRYABLE_GATE_ERRORS = [ 'RATE_LIMITED', 'IDEMPOTENCY_IN_PROGRESS', 'NO_ACTIVE_SESSION' ];
 
     /**
      * Tools that mutate an existing post/term get a silent snapshot into
@@ -364,6 +368,20 @@ class AICOM_Tool_Router {
             self::$current_session_id = $ambient ? (int) $ambient['id'] : 0;
         } else {
             $active_session = AICOM_Sessions::get_active( $key_id );
+
+            // Defensive retry: a write call sent as a separate HTTP request
+            // immediately after a successful session.open should never lose
+            // the race against that INSERT's own visibility, but hosting
+            // environments vary (connection pooling, replicas, whatever) in
+            // ways this codebase can't fully see from here. Three short
+            // reads cost nothing in the normal case (they only run when the
+            // first read already came back empty) and remove the class of
+            // failure entirely if the delay is ever more than instantaneous.
+            for ( $attempt = 0; ! $active_session && $attempt < 3; $attempt++ ) {
+                usleep( 100000 ); // 100ms
+                $active_session = AICOM_Sessions::get_active( $key_id );
+            }
+
             if ( ! $active_session ) {
                 return self::keyed_error(
                     $request_id, $remote_ip, $key_id, $key_label,
@@ -1145,15 +1163,75 @@ class AICOM_Tool_Router {
         }
     }
 
+    const RATE_LIMIT_PREFIX = 'aicom_rl_';
+    const RATE_LIMIT_THRESHOLD = 5;
+
     private static function is_rate_limited( string $ip ): bool {
-        return (int) get_transient( 'aicom_rl_' . $ip ) >= 5;
+        return (int) get_transient( self::RATE_LIMIT_PREFIX . $ip ) >= self::RATE_LIMIT_THRESHOLD;
     }
 
     private static function record_auth_failure( string $ip ): void {
-        $key   = 'aicom_rl_' . $ip;
+        $key   = self::RATE_LIMIT_PREFIX . $ip;
         $count = (int) get_transient( $key );
-        // Exponential backoff: 1 min → 2 → 4 → 8 ... capped at 24 h
+        // Exponential backoff: 1 min → 2 → 4 → 8 ... capped at 24 h. In
+        // practice this never grows past the value set on the failure that
+        // crosses RATE_LIMIT_THRESHOLD: once blocked, further attempts are
+        // rejected by is_rate_limited() before ever reaching this function
+        // again, so the cooldown is fixed at whatever TTL was set on that
+        // one call (16 min at the default threshold of 5) until it expires
+        // and the count resets to zero.
         $ttl   = min( MINUTE_IN_SECONDS * ( 2 ** $count ), DAY_IN_SECONDS );
         set_transient( $key, $count + 1, $ttl );
+    }
+
+    /**
+     * IPs currently past RATE_LIMIT_THRESHOLD (i.e. actually being blocked
+     * right now, not just accumulating failures below the threshold), with
+     * how long each has left. Reads wp_options directly rather than
+     * get_transient() in a loop — the transient names (client IPs) aren't
+     * known in advance, so there's no way to look them up without a scan.
+     */
+    public static function list_rate_limited_ips(): array {
+        global $wpdb;
+        $timeout_prefix = '_transient_timeout_' . self::RATE_LIMIT_PREFIX;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $wpdb->esc_like( $timeout_prefix ) . '%'
+            ),
+            ARRAY_A
+        );
+
+        $now = time();
+        $out = [];
+        foreach ( $rows as $row ) {
+            $expires = (int) $row['option_value'];
+            if ( $expires <= $now ) {
+                continue; // expired; WP hasn't garbage-collected the option row yet
+            }
+            $ip    = substr( $row['option_name'], strlen( $timeout_prefix ) );
+            $count = (int) get_option( '_transient_' . self::RATE_LIMIT_PREFIX . $ip );
+            if ( $count < self::RATE_LIMIT_THRESHOLD ) {
+                continue; // failures being tracked, but not yet actually blocking
+            }
+            $out[] = [
+                'ip'                => $ip,
+                'failure_count'     => $count,
+                'expires_at'        => gmdate( 'Y-m-d H:i:s', $expires ),
+                'seconds_remaining' => $expires - $now,
+            ];
+        }
+
+        usort( $out, static fn( array $a, array $b ): int => $a['seconds_remaining'] <=> $b['seconds_remaining'] );
+        return $out;
+    }
+
+    /**
+     * Manually clear a blocked IP's failure count, letting it authenticate
+     * immediately instead of waiting out the cooldown.
+     */
+    public static function clear_rate_limit( string $ip ): bool {
+        return delete_transient( self::RATE_LIMIT_PREFIX . $ip );
     }
 }

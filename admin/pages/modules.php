@@ -76,14 +76,23 @@ foreach ( $module_info as $slug => $info ) {
                 $card_class = $is_active ? 'aicom-module-card-active' : 'aicom-module-card-inactive';
                 $tool_count = $tools_per_module[ $slug ] ?? 0;
 
-                $tier_label = match ( $status ) {
-                    'active'                 => $info['required'] ?? null,
-                    'active_free'            => ( $info['required'] ?? null ) . ' ' . __( '(Free)', 'aicom' ),
-                    'active_pro'             => ( $info['required'] ?? null ) . ' ' . __( '(Pro)', 'aicom' ),
-                    'active_premium'         => ( $info['required'] ?? null ) . ' ' . __( '(Premium)', 'aicom' ),
-                    'installed_no_languages' => __( 'Installed — no languages', 'aicom' ),
-                    default                  => $info['required'] ?? null,
-                };
+                switch ( $status ) {
+                    case 'active_free':
+                        $tier_label = ( $info['required'] ?? null ) . ' ' . __( '(Free)', 'aicom' );
+                        break;
+                    case 'active_pro':
+                        $tier_label = ( $info['required'] ?? null ) . ' ' . __( '(Pro)', 'aicom' );
+                        break;
+                    case 'active_premium':
+                        $tier_label = ( $info['required'] ?? null ) . ' ' . __( '(Premium)', 'aicom' );
+                        break;
+                    case 'installed_no_languages':
+                        $tier_label = __( 'Installed — no languages', 'aicom' );
+                        break;
+                    case 'active':
+                    default:
+                        $tier_label = $info['required'] ?? null;
+                }
             ?>
                 <div class="aicom-module-card <?php echo esc_attr( $card_class ); ?>">
                     <div class="aicom-module-header">

@@ -9,9 +9,13 @@ class AICOM_Sessions {
 
     /**
      * Open a new named session for the given API key.
-     * Returns the new session row (ARRAY_A) or 'SESSION_ALREADY_OPEN'.
+     *
+     * @return array|string The new session row (ARRAY_A), or the string
+     *                       'SESSION_ALREADY_OPEN'. No union return type
+     *                       declared — union types are PHP 8.0+ and this
+     *                       plugin's declared floor is 7.4.
      */
-    public static function open( int $key_id, string $key_label, string $name, string $desc = '' ): array|string {
+    public static function open( int $key_id, string $key_label, string $name, string $desc = '' ) {
         if ( self::get_active( $key_id ) ) {
             return 'SESSION_ALREADY_OPEN';
         }

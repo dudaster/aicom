@@ -36,10 +36,9 @@ class AICOM_Schema_Generator {
                 }
             }
 
-            // Empty PHP arrays serialize as JSON [] — OpenAPI requires {} for objects.
             $request_schema = [
                 'type'       => 'object',
-                'properties' => empty( $properties ) ? new stdClass() : $properties,
+                'properties' => AICOM_Json::obj( $properties ),
             ];
             if ( $required_params ) {
                 $request_schema['required'] = $required_params;
@@ -120,7 +119,7 @@ class AICOM_Schema_Generator {
                 foreach ( $schema['properties'] as $child_name => $child_schema ) {
                     $child_props[ $child_name ] = self::normalize_property_schema( (array) $child_schema );
                 }
-                $prop['properties'] = empty( $child_props ) ? new stdClass() : $child_props;
+                $prop['properties'] = AICOM_Json::obj( $child_props );
             } else {
                 $prop['additionalProperties'] = true;
             }

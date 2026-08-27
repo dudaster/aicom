@@ -139,6 +139,7 @@ $keys = $wpdb->get_results(
                                 ? ''
                                 : implode( "\n", $edit_restrictions['ip_allowlist'] ?? [] );
     $edit_dry_run         = ! empty( $edit_restrictions['dry_run_only'] );
+    $edit_compact_tools   = ! empty( $edit_restrictions['compact_tools'] );
     $edit_wh              = $edit_restrictions['working_hours'] ?? [];
     $edit_wh_enabled      = ! empty( $edit_wh['enabled'] );
     $edit_wh_days         = array_map( 'intval', $edit_wh['days'] ?? [ 1, 2, 3, 4, 5 ] );
@@ -347,6 +348,17 @@ $keys = $wpdb->get_results(
                             <label class="aicom-toggle-label">
                                 <input type="checkbox" name="dry_run_only" value="1" <?php checked( $edit_dry_run ); ?> />
                                 <?php esc_html_e( 'Force all write operations to dry-run mode for this key', 'aicom' ); ?>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Compact tool list -->
+                    <div class="aicom-field-row">
+                        <label class="aicom-field-label"><?php esc_html_e( 'Compact Tool List', 'aicom' ); ?></label>
+                        <div class="aicom-field-control">
+                            <label class="aicom-toggle-label">
+                                <input type="checkbox" name="compact_tools" value="1" <?php checked( $edit_compact_tools ); ?> />
+                                <?php esc_html_e( 'Shrink tools/list for small/local models: every tool drops its parameter descriptions (names/types/required always stay). Full details for any one tool are still one tools/describe call away. Leave off for capable models.', 'aicom' ); ?>
                             </label>
                         </div>
                     </div>
@@ -676,6 +688,17 @@ $keys = $wpdb->get_results(
                             </div>
                         </div>
 
+                        <!-- Compact tool list -->
+                        <div class="aicom-field-row">
+                            <label class="aicom-field-label"><?php esc_html_e( 'Compact Tool List', 'aicom' ); ?></label>
+                            <div class="aicom-field-control">
+                                <label class="aicom-toggle-label">
+                                    <input type="checkbox" name="compact_tools" value="1" />
+                                    <?php esc_html_e( 'Shrink tools/list for small/local models: parameter schemas are omitted (call tools/search or tools/describe to fetch them on demand). Leave off for capable models.', 'aicom' ); ?>
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Expiry Date -->
                         <div class="aicom-field-row">
                             <label class="aicom-field-label" for="aicom-expires-at">
@@ -778,13 +801,13 @@ $keys = $wpdb->get_results(
                         $row_ip_bound_ip  = $row_ip_lock && $row_ip_bound_at && ! empty( $row_restrictions['ip_allowlist'] )
                                                 ? $row_restrictions['ip_allowlist'][0]
                                                 : null;
-                        $status_class = match( $key['status'] ) {
+                        $status_classes = [
                             'active'    => 'aicom-status-active',
                             'suspended' => 'aicom-status-suspended',
                             'expired'   => 'aicom-status-expired',
                             'archived'  => 'aicom-status-archived',
-                            default     => 'aicom-status-revoked',
-                        };
+                        ];
+                        $status_class = $status_classes[ $key['status'] ] ?? 'aicom-status-revoked';
                     ?>
                         <tr>
                             <td><span class="aicom-key-label"><?php echo esc_html( $key['label'] ); ?></span></td>

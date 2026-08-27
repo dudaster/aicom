@@ -305,6 +305,66 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
         </div>
     </div>
 
+    <!-- IP Rate Limits -->
+    <?php
+    $rate_limited_ips = AICOM_Tool_Router::list_rate_limited_ips();
+    $ip_just_unbanned = sanitize_text_field( wp_unslash( $_GET['ip_unbanned'] ?? '' ) );
+    ?>
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'IP Rate Limits', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo $rate_limited_ips ? 'aicom-badge-warning' : 'aicom-badge-success'; ?>">
+                <?php echo $rate_limited_ips
+                    ? esc_html( sprintf( _n( '%d IP blocked', '%d IPs blocked', count( $rate_limited_ips ), 'aicom' ), count( $rate_limited_ips ) ) )
+                    : esc_html__( 'None blocked', 'aicom' ); ?>
+            </span>
+        </div>
+        <div class="aicom-card-body">
+            <?php if ( $ip_just_unbanned === '1' ) : ?>
+                <div class="notice notice-success inline" style="margin:0 0 14px"><p><?php esc_html_e( 'IP unbanned — it can authenticate immediately.', 'aicom' ); ?></p></div>
+            <?php endif; ?>
+            <p style="margin:0 0 14px;color:var(--aicom-text-sm);font-size:0.92em">
+                <?php esc_html_e( 'After 5 failed API key attempts from the same IP, AICOM blocks it with a cooldown (starts at 1 minute, doubles per prior failure, capped at 24h — in practice the cooldown a blocked IP is actually serving is fixed at whatever it was on the failure that crossed the threshold, since further attempts are refused before they can extend it). This only tracks failed authentication — a request with a valid key is never rate-limited here.', 'aicom' ); ?>
+            </p>
+            <?php if ( empty( $rate_limited_ips ) ) : ?>
+                <p style="color:var(--aicom-text-sm);font-size:0.9em;margin:0"><?php esc_html_e( 'No IPs are currently blocked.', 'aicom' ); ?></p>
+            <?php else : ?>
+                <table class="widefat striped" style="margin:0">
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e( 'IP Address', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Failed Attempts', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Unblocks At (UTC)', 'aicom' ); ?></th>
+                            <th><?php esc_html_e( 'Time Remaining', 'aicom' ); ?></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $rate_limited_ips as $row ) :
+                            $mins = (int) ceil( $row['seconds_remaining'] / 60 );
+                        ?>
+                        <tr>
+                            <td><code><?php echo esc_html( $row['ip'] ); ?></code></td>
+                            <td><?php echo esc_html( (string) $row['failure_count'] ); ?></td>
+                            <td class="aicom-key-date"><?php echo esc_html( str_replace( ' ', ' / ', $row['expires_at'] ) ); ?></td>
+                            <td><?php echo esc_html( sprintf( _n( '%d min', '%d min', $mins, 'aicom' ), $mins ) ); ?></td>
+                            <td>
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0" onsubmit="return confirm('<?php echo esc_js( sprintf( __( 'Unban %s now?', 'aicom' ), $row['ip'] ) ); ?>');">
+                                    <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                                    <input type="hidden" name="action" value="aicom_save" />
+                                    <input type="hidden" name="aicom_action" value="clear_rate_limit" />
+                                    <input type="hidden" name="ip" value="<?php echo esc_attr( $row['ip'] ); ?>" />
+                                    <button type="submit" class="button button-small"><?php esc_html_e( 'Unban', 'aicom' ); ?></button>
+                                </form>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- Hub Pairing (PRD §16.2) -->
     <?php
     $pairing_token = ! empty( $_GET['pairing_generated'] ) ? get_transient( 'aicom_new_pairing_token' ) : '';

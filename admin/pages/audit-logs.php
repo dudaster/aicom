@@ -4,6 +4,11 @@ defined( 'ABSPATH' ) || exit;
 ( function () {
 global $wpdb;
 
+// "2026-08-21 09:00:47" (MySQL datetime, always exactly one space) -> "2026-08-21 / 09:00:47".
+$format_log_time = static function ( ?string $ts ): string {
+    return $ts ? str_replace( ' ', ' / ', $ts ) : '—';
+};
+
 $active_tab = sanitize_key( wp_unslash( $_GET['tab'] ?? 'sessions' ) );
 
 // ── Sessions tab data ──────────────────────────────────────────────────
@@ -57,21 +62,40 @@ $per_page       = 50;
 
 if ( $filter_period !== 'custom' ) {
     $now = current_time( 'mysql', true );
+
+    // created_at is stored in UTC (current_time('mysql', true) at insert
+    // time), but "today"/"7 days"/etc. are calendar boundaries in the
+    // site's LOCAL timezone. Building $filter_from from a local calendar
+    // date (current_time('Y-m-d') / gmdate on a local-shifted value) and
+    // then comparing it directly against the UTC column was wrong: for any
+    // non-zero UTC offset it silently mis-bounds the window by that many
+    // hours, and for "today" specifically it can even flip $filter_from
+    // past $filter_to during the first few hours after local midnight
+    // (whenever local calendar date has already advanced but UTC hasn't),
+    // making the query return zero rows regardless of what's in the table.
+    // Fix: compute the boundary as local midnight, then convert THAT to UTC.
+    $tz = wp_timezone();
+    $to_utc = static function ( DateTime $local_midnight ): string {
+        $local_midnight->setTimezone( new DateTimeZone( 'UTC' ) );
+        return $local_midnight->format( 'Y-m-d H:i:s' );
+    };
+
     switch ( $filter_period ) {
         case 'today':
-            $filter_from = current_time( 'Y-m-d' ) . ' 00:00:00';
+            $filter_from = $to_utc( new DateTime( 'today', $tz ) );
             $filter_to   = $now;
             break;
         case '7days':
-            $filter_from = gmdate( 'Y-m-d', strtotime( '-7 days' ) ) . ' 00:00:00';
+            $filter_from = $to_utc( ( new DateTime( 'today', $tz ) )->modify( '-7 days' ) );
             $filter_to   = $now;
             break;
         case '30days':
-            $filter_from = gmdate( 'Y-m-d', strtotime( '-30 days' ) ) . ' 00:00:00';
+            $filter_from = $to_utc( ( new DateTime( 'today', $tz ) )->modify( '-30 days' ) );
             $filter_to   = $now;
             break;
         case 'year':
-            $filter_from = gmdate( 'Y' ) . '-01-01 00:00:00';
+            $jan1        = new DateTime( ( new DateTime( 'today', $tz ) )->format( 'Y' ) . '-01-01 00:00:00', $tz );
+            $filter_from = $to_utc( $jan1 );
             $filter_to   = $now;
             break;
         default:
@@ -97,7 +121,7 @@ $num_pages = (int) ceil( $total / $per_page );
 
 $api_keys = $wpdb->get_results( "SELECT id, label, key_prefix FROM {$wpdb->prefix}aicom_api_keys ORDER BY label", ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
-$status_options = [ '', 'success', 'error', 'blocked_soft_lock', 'blocked_hard_lock', 'denied_scope', 'denied_allowlist', 'validation_failed', 'auth_failed', 'dependency_missing' ];
+$status_options = [ '', 'success', 'error', 'blocked_soft_lock', 'blocked_hard_lock', 'denied_scope', 'denied_allowlist', 'validation_failed', 'auth_failed', 'dependency_missing', 'rate_limited', 'blocked_working_hours' ];
 $period_options = [
     'today'   => __( 'Today', 'aicom' ),
     '7days'   => __( 'Last 7 Days', 'aicom' ),
@@ -309,7 +333,7 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                             $tool_cls = $log['tool_class'] ?? '';
                         ?>
                             <tr>
-                                <td class="aicom-key-date"><?php echo esc_html( substr( (string) $log['created_at'], 0, 16 ) ); ?></td>
+                                <td class="aicom-key-date"><?php echo esc_html( $format_log_time( $log['created_at'] ) ); ?></td>
                                 <td><code style="font-size:0.78em"><?php echo esc_html( $log['tool_name'] ); ?></code></td>
                                 <td><?php if ( $tool_cls ) : ?><span class="aicom-class-<?php echo esc_attr( $tool_cls ); ?>" style="font-size:0.72em;padding:2px 7px;border-radius:999px;white-space:nowrap"><?php echo esc_html( $class_labels[ $tool_cls ] ?? $tool_cls ); ?></span><?php else : ?>—<?php endif; ?></td>
                                 <td><span class="aicom-status <?php echo esc_attr( $status_cls ); ?>"><?php echo esc_html( $log['status'] ); ?></span></td>
@@ -429,7 +453,7 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                     }
                 ?>
                     <tr>
-                        <td class="aicom-key-date"><?php echo esc_html( $log['created_at'] ); ?></td>
+                        <td class="aicom-key-date"><?php echo esc_html( $format_log_time( $log['created_at'] ) ); ?></td>
                         <td><code style="font-size:0.78em"><?php echo esc_html( $log['tool_name'] ); ?></code></td>
                         <td><span class="aicom-status <?php echo esc_attr( $status_cls ); ?>"><?php echo esc_html( $log['status'] ); ?></span></td>
                         <td class="aicom-key-date"><?php echo $log['duration_ms'] !== null ? esc_html( $log['duration_ms'] ) . 'ms' : '—'; ?></td>
