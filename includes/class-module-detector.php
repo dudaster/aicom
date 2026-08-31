@@ -49,32 +49,58 @@ class AICOM_Module_Detector {
         return class_exists( 'WPSEO_Premium' );
     }
 
+    public static function is_seopress_active(): bool {
+        return defined( 'SEOPRESS_VERSION' );
+    }
+
+    public static function is_seopress_pro_active(): bool {
+        return defined( 'SEOPRESS_PRO_VERSION' );
+    }
+
+    // Single source of truth for "is this optional dependency active" —
+    // module slug (as used in tool registrations' 'dependency' field and in
+    // get_active_modules()) => detector method name. Both
+    // AICOM_Tool_Router's Step 5 dependency gate and get_active_modules()
+    // below read from this one map, instead of each keeping their own
+    // hand-written if/elseif chain in sync. That duplication is exactly what
+    // let a real bug ship: the SEOPress module was added to
+    // get_active_modules() and the tool registry, but the router's separate
+    // copy of this same check was missed, so every seopress.* tool call
+    // failed with DEPENDENCY_MISSING despite the module being active — only
+    // caught by running the new tools against a live install, not by tests
+    // or code review. Adding a new optional integration now only means
+    // adding one line here.
+    private const DEPENDENCY_CHECKS = [
+        'woocommerce' => 'is_woocommerce_active',
+        'elementor'   => 'is_elementor_active',
+        'polylang'    => 'is_polylang_active',
+        'ecs'         => 'is_ecs_active',
+        'ecs_pro'     => 'is_ecs_pro_active',
+        'clautron'    => 'is_clautron_active',
+        'yoast'       => 'is_yoast_active',
+        'seopress'    => 'is_seopress_active',
+    ];
+
+    /**
+     * Whether a tool's 'dependency' value (e.g. 'seopress', 'polylang') is
+     * currently active. Unknown dependency slugs are treated as inactive —
+     * a typo'd or removed dependency string should fail closed, not open.
+     */
+    public static function is_dependency_active( string $dependency ): bool {
+        $method = self::DEPENDENCY_CHECKS[ $dependency ] ?? null;
+        return $method !== null && self::$method();
+    }
+
     /**
      * Returns list of active module slugs (used in Tool Registry filtering).
      */
     public static function get_active_modules(): array {
         $modules = [ 'wp_core', 'media', 'users', 'backup' ];
 
-        if ( self::is_woocommerce_active() ) {
-            $modules[] = 'woocommerce';
-        }
-        if ( self::is_elementor_active() ) {
-            $modules[] = 'elementor';
-        }
-        if ( self::is_polylang_active() ) {
-            $modules[] = 'polylang';
-        }
-        if ( self::is_ecs_active() ) {
-            $modules[] = 'ecs';
-        }
-        if ( self::is_ecs_pro_active() ) {
-            $modules[] = 'ecs_pro';
-        }
-        if ( self::is_clautron_active() ) {
-            $modules[] = 'clautron';
-        }
-        if ( self::is_yoast_active() ) {
-            $modules[] = 'yoast';
+        foreach ( self::DEPENDENCY_CHECKS as $slug => $method ) {
+            if ( self::$method() ) {
+                $modules[] = $slug;
+            }
         }
 
         return $modules;
@@ -95,6 +121,7 @@ class AICOM_Module_Detector {
             'ecs'         => self::is_ecs_pro_active() ? 'active_pro' : ( self::is_ecs_active() ? 'active_free' : 'inactive' ),
             'clautron'    => self::is_clautron_active() ? 'active' : 'inactive',
             'yoast'       => self::is_yoast_premium_active() ? 'active_premium' : ( self::is_yoast_active() ? 'active_free' : 'inactive' ),
+            'seopress'    => self::is_seopress_pro_active() ? 'active_pro' : ( self::is_seopress_active() ? 'active_free' : 'inactive' ),
         ];
     }
 }

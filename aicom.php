@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.13.0
+ * Version:           3.14.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.13.0' );
+define( 'AICOM_VERSION', '3.14.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -244,6 +244,9 @@ function aicom_boot(): void {
     }
     if ( AICOM_Module_Detector::is_yoast_active() ) {
         $modules[] = new AICOM_Module_Yoast();
+    }
+    if ( AICOM_Module_Detector::is_seopress_active() ) {
+        $modules[] = new AICOM_Module_SEOPress();
     }
 
     foreach ( $modules as $module ) {

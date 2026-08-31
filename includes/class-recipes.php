@@ -69,15 +69,12 @@ class AICOM_Recipes {
     }
 
     private static function module_active( string $module ): bool {
-        switch ( $module ) {
-            case 'woocommerce': return AICOM_Module_Detector::is_woocommerce_active();
-            case 'elementor':   return AICOM_Module_Detector::is_elementor_active();
-            case 'polylang':    return AICOM_Module_Detector::is_polylang_active();
-            case 'ecs':         return AICOM_Module_Detector::is_ecs_active();
-            case 'clautron':    return AICOM_Module_Detector::is_clautron_active();
-            case 'yoast':       return AICOM_Module_Detector::is_yoast_active();
-            default:            return false;
-        }
+        // Delegates entirely to the single source of truth — see
+        // AICOM_Module_Detector::DEPENDENCY_CHECKS. This used to be its own
+        // hand-duplicated switch, which had already drifted (no case for
+        // 'ecs_pro', silently falling through to false) before anyone
+        // noticed — the same failure shape as the SEOPress dependency bug.
+        return AICOM_Module_Detector::is_dependency_active( $module );
     }
 
     private static function keyword_match( string $task, array $keywords ): bool {
@@ -452,6 +449,36 @@ class AICOM_Recipes {
                     [ 'tool' => 'wp.meta.set',    'args' => 'post_id: <id>, key: "_yoast_wpseo_metadesc", value: "<desc>" — repeat per post' ],
                 ],
                 'tip' => 'Process in batches of 20 posts. Call wp.posts.list with offset to page through all posts.',
+            ],
+
+            // ── SEOPress ──────────────────────────────────────────────────────
+
+            [
+                'id'              => 'seopress_update_post_seo',
+                'title'           => 'Update SEOPress SEO title and meta description for a post',
+                'task_keywords'   => [ 'seopress', 'seo title', 'meta description', 'seo post', 'update seo', 'seopress seo' ],
+                'required_scope'  => 'manage.seopress',
+                'required_module' => 'seopress',
+                'steps'           => [
+                    [ 'tool' => 'wp.posts.get',    'args' => 'id: <post_id> — read current content' ],
+                    [ 'tool' => 'session.open',     'args' => 'name: "Update SEO", description: "Set SEOPress meta for post <id>"' ],
+                    [ 'tool' => 'seopress.post.set', 'args' => 'post_id: <id>, title: "<SEO title>", metadesc: "<meta description>"' ],
+                ],
+                'tip' => 'SEOPress title variables like %%post_title%% %%sep%% %%sitetitle%% are supported. Pass an empty string to clear a field back to the site-wide template.',
+            ],
+
+            [
+                'id'              => 'seopress_bulk_seo',
+                'title'           => 'Bulk update SEOPress SEO fields for multiple posts',
+                'task_keywords'   => [ 'bulk seo', 'seopress bulk', 'all posts seo', 'mass update seo', 'seo all pages' ],
+                'required_scope'  => 'manage.seopress',
+                'required_module' => 'seopress',
+                'steps'           => [
+                    [ 'tool' => 'wp.posts.list',    'args' => 'post_type: "post", per_page: 20 (repeat with offset for pagination)' ],
+                    [ 'tool' => 'session.open',       'args' => 'name: "Bulk SEO update", description: "Update SEOPress meta for <N> posts"' ],
+                    [ 'tool' => 'seopress.post.set', 'args' => 'post_id: <id>, title: "<title>", metadesc: "<desc>" — repeat per post' ],
+                ],
+                'tip' => 'Process in batches of 20 posts. Call wp.posts.list with offset to page through all posts. Use seopress.posts.bulk_get first to see which posts are missing SEO fields.',
             ],
 
             // ── Clautron ──────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.13.0
+Stable tag: 3.14.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -65,6 +65,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **Elementor** *(optional)* — page creation from template, widget inspection, theme builder conditions
 * **Polylang** *(optional)* — translations, language assignment, string management, and one-call bilingual post pair creation
 * **Yoast SEO** *(optional)* — read and write SEO titles, meta descriptions, Open Graph and Twitter card fields; bulk audit across all posts in one session
+* **SEOPress** *(optional)* — read and write SEO titles, meta descriptions, robots directives, canonical URLs, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
 * **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
 
@@ -186,10 +187,17 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 2. **API Keys** — Generate keys with granular scopes (read, write, manage per module), optional IP allowlist, expiry date, and scope presets. View all keys with last-used date and status.
 3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
 4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
-5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, Clautron) with status and registered tools.
+5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, SEOPress, Clautron) with status and registered tools.
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.14.0 =
+
+* New: SEOPress module — 9 tools for reading and writing SEOPress SEO meta (seopress.post.get/set, seopress.post.social.get/set, seopress.posts.bulk_get for audits, seopress.term.get/set, seopress.site.get). Meta keys and value formats verified directly against SEOPress's own source. Requires SEOPress plugin (free or pro).
+* New "Translator" API key preset with every scope a full Polylang translation workflow needs — posts, meta, taxonomies, media, and both Polylang scopes — deliberately excluding language creation (which isn't exposed as an AICOM capability at all).
+* Every built-in API key preset now includes the ability to create and update Skills (`manage.skills`), so a key provisioned from any preset can save reusable workflows without a separate scope grant.
+* Fixed a real bug: SEOPress tool calls failed with "Required plugin not active" despite the module being active — the router's dependency check was a hand-duplicated copy of the module-detector's active-plugin list that had drifted out of sync. Consolidated onto a single source of truth (`AICOM_Module_Detector::is_dependency_active()`), also removing an equivalent duplicate in `aicom.recipes`' module-gating (which had already silently drifted for the ecs_pro case) and the tool-class taxonomy literals scattered across the lock matrix and idempotency/session gating.
 
 = 3.13.0 =
 

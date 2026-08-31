@@ -16,9 +16,9 @@ class AICOM_Policy_Engine {
             case 'hard_locked':
                 return [ 'public' ];
             case 'soft_locked':
-                return [ 'public', 'discovery', 'read' ];
+                return AICOM_Tool_Registry::READ_ONLY_CLASSES;
             default:
-                return [ 'public', 'discovery', 'read', 'write', 'destructive', 'admin_sensitive' ];
+                return AICOM_Tool_Registry::ALL_CLASSES;
         }
     }
 

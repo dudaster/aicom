@@ -1106,33 +1106,52 @@ class AICOM_Admin {
         return [
             'read-only' => [
                 'name'   => __( 'Read-only', 'aicom' ),
-                'scopes' => [ 'read.wp', 'read.users' ],
-                'risk'   => 'low',
-                'desc'   => __( 'Safe browsing only', 'aicom' ),
+                // Includes manage.skills (create/update a saved Skill) at the
+                // user's explicit request, applied to every preset below —
+                // note this preset is no longer strictly read-only on the
+                // site itself, only on WordPress content; risk bumped
+                // accordingly so the badge doesn't undersell it.
+                'scopes' => [ 'read.wp', 'read.users', 'manage.skills' ],
+                'risk'   => 'med',
+                'desc'   => __( 'Safe browsing only, plus saving Skills', 'aicom' ),
             ],
             'content-assistant' => [
                 'name'   => __( 'Content Assistant', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Write & publish content', 'aicom' ),
             ],
             'elementor-editor' => [
                 'name'   => __( 'Elementor Editor', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Build Elementor pages', 'aicom' ),
             ],
             'woocommerce-catalog' => [
                 'name'   => __( 'WooCommerce Catalog', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Manage products', 'aicom' ),
             ],
             'site-maintenance' => [
                 'name'   => __( 'Site Maintenance', 'aicom' ),
-                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings' ],
+                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings', 'manage.skills' ],
                 'risk'   => 'high',
                 'desc'   => __( 'Updates, backups, settings', 'aicom' ),
+            ],
+            'translator' => [
+                'name'   => __( 'Translator', 'aicom' ),
+                // Every scope a full Polylang translation workflow needs —
+                // reading/writing posts and their translations, taxonomy and
+                // media for the translated copy, and both Polylang scopes
+                // (post-level + term/string-level). Deliberately excludes
+                // adding/removing languages: neither manage.polylang nor
+                // manage.polylang.settings grants that (Polylang's own
+                // language configuration isn't exposed as an AICOM tool at
+                // all — there's nothing to additionally restrict here).
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.media', 'read.polylang', 'manage.polylang', 'manage.polylang.settings', 'manage.skills' ],
+                'risk'   => 'high',
+                'desc'   => __( 'Translate posts, terms & strings with Polylang', 'aicom' ),
             ],
             'full-admin' => [
                 'name'   => __( 'Full Admin', 'aicom' ),
