@@ -358,7 +358,7 @@ class AICOM_Tool_Router {
         // Write/destructive/admin_sensitive tools require an open named session.
         // Exempt: session.open, session.close, tools/list, and read/discovery tools.
         $session_exempt = in_array( $tool_name, [ 'session.open', 'session.close', 'tools/list', 'skills.suggestions' ], true )
-            || in_array( $tool_class, [ 'read', 'discovery', 'public' ], true )
+            || in_array( $tool_class, AICOM_Tool_Registry::READ_ONLY_CLASSES, true )
             || $tool_meta === null; // unknown tools → rejected at step 4
 
         if ( $session_exempt ) {
@@ -407,25 +407,7 @@ class AICOM_Tool_Router {
         $dependency = $tool_meta['dependency'];
 
         if ( $dependency !== null ) {
-            if ( $dependency === 'woocommerce' ) {
-                $dep_active = AICOM_Module_Detector::is_woocommerce_active();
-            } elseif ( $dependency === 'elementor' ) {
-                $dep_active = AICOM_Module_Detector::is_elementor_active();
-            } elseif ( $dependency === 'polylang' ) {
-                $dep_active = AICOM_Module_Detector::is_polylang_active();
-            } elseif ( $dependency === 'ecs' ) {
-                $dep_active = AICOM_Module_Detector::is_ecs_active();
-            } elseif ( $dependency === 'ecs_pro' ) {
-                $dep_active = AICOM_Module_Detector::is_ecs_pro_active();
-            } elseif ( $dependency === 'clautron' ) {
-                $dep_active = AICOM_Module_Detector::is_clautron_active();
-            } elseif ( $dependency === 'yoast' ) {
-                $dep_active = AICOM_Module_Detector::is_yoast_active();
-            } else {
-                $dep_active = false;
-            }
-
-            if ( ! $dep_active ) {
+            if ( ! AICOM_Module_Detector::is_dependency_active( $dependency ) ) {
                 return self::keyed_error( $request_id, $remote_ip, $key_id, $key_label, $tool_name, $tool_module, 'DEPENDENCY_MISSING', "Required plugin not active: $dependency", 'dependency_missing', 422, $arguments, $start, $rpc_id );
             }
         }
@@ -509,7 +491,7 @@ class AICOM_Tool_Router {
         $idempotency_key       = (string) ( $arguments['idempotency_key'] ?? '' );
         $idempotent_applicable = $idempotency_key !== ''
             && ! $is_dry_run
-            && in_array( $tool_class, [ 'write', 'destructive', 'admin_sensitive' ], true );
+            && in_array( $tool_class, AICOM_Tool_Registry::WRITE_CLASSES, true );
 
         if ( $idempotent_applicable ) {
             $claim = AICOM_Idempotency::claim( $key_id, $idempotency_key, $tool_name, $arguments );

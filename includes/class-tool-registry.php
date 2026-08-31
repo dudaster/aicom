@@ -18,6 +18,18 @@
  */
 class AICOM_Tool_Registry {
 
+    // Canonical tool-class taxonomy, single source of truth — reused by
+    // AICOM_Policy_Engine (lock permission matrix) and AICOM_Tool_Router
+    // (session-exemption gate, idempotency applicability) instead of each
+    // hand-typing the same literal arrays. Scattered copies of a
+    // classification list are exactly the anti-pattern that let a real bug
+    // ship (the dependency-check duplication between class-module-detector.php
+    // and class-tool-router.php) — adding or renaming a class now only means
+    // changing it here.
+    const ALL_CLASSES       = [ 'public', 'discovery', 'read', 'write', 'destructive', 'admin_sensitive' ];
+    const READ_ONLY_CLASSES = [ 'public', 'discovery', 'read' ];
+    const WRITE_CLASSES     = [ 'write', 'destructive', 'admin_sensitive' ];
+
     /** @var array<string, array> */
     private static array $tools = [];
 
@@ -149,9 +161,8 @@ class AICOM_Tool_Registry {
         // hints instead, which exist for exactly this purpose. The router strips this
         // 'annotations' key entirely for protocol versions that don't support it yet
         // (e.g. 2024-11-05), so nothing version-specific reaches an older client either.
-        $read_only_classes = [ 'public', 'discovery', 'read' ];
         $annotations = [
-            'readOnlyHint'    => in_array( $meta['class'], $read_only_classes, true ),
+            'readOnlyHint'    => in_array( $meta['class'], self::READ_ONLY_CLASSES, true ),
             'destructiveHint' => $meta['class'] === 'destructive',
         ];
 
@@ -208,11 +219,10 @@ class AICOM_Tool_Registry {
         // Inject them centrally here instead of hand-editing every write
         // tool's registration, so the schema always matches what the
         // router actually accepts.
-        $write_classes = [ 'write', 'destructive', 'admin_sensitive' ];
         if ( $meta['supports_dry_run'] && ! isset( $props['dry_run'] ) ) {
             $props['dry_run'] = [ 'type' => 'boolean', 'description' => 'Validate and simulate without writing any data.' ];
         }
-        if ( in_array( $meta['class'], $write_classes, true ) && ! isset( $props['idempotency_key'] ) ) {
+        if ( in_array( $meta['class'], self::WRITE_CLASSES, true ) && ! isset( $props['idempotency_key'] ) ) {
             $props['idempotency_key'] = [ 'type' => 'string', 'description' => 'Optional. Repeating this exact call with the same key returns the original result instead of repeating the action — safe to retry after a dropped connection or timeout.' ];
         }
 
