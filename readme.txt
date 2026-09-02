@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.14.0
+Stable tag: 3.15.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -191,6 +191,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.15.0 =
+
+* New: WPML module — 11 tools for reading and writing WPML translation data (wpml.status, wpml.languages.list, wpml.post.get_language/set_language/get_translations/link_translation/unlink_translation, and the same 5 for wpml.term.*). Verified directly against WPML's own documented integration hooks. Requires WPML core (sitepress-multilingual-cms) with at least a second language configured. String Translation (site string translation) is a known gap, not yet included.
+* The "Translator" API key preset, and a new "SEO Editor" preset, now detect which translation/SEO plugin is actually active (Polylang and/or WPML; Yoast and/or SEOPress) and grant scopes for whatever's really installed, instead of assuming one specific plugin.
 
 = 3.14.0 =
 
