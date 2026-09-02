@@ -49,7 +49,7 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             'dependency'      => $dep,
             'description'     => 'List all registered Clautron primitives with their schemas, categories, phases (compile|runtime), and descriptions. Use this to understand what building blocks are available before composing a blueprint JSON.',
             'input_schema'    => [
-                'category' => [ 'type' => 'string', 'description' => 'Filter by category: data, ui, wordpress, logic, http, communication, user, transform, media, taxonomy, workflow, frontend. Omit for all.' ],
+                'category' => [ 'type' => 'string', 'description' => 'Filter by category: data, ui, wordpress, logic, http, communication, user, media, taxonomy, workflow, frontend, ai, comments, elementor, events, query, security, woocommerce. Omit for all.' ],
                 'phase'    => [ 'type' => 'string', 'description' => 'Filter by phase: compile or runtime. Omit for all.' ],
             ],
             'handler'         => [ $this, 'handle_primitives_list' ],
