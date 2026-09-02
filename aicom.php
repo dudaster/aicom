@@ -248,6 +248,9 @@ function aicom_boot(): void {
     if ( AICOM_Module_Detector::is_seopress_active() ) {
         $modules[] = new AICOM_Module_SEOPress();
     }
+    if ( AICOM_Module_Detector::is_wpml_active() ) {
+        $modules[] = new AICOM_Module_WPML();
+    }
 
     foreach ( $modules as $module ) {
         $module->register_tools();

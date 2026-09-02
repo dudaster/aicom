@@ -1103,7 +1103,7 @@ class AICOM_Admin {
      */
     public static function system_presets(): array {
         $all_scopes = AICOM_Auth::scope_slugs();
-        return [
+        $presets    = [
             'read-only' => [
                 'name'   => __( 'Read-only', 'aicom' ),
                 // Includes manage.skills (create/update a saved Skill) at the
@@ -1139,27 +1139,63 @@ class AICOM_Admin {
                 'risk'   => 'high',
                 'desc'   => __( 'Updates, backups, settings', 'aicom' ),
             ],
-            'translator' => [
-                'name'   => __( 'Translator', 'aicom' ),
-                // Every scope a full Polylang translation workflow needs —
-                // reading/writing posts and their translations, taxonomy and
-                // media for the translated copy, and both Polylang scopes
-                // (post-level + term/string-level). Deliberately excludes
-                // adding/removing languages: neither manage.polylang nor
-                // manage.polylang.settings grants that (Polylang's own
-                // language configuration isn't exposed as an AICOM tool at
-                // all — there's nothing to additionally restrict here).
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.media', 'read.polylang', 'manage.polylang', 'manage.polylang.settings', 'manage.skills' ],
-                'risk'   => 'high',
-                'desc'   => __( 'Translate posts, terms & strings with Polylang', 'aicom' ),
-            ],
-            'full-admin' => [
-                'name'   => __( 'Full Admin', 'aicom' ),
-                'scopes' => $all_scopes,
-                'risk'   => 'critical',
-                'desc'   => __( 'All permissions', 'aicom' ),
-            ],
         ];
+
+        // Translator and SEO presets adapt their scopes to whichever
+        // translation/SEO plugin is actually active, instead of assuming
+        // Polylang or Yoast specifically — switching a site from Polylang to
+        // WPML (or Yoast to SEOPress) shouldn't require hand-editing these
+        // presets, and a key issued from either only requests scopes for a
+        // plugin that's actually installed. Deliberately excludes
+        // language-creation scopes for the same reason as before: no
+        // AICOM tool exposes that capability for either Polylang or WPML,
+        // so there's nothing to additionally restrict.
+        $translation_scopes = [];
+        if ( AICOM_Module_Detector::is_polylang_active() ) {
+            $translation_scopes = array_merge( $translation_scopes, [ 'read.polylang', 'manage.polylang', 'manage.polylang.settings' ] );
+        }
+        if ( AICOM_Module_Detector::is_wpml_active() ) {
+            $translation_scopes = array_merge( $translation_scopes, [ 'read.wpml', 'manage.wpml' ] );
+        }
+        if ( $translation_scopes ) {
+            $presets['translator'] = [
+                'name'   => __( 'Translator', 'aicom' ),
+                'scopes' => array_merge(
+                    [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.media', 'manage.skills' ],
+                    $translation_scopes
+                ),
+                'risk'   => 'high',
+                'desc'   => __( 'Translate posts & terms with the active translation plugin', 'aicom' ),
+            ];
+        }
+
+        $seo_scopes = [];
+        if ( AICOM_Module_Detector::is_yoast_active() ) {
+            $seo_scopes[] = 'manage.yoast';
+        }
+        if ( AICOM_Module_Detector::is_seopress_active() ) {
+            $seo_scopes[] = 'manage.seopress';
+        }
+        if ( $seo_scopes ) {
+            $presets['seo-editor'] = [
+                'name'   => __( 'SEO Editor', 'aicom' ),
+                // manage.yoast/manage.seopress cover writes; reading is
+                // already covered by read.wp (see each scope's own
+                // description) so no extra read.* scope is needed here.
+                'scopes' => array_merge( [ 'read.wp', 'manage.skills' ], $seo_scopes ),
+                'risk'   => 'med',
+                'desc'   => __( 'Edit SEO meta with the active SEO plugin', 'aicom' ),
+            ];
+        }
+
+        $presets['full-admin'] = [
+            'name'   => __( 'Full Admin', 'aicom' ),
+            'scopes' => $all_scopes,
+            'risk'   => 'critical',
+            'desc'   => __( 'All permissions', 'aicom' ),
+        ];
+
+        return $presets;
     }
 
     /**

@@ -60,6 +60,8 @@ class AICOM_Auth {
                 'read.polylang'               => [ __( 'Read Polylang languages and translation links', 'aicom' ), 'low', __( 'View configured languages, and see which language a post/term/string has and which translations are linked to it. No changes allowed.', 'aicom' ) ],
                 'manage.polylang'             => [ __( 'Manage Polylang Post translations',    'aicom' ), 'med', __( 'Set the language of a post/page, and link or unlink its translations. Does not allow changing category/tag languages, site string translations, or Polylang\'s own settings.', 'aicom' ) ],
                 'manage.polylang.settings'    => [ __( 'Manage Polylang Term & String translations', 'aicom' ), 'high', __( 'Set the language of categories/tags and their translation links, and translate site strings (site title, tagline, date/time formats). Does not allow adding/removing languages or changing Polylang\'s own settings.', 'aicom' ) ],
+                'read.wpml'                   => [ __( 'Read WPML languages and translation links', 'aicom' ), 'low', __( 'View configured languages, and see which language a post/term has and which translations are linked to it. No changes allowed.', 'aicom' ) ],
+                'manage.wpml'                 => [ __( 'Manage WPML translations', 'aicom' ), 'high', __( 'Set the language of posts/pages and taxonomy terms, and link or unlink their translations. Does not allow adding/removing languages or changing WPML\'s own settings — no AICOM tool exposes that.', 'aicom' ) ],
                 'manage.yoast'                => [ __( 'Edit Yoast SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
                 'manage.seopress'             => [ __( 'Edit SEOPress SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
                 'manage.clautron'             => [ __( 'Edit Clautron blueprints (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
@@ -434,6 +436,7 @@ class AICOM_Auth {
             'manage.elementor'            => 'read.elementor',
             'manage.polylang'             => 'read.polylang',
             'manage.polylang.settings'    => 'read.polylang',
+            'manage.wpml'                 => 'read.wpml',
         ];
     }
 
