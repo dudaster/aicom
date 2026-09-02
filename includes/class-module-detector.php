@@ -57,6 +57,31 @@ class AICOM_Module_Detector {
         return defined( 'SEOPRESS_PRO_VERSION' );
     }
 
+    public static function is_wpml_active(): bool {
+        // ICL_SITEPRESS_VERSION = plugin is installed.
+        // Also require at least one active language — same reasoning as
+        // Polylang's initialization check: WPML's own translation-related
+        // functions are meaningless (and its filters return empty results)
+        // until the setup wizard's "choose languages" step has run.
+        if ( ! defined( 'ICL_SITEPRESS_VERSION' ) ) {
+            return false;
+        }
+        $languages = apply_filters( 'wpml_active_languages', null, [] );
+        return is_array( $languages ) && count( $languages ) > 0;
+    }
+
+    /**
+     * Returns true if WPML core is installed, regardless of language setup.
+     * Used for server.status display only.
+     */
+    public static function is_wpml_installed(): bool {
+        return defined( 'ICL_SITEPRESS_VERSION' );
+    }
+
+    public static function is_wpml_string_translation_active(): bool {
+        return defined( 'WPML_ST_VERSION' );
+    }
+
     // Single source of truth for "is this optional dependency active" —
     // module slug (as used in tool registrations' 'dependency' field and in
     // get_active_modules()) => detector method name. Both
@@ -79,6 +104,7 @@ class AICOM_Module_Detector {
         'clautron'    => 'is_clautron_active',
         'yoast'       => 'is_yoast_active',
         'seopress'    => 'is_seopress_active',
+        'wpml'        => 'is_wpml_active',
     ];
 
     /**
@@ -122,6 +148,7 @@ class AICOM_Module_Detector {
             'clautron'    => self::is_clautron_active() ? 'active' : 'inactive',
             'yoast'       => self::is_yoast_premium_active() ? 'active_premium' : ( self::is_yoast_active() ? 'active_free' : 'inactive' ),
             'seopress'    => self::is_seopress_pro_active() ? 'active_pro' : ( self::is_seopress_active() ? 'active_free' : 'inactive' ),
+            'wpml'        => self::is_wpml_installed() ? ( self::is_wpml_active() ? 'active' : 'installed_no_languages' ) : 'inactive',
         ];
     }
 }
