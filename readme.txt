@@ -18,7 +18,7 @@ No more copy-pasting between your AI assistant and the WordPress dashboard. Desc
 
 = Content Management =
 
-Create, update, and publish posts, pages, and custom post types directly from your AI agent. Build and duplicate Elementor pages, manage menus, upload media, update taxonomies, and handle bulk SEO fields including **Yoast SEO meta, titles, and social previews** — all in a single conversation. What used to take hours of dashboard work can be delegated to your AI in minutes.
+Create, update, and publish posts, pages, and custom post types directly from your AI agent. Build and duplicate Elementor pages, manage menus, upload media, update taxonomies, translate content with Polylang or WPML, and handle bulk SEO fields — titles, meta descriptions, robots directives, social previews — with **Yoast SEO or SEOPress**, whichever is active on your site. All in a single conversation. What used to take hours of dashboard work can be delegated to your AI in minutes.
 
 = Safety You Control =
 
@@ -42,6 +42,19 @@ Every request is logged: timestamp, remote IP, API key label, tool used, paramet
 
 AICOM speaks strict MCP JSON-RPC: every successful call returns a `content` field for full client compatibility, protocol errors use standard integer codes, and errors from a tool that actually ran are reported as `isError` so your agent can see and react to them. Pass an `idempotency_key` on any write call and a retried request (dropped connection, flaky client) returns the original result instead of repeating the action — no duplicate posts from an accidental double-send. Responses are hardened against corrupted output, so your agent always gets valid JSON back.
 
+= Works Well With Small & Local Models =
+
+Not every AI agent is Claude or GPT-4 class. AICOM is built to stay usable even for smaller, local, or context-constrained models:
+
+* **`tools/search`** — keyword search over tool names and descriptions, tuned for models that don't know exact tool names: handles full-sentence queries ("how do I add a photo to my page"), common synonyms (shop → WooCommerce, translate → Polylang/WPML), typo tolerance, and plurals.
+* **`tools/describe`** — fetch one tool's full parameter schema by exact name, on demand — pairs with `tools/search` so a model never has to load the entire tool catalog just to find what it needs.
+* **Compact Tool List** (per API key) — an optional setting that strips parameter descriptions from `tools/list` to cut context size by roughly a third, while always keeping every parameter's name, type, and whether it's required — a model can still build a correct call without the extra explanatory text. Off by default; capable models see the full list as before.
+* **Scoped discovery** — `tools/list` only ever shows the tools a key can actually call. A key without WooCommerce access never sees WooCommerce tools, so a smaller model isn't wading through options it's not allowed to use anyway.
+
+= Reusable Skills =
+
+Let your agent turn a workflow it just performed into a saved, reusable recipe. After finishing a session, AICOM can suggest saving what was done — the exact sequence of tool calls, rules, and expected inputs — as a named **Skill**. Next time a similar task comes up, the agent fetches the Skill and follows it, instead of re-figuring out the same multi-step process from scratch. Skills are versioned (every edit keeps a full revision history), matched by similarity before creating a duplicate, and scoped like any other capability — a key needs `manage.skills` to create or edit one.
+
 = Accessibility Audits — New in v3.2.0 =
 
 AICOM now includes a dedicated **Accessibility module** so your AI agent can audit and fix WCAG issues across your entire site — no external tools or services required:
@@ -64,8 +77,10 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **WooCommerce** *(optional)* — products, categories, settings
 * **Elementor** *(optional)* — page creation from template, widget inspection, theme builder conditions
 * **Polylang** *(optional)* — translations, language assignment, string management, and one-call bilingual post pair creation
+* **WPML** *(optional)* — translation language assignment and translation-group linking for posts and taxonomy terms
 * **Yoast SEO** *(optional)* — read and write SEO titles, meta descriptions, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **SEOPress** *(optional)* — read and write SEO titles, meta descriptions, robots directives, canonical URLs, Open Graph and Twitter card fields; bulk audit across all posts in one session
+* **Skills** *(optional)* — save, version, and run reusable multi-step workflows
 * **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
 * **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
 
@@ -88,9 +103,9 @@ AICOM exposes a secure HTTP endpoint on your WordPress site. Your AI agent sends
 
 = API Key Scopes =
 
-Each API key is granted specific scopes — you control exactly what each AI agent can and cannot do:
+Each API key is granted specific scopes — you control exactly what each AI agent can and cannot do. Dozens of granular scopes are available, grouped by area:
 
-`read.wp`, `write.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.wordpress.settings`, `manage.media`, `manage.files`, `manage.users`, `manage.plugins`, `manage.backups`, `manage.a11y`, `manage.woocommerce.products`, `manage.woocommerce.settings`, `manage.elementor`, `manage.polylang`, `manage.yoast`, `manage.clautron`
+`read.wp`, `write.wp.posts`, `delete.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.media`, `manage.files`, `manage.wordpress.settings`, `manage.plugins`, `manage.backups`, `manage.a11y`, `manage.users`, `manage.roles`, `manage.skills`, plus one `read.*`/`manage.*` pair per optional integration (WooCommerce, Elementor, Polylang, WPML, Yoast, SEOPress, Clautron). Built-in presets (Content Assistant, Translator, SEO Editor, Site Maintenance, Full Admin, and more) bundle the right scopes for a common role in one click — see the full list and descriptions on the **API Keys** page.
 
 = Endpoint =
 
@@ -141,9 +156,9 @@ No. Every request must include a valid API key. Keys are bcrypt-hashed in the da
 
 Yes. The fallback endpoint `/?aicom=1` works on any server configuration, with or without pretty permalinks or Apache mod_rewrite.
 
-= Is it compatible with WooCommerce, Elementor, and Polylang? =
+= Is it compatible with WooCommerce, Elementor, Polylang, WPML, Yoast, and SEOPress? =
 
-Yes. Each plugin's tools are loaded automatically only if the corresponding plugin is active. If WooCommerce is not installed, no WooCommerce tools appear in the tool list or audit log.
+Yes. Each plugin's tools are loaded automatically only if the corresponding plugin is active — and, for a key with the **Compact Tool List** setting on, only if the calling key actually has the scope to use them. If WooCommerce is not installed, no WooCommerce tools appear in the tool list or audit log. Polylang and WPML can't both be meaningfully active on the same install (they're alternative translation plugins), but AICOM detects whichever one you're running and exposes the matching tools automatically — same for Yoast vs. SEOPress.
 
 = Can I restrict an AI agent to read-only access? =
 
@@ -187,7 +202,7 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 2. **API Keys** — Generate keys with granular scopes (read, write, manage per module), optional IP allowlist, expiry date, and scope presets. View all keys with last-used date and status.
 3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
 4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
-5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, WooCommerce, Elementor, Polylang, Yoast, SEOPress, Clautron) with status and registered tools.
+5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, Skills, WooCommerce, Elementor, Polylang, WPML, Yoast, SEOPress, Clautron) with status and registered tools.
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
