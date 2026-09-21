@@ -5,9 +5,12 @@
  * Exposes Clautron's capability catalog, blueprint management, and primitive
  * registry to AI agents. Requires Clautron plugin to be active.
  *
- * Registered tools (15):
+ * Registered tools (18):
  *   clautron.catalog.list             — active capabilities + available templates
  *   clautron.catalog.install          — install a template by capability_id
+ *   clautron.capability.inspect       — install/version/compatibility state for one capability_id
+ *   clautron.capability.update        — update an installed capability to its manifest's current version
+ *   clautron.capability.deactivate    — stop an installed capability without touching any data
  *   clautron.primitives.list          — full primitive catalog with schemas
  *   clautron.blueprint.examples       — demo blueprints as composition reference
  *   clautron.blueprint.list           — all blueprints with status
@@ -64,6 +67,41 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
                 'capability_id' => [ 'type' => 'string', 'description' => 'Return only this specific demo (e.g. "seo", "content-completeness"). Omit for all demos.' ],
             ],
             'handler'         => [ $this, 'handle_blueprint_examples' ],
+        ] );
+
+        $this->register( 'clautron.capability.inspect', [
+            'class'           => 'discovery',
+            'required_scopes' => [ 'read.wp' ],
+            'dependency'      => $dep,
+            'description'     => 'Inspect a capability\'s current state: whether it\'s installed, installed_version vs available_version (from its manifest, if it has one), compatibility, and which lifecycle actions are actually available right now. Use before clautron.catalog.install to check compatibility, or to decide whether a capability needs attention.',
+            'input_schema'    => [
+                'capability_id' => [ 'type' => 'string', 'required' => true, 'description' => 'The capability_id to inspect.' ],
+            ],
+            'handler'         => [ $this, 'handle_capability_inspect' ],
+        ] );
+
+        $this->register( 'clautron.capability.update', [
+            'class'            => 'write',
+            'required_scopes'  => [ $scopes ],
+            'supports_dry_run' => true,
+            'dependency'       => $dep,
+            'description'      => 'Update an already-installed capability to its manifest\'s current declared version, in place (same blueprint, new content, recompiled). Requires the capability to already be installed — use clautron.catalog.install first if it isn\'t. Requires the capability to have a manifest, since the target version always comes from it. Call clautron.capability.inspect first to check if an update is actually available.',
+            'input_schema'     => [
+                'capability_id' => [ 'type' => 'string', 'required' => true, 'description' => 'The capability_id to update.' ],
+            ],
+            'handler'          => [ $this, 'handle_capability_update' ],
+        ] );
+
+        $this->register( 'clautron.capability.deactivate', [
+            'class'            => 'write',
+            'required_scopes'  => [ $scopes ],
+            'supports_dry_run' => true,
+            'dependency'       => $dep,
+            'description'      => 'Deactivate an installed capability: stops it from being re-applied on future requests. Never touches data — nothing written while it was active (post meta, terms, etc.) is deleted or modified, which the response confirms via data_preserved and residual_effects. Always available regardless of the capability\'s declared reversibility — that field describes a future rollback action, not this one. Reactivate later with clautron.catalog.install, which reuses the same blueprint rather than creating a new one.',
+            'input_schema'     => [
+                'capability_id' => [ 'type' => 'string', 'required' => true, 'description' => 'The capability_id to deactivate.' ],
+            ],
+            'handler'          => [ $this, 'handle_capability_deactivate' ],
         ] );
 
         $this->register( 'clautron.blueprint.list', [
@@ -132,7 +170,7 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             'class'           => 'read',
             'required_scopes' => [ 'read.wp' ],
             'dependency'      => $dep,
-            'description'     => 'Run smoke tests on a compiled blueprint to verify its structures are correctly registered in WordPress (metaboxes, admin columns, wp_head hooks, post types, taxonomies, etc.). Returns passed/failed checks with a summary.',
+            'description'     => 'Run smoke tests on a compiled blueprint to verify its structures are correctly registered in WordPress (metaboxes, admin columns, wp_head hooks, post types, taxonomies, etc.). Returns passed/failed/warning checks plus an unavailable list for any structure whose primitive type has no declared verification check yet, and a summary.',
             'input_schema'    => [
                 'blueprint_id' => [ 'type' => 'integer', 'required' => true ],
                 'post_id'      => [ 'type' => 'integer', 'description' => 'Optional post ID for post-type-specific checks.' ],
@@ -331,6 +369,12 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
             return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Catalog not available.', 'error' );
         }
 
+        $manifest      = class_exists( 'CLAUTRON_Manifest_Registry' ) ? CLAUTRON_Manifest_Registry::get( $capability_id ) : null;
+        $preflight_err = $this->capability_preflight( $manifest, $key_record );
+        if ( $preflight_err ) {
+            return $preflight_err;
+        }
+
         if ( $dry_run ) {
             $templates = CLAUTRON_Catalog::get_templates();
             $found     = ! empty( array_filter( $templates, fn( $t ) => $t['capability_id'] === $capability_id ) );
@@ -343,14 +387,205 @@ class AICOM_Module_Clautron extends AICOM_Module_Base {
 
         $result = CLAUTRON_Catalog::install( $capability_id );
         if ( ! ( $result['success'] ?? false ) ) {
-            return $this->err( 'INSTALL_FAILED', $result['error'] ?? 'Unknown error.', 'error' );
+            return array_merge(
+                $this->capability_envelope( $capability_id, 'install', 'failed', [], [ $result['error'] ?? 'Unknown error.' ], $manifest['version'] ?? null ),
+                $this->err( 'INSTALL_FAILED', $result['error'] ?? 'Unknown error.', 'error' )
+            );
         }
 
-        return $this->ok( $result, [
-            'target_type' => 'clautron_blueprint',
-            'target_id'   => $result['blueprint_id'] ?? 0,
-            'summary'     => [ 'action' => 'install', 'capability_id' => $capability_id ],
-        ] );
+        return $this->ok(
+            array_merge(
+                $result,
+                $this->capability_envelope( $capability_id, 'install', 'success', $result, [], $manifest['version'] ?? null )
+            ),
+            [
+                'target_type' => 'clautron_blueprint',
+                'target_id'   => $result['blueprint_id'] ?? 0,
+                'summary'     => [ 'action' => 'install', 'capability_id' => $capability_id ],
+            ]
+        );
+    }
+
+    public function handle_capability_inspect( array $args, array $key_record, bool $dry_run ): array {
+        $capability_id = $this->require_string( $args, 'capability_id' );
+        if ( ! $capability_id ) {
+            return $this->err( 'MISSING_PARAM', 'capability_id is required.', 'validation_failed' );
+        }
+        if ( ! class_exists( 'CLAUTRON_Catalog' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Catalog not available.', 'error' );
+        }
+
+        $state = CLAUTRON_Catalog::inspect( $capability_id );
+
+        // Deliberately not flattened: CLAUTRON_Catalog::inspect()'s own
+        // 'status' field (install state: active|not_installed|paused) would
+        // collide with the envelope's 'status' (action outcome:
+        // success|failed|...) if merged at the top level. $state only ever
+        // lives inside 'result'.
+        return $this->ok(
+            $this->capability_envelope( $capability_id, 'inspect', 'success', $state, [], $state['available_version'] ?? null ),
+            [ 'target_type' => 'clautron_capability', 'target_id' => $capability_id ]
+        );
+    }
+
+    /**
+     * Minimum response fields the Capability Contract requires for a
+     * single-capability lifecycle action (install/inspect/update/verify/
+     * remove). Merged additively into the existing ok()/err() flat fields —
+     * nothing already returned by a handler is removed or renamed.
+     *
+     * Not applied to clautron.catalog.list: that's a list-shaped discover
+     * action, and this envelope's singular capability/version fields don't
+     * fit a batch result — it gets manifest data merged per-item instead
+     * (see CLAUTRON_Catalog::get_active()/get_templates()).
+     */
+    private function capability_envelope( string $capability_id, string $action, string $status, array $result = [], array $errors = [], ?string $version = null ): array {
+        return [
+            'capability' => $capability_id,
+            'action'     => $action,
+            'status'     => $status, // success|failed|partial|blocked|incompatible
+            'version'    => $version,
+            'result'     => $result,
+            'errors'     => $errors,
+        ];
+    }
+
+    /**
+     * Capability Contract preflight: if this capability has a manifest,
+     * validate its declared scopes/requirements against the calling key
+     * and this site, before Clautron ever compiles anything. Delegated
+     * here (not in the generic router) — same pattern as every other
+     * allowlist-style check in this codebase. Shared by install and update,
+     * since both compile a blueprint and need the same guarantees first.
+     *
+     * @return array|null  An err() array to return immediately, or null if OK.
+     */
+    private function capability_preflight( ?array $manifest, array $key_record ): ?array {
+        if ( ! $manifest ) {
+            return null;
+        }
+
+        $missing_scopes = AICOM_Auth::missing_scopes( $key_record, $manifest['scopes'] ?? [] );
+        if ( $missing_scopes ) {
+            return $this->err(
+                'DENIED_CAPABILITY_SCOPE',
+                'This capability requires scopes the API key does not have: ' . implode( ', ', $missing_scopes ),
+                'denied_scope',
+                403
+            );
+        }
+
+        $unmet = CLAUTRON_Manifest_Registry::check_requirements( $manifest );
+        if ( $unmet ) {
+            return $this->err(
+                'REQUIREMENTS_NOT_MET',
+                'This capability cannot run on this site: ' . implode( '; ', $unmet ),
+                'validation_failed',
+                422
+            );
+        }
+
+        return null;
+    }
+
+    public function handle_capability_update( array $args, array $key_record, bool $dry_run ): array {
+        $capability_id = $this->require_string( $args, 'capability_id' );
+        if ( ! $capability_id ) {
+            return $this->err( 'MISSING_PARAM', 'capability_id is required.', 'validation_failed' );
+        }
+        if ( ! class_exists( 'CLAUTRON_Catalog' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Catalog not available.', 'error' );
+        }
+
+        $manifest      = class_exists( 'CLAUTRON_Manifest_Registry' ) ? CLAUTRON_Manifest_Registry::get( $capability_id ) : null;
+        $preflight_err = $this->capability_preflight( $manifest, $key_record );
+        if ( $preflight_err ) {
+            return $preflight_err;
+        }
+
+        if ( $dry_run ) {
+            $state = CLAUTRON_Catalog::inspect( $capability_id );
+            return $this->ok( [
+                'dry_run'          => true,
+                'capability_id'    => $capability_id,
+                'installed'        => $state['installed'],
+                'installed_version'=> $state['installed_version'],
+                'available_version'=> $state['available_version'],
+                'would_update'     => $state['installed'] && $state['installed_version'] !== $state['available_version'],
+            ] );
+        }
+
+        $result = CLAUTRON_Catalog::update( $capability_id );
+        if ( ! ( $result['success'] ?? false ) ) {
+            $code = [
+                'not_installed'    => 'NOT_INSTALLED',
+                'no_manifest'      => 'NO_MANIFEST',
+                'template_missing' => 'UPDATE_FAILED',
+                'blueprint_missing'=> 'UPDATE_FAILED',
+                'validation_failed'=> 'UPDATE_FAILED',
+                'save_failed'      => 'UPDATE_FAILED',
+                'compile_failed'   => 'UPDATE_FAILED',
+            ][ $result['code'] ?? '' ] ?? 'UPDATE_FAILED';
+
+            return array_merge(
+                $this->capability_envelope( $capability_id, 'update', 'failed', [], [ $result['error'] ?? 'Unknown error.' ], $manifest['version'] ?? null ),
+                $this->err( $code, $result['error'] ?? 'Unknown error.', 'error' )
+            );
+        }
+
+        return $this->ok(
+            $this->capability_envelope( $capability_id, 'update', 'success', $result, [], $result['to_version'] ?? null ),
+            [
+                'target_type' => 'clautron_blueprint',
+                'target_id'   => $result['blueprint_id'] ?? 0,
+                'summary'     => [ 'action' => 'update', 'capability_id' => $capability_id, 'from_version' => $result['from_version'] ?? null, 'to_version' => $result['to_version'] ?? null ],
+            ]
+        );
+    }
+
+    public function handle_capability_deactivate( array $args, array $key_record, bool $dry_run ): array {
+        $capability_id = $this->require_string( $args, 'capability_id' );
+        if ( ! $capability_id ) {
+            return $this->err( 'MISSING_PARAM', 'capability_id is required.', 'validation_failed' );
+        }
+        if ( ! class_exists( 'CLAUTRON_Catalog' ) ) {
+            return $this->err( 'CLAUTRON_NOT_LOADED', 'CLAUTRON_Catalog not available.', 'error' );
+        }
+
+        $manifest      = class_exists( 'CLAUTRON_Manifest_Registry' ) ? CLAUTRON_Manifest_Registry::get( $capability_id ) : null;
+        $preflight_err = $this->capability_preflight( $manifest, $key_record );
+        if ( $preflight_err ) {
+            return $preflight_err;
+        }
+
+        if ( $dry_run ) {
+            $state = CLAUTRON_Catalog::inspect( $capability_id );
+            return $this->ok( [
+                'dry_run'       => true,
+                'capability_id' => $capability_id,
+                'installed'     => $state['installed'],
+                'status'        => $state['status'],
+                'would_deactivate' => $state['installed'] && $state['status'] === 'active',
+            ] );
+        }
+
+        $result = CLAUTRON_Catalog::deactivate( $capability_id );
+        if ( ! ( $result['success'] ?? false ) ) {
+            $code = $result['code'] === 'not_active' ? 'NOT_ACTIVE' : 'DEACTIVATE_FAILED';
+            return array_merge(
+                $this->capability_envelope( $capability_id, 'deactivate', 'failed', [], [ $result['error'] ?? 'Unknown error.' ] ),
+                $this->err( $code, $result['error'] ?? 'Unknown error.', 'error' )
+            );
+        }
+
+        return $this->ok(
+            $this->capability_envelope( $capability_id, 'deactivate', 'success', $result ),
+            [
+                'target_type' => 'clautron_blueprint',
+                'target_id'   => $result['blueprint_id'] ?? 0,
+                'summary'     => [ 'action' => 'deactivate', 'capability_id' => $capability_id, 'data_preserved' => $result['data_preserved'] ?? true ],
+            ]
+        );
     }
 
     public function handle_blueprint_validate( array $args, array $key_record, bool $dry_run ): array {
