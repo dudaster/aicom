@@ -121,9 +121,9 @@ class AICOM_Base_Events {
             $events = [];
             $ids    = [];
             foreach ( $rows as $r ) {
-                $e = json_decode( $r['payload'], true );
+                $e = json_decode( $r['payload'] ); // objects stay objects: an empty `data:{}` must not become `[]`
                 $ids[] = (int) $r['id'];
-                if ( is_array( $e ) ) {
+                if ( $e instanceof \stdClass ) {
                     $events[] = $e;
                 }
             }
