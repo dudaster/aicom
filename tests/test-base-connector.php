@@ -161,6 +161,8 @@ ok( 'each event has type + ISO at', ! array_filter( $q, static fn( $e ) => empty
 ok( 'null fields are omitted, empty data is an object', ! array_key_exists( 'duration_ms', $q[2] ) && strpos( (string) $wpdb->get_var( "SELECT payload FROM $t_events WHERE event_type='security'" ), '"data":{}' ) !== false );
 $scrubbed = AICOM_Base_Client::scrub( [ 'password' => 'hunter2hunter2', 'note' => 'Bearer abcdefghijklmnopqrstuvwxyz0123', 'key' => 'aicom_deadbeef_' . str_repeat( 'a', 40 ), 'ok' => 'fine', 'nested' => [ 'token' => 'zzzzzzzz' ] ] );
 ok( 'scrub redacts passwords, bearer tokens, AICOM keys, nested tokens', $scrubbed['password'] === '[redacted]' && $scrubbed['note'] === '[redacted]' && $scrubbed['key'] === '[redacted]' && $scrubbed['nested']['token'] === '[redacted]' && $scrubbed['ok'] === 'fine' );
+$roundtrip = AICOM_Base_Client::scrub( json_decode( (string) $wpdb->get_var( "SELECT payload FROM $t_events WHERE event_type='security'" ) ) );
+ok( 'flush path keeps `data:{}` an object after decode + scrub', strpos( (string) wp_json_encode( $roundtrip ), '"data":{}' ) !== false );
 $r = AICOM_Base_Events::flush( 1 );
 ok( 'failed flush keeps events and counts an attempt', $r['failed'] === true && AICOM_Base_Events::pending_count() === 3 && (int) $wpdb->get_var( "SELECT MIN(attempts) FROM $t_events" ) === 1 );
 for ( $i = 0; $i < 205; $i++ ) { AICOM_Base_Events::enqueue( 'lock', [ 'state' => 'none', 'by' => 'local' ] ); }

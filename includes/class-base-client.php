@@ -15,6 +15,7 @@ class AICOM_Base_Client {
 
     const TIMEOUT_DEFAULT = 10;
     const BACKOFF_CAP     = 600;
+    const SECRET_KEY      = '/^(pass(word|wd)?|pwd|secret|private_?key|api_?key|access_?token|refresh_?token|auth_?token|token|authorization|bearer|cookie|session_?cookie)$/i';
 
     // ── high-level: established site connection ───────────────────────────
 
@@ -146,10 +147,18 @@ class AICOM_Base_Client {
         if ( is_string( $v ) ) {
             return self::scrub_string( $v );
         }
+        if ( $v instanceof \stdClass ) {
+            // Keep JSON objects as objects (an empty `{}` must not turn into `[]` — AICOMBase validates strictly).
+            $o = new \stdClass();
+            foreach ( get_object_vars( $v ) as $k => $val ) {
+                $o->$k = is_string( $val ) && $val !== '' && preg_match( self::SECRET_KEY, (string) $k ) ? '[redacted]' : self::scrub( $val, $depth + 1 );
+            }
+            return $o;
+        }
         if ( is_array( $v ) ) {
             $out = [];
             foreach ( $v as $k => $val ) {
-                if ( is_string( $k ) && is_string( $val ) && $val !== '' && preg_match( '/^(pass(word|wd)?|pwd|secret|private_?key|api_?key|access_?token|refresh_?token|auth_?token|token|authorization|bearer|cookie|session_?cookie)$/i', $k ) ) {
+                if ( is_string( $k ) && is_string( $val ) && $val !== '' && preg_match( self::SECRET_KEY, $k ) ) {
                     $out[ $k ] = '[redacted]';
                     continue;
                 }
