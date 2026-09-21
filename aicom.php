@@ -3,7 +3,7 @@
  * Plugin Name:       AICOM - AI Commander
  * Plugin URI:        https://wordpress.org/plugins/aicom/
  * Description:       Use your AI subscription to manage WordPress: create Elementor pages, update content, automate tasks, and stay fully in control.
- * Version:           3.16.0
+ * Version:           3.17.0
  * Author:            dudaster
  * Author URI:        https://profiles.wordpress.org/dudaster/
  * License:           GPL-2.0-or-later
@@ -18,7 +18,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // ── Constants ──────────────────────────────────────────────────────────────
-define( 'AICOM_VERSION', '3.16.0' );
+define( 'AICOM_VERSION', '3.17.0' );
 define( 'AICOM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'AICOM_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -110,6 +110,7 @@ register_deactivation_hook( __FILE__, function (): void {
     wp_clear_scheduled_hook( 'aicom_hub_sync' );
     wp_clear_scheduled_hook( 'aicom_hub_nonce_gc' );
     wp_clear_scheduled_hook( 'aicom_idempotency_gc' );
+    AICOM_Base::unschedule_all();
 } );
 
 // ── Auto-migrate on version mismatch (e.g. plugin update without deactivate/activate) ─
@@ -214,6 +215,8 @@ function aicom_boot(): void {
     add_action( 'aicom_hub_sync',         [ 'AICOM_Hub_Channel', 'cron_push_all' ] );
     add_action( 'aicom_hub_nonce_gc',     [ 'AICOM_Hub_Pairing', 'gc_nonces' ] );
     add_action( 'aicom_idempotency_gc',   [ 'AICOM_Idempotency', 'gc' ] );
+    // ── AICOMBase connector (inert until an admin connects the site) ───────
+    AICOM_Base::register();
     // ── Register all module tools ──────────────────────────────────────────
     $modules = [
         new AICOM_Module_Session(),

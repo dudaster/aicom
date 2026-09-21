@@ -99,10 +99,12 @@ class AICOM_Lock_Manager {
 
     public static function set_soft_lock( bool $enabled ): void {
         update_option( self::OPT_SOFT, $enabled );
+        do_action( 'aicom_lock_changed' );
     }
 
     public static function set_hard_lock( bool $enabled ): void {
         update_option( self::OPT_HARD, $enabled );
+        do_action( 'aicom_lock_changed' );
     }
 
     public static function is_soft_locked(): bool {

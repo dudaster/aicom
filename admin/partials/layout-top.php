@@ -16,6 +16,7 @@ $_aicom_nav = [
     'aicom-api-keys'   => [ __( 'Manage API Keys',         'aicom' ), 'dashicons-lock' ],
     'aicom-audit-logs' => [ __( 'Activity',                'aicom' ), 'dashicons-list-view' ],
     'aicom-safety'     => [ __( 'Safety',                  'aicom' ), 'dashicons-shield' ],
+    'aicom-base'       => [ __( 'AICOMBase',               'aicom' ), 'dashicons-cloud' ],
     'aicom-modules'    => [ __( 'Capabilities',            'aicom' ), 'dashicons-grid-view' ],
     'aicom-backups'    => [ __( 'Snapshots',               'aicom' ), 'dashicons-backup' ],
     'aicom-skills'     => [ __( 'Saved Workflows',         'aicom' ), 'dashicons-media-text' ],

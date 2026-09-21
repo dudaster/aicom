@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.8';
+    const DB_VERSION    = '4.9';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -371,6 +371,28 @@ class AICOM_DB {
             KEY idx_created (created_at)
         ) $charset;";
 
+        // ── AICOMBase event queue (v4.9) ──────────────────────────────────
+        // Durable buffer for session/action/security/lock events; flushed in
+        // batches of <=200 by the AICOMBase heartbeat. See class-base-events.php.
+        $sql_base_events = "CREATE TABLE {$wpdb->prefix}aicom_base_events (
+            id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            event_type VARCHAR(32)     NOT NULL,
+            payload    LONGTEXT        NOT NULL,
+            created_at DATETIME        NOT NULL,
+            attempts   SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            PRIMARY KEY (id),
+            KEY idx_created (created_at)
+        ) $charset;";
+
+        // ── AICOMBase authorization-token nonces (v4.9) ───────────────────
+        // Single-use nonces of execution tokens; TTL > max token lifetime.
+        $sql_base_nonces = "CREATE TABLE {$wpdb->prefix}aicom_base_nonces (
+            nonce      VARCHAR(64) NOT NULL,
+            expires_at DATETIME    NOT NULL,
+            PRIMARY KEY (nonce),
+            KEY idx_expires (expires_at)
+        ) $charset;";
+
         dbDelta( $sql_keys );
         dbDelta( $sql_logs );
         dbDelta( $sql_backups );
@@ -381,5 +403,7 @@ class AICOM_DB {
         dbDelta( $sql_hub_pairings );
         dbDelta( $sql_hub_nonces );
         dbDelta( $sql_idempotency );
+        dbDelta( $sql_base_events );
+        dbDelta( $sql_base_nonces );
     }
 }
