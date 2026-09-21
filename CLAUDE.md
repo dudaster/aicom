@@ -22,3 +22,9 @@ AICOM Hub is the central security broker — registers sites, holds HMAC
 management secrets, opens temporary AI sessions, centralizes audit. It is
 **not** a content editor — keep that boundary intact when adding new
 management actions here.
+
+## AICOMBase connector (v3.17.0)
+
+**`AICOMBASE-CONNECTOR.md`** documents the optional connector to AICOMBase
+(`~/Projects/aicombase`, wire contract `docs/PROTOCOL.md`). Code: `includes/class-base-*.php`,
+`admin/pages/base.php`. Tests: `tests/test-base-connector.php`.

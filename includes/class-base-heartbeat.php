@@ -165,6 +165,13 @@ class AICOM_Base_Heartbeat {
                     continue;
                 }
             }
+            // A revoke issued BEFORE this pairing existed is stale (e.g. queued for the previous connection of a
+            // re-paired site) — obeying it would disconnect a brand-new connection. Ignore + ack it.
+            if ( $type === 'revoke' && ! empty( $cmd['issued_at'] ) && (int) $cmd['issued_at'] < (int) AICOM_Base_State::get( 'connected_at', 0 ) - 2 ) {
+                AICOM_Base_Connection::audit( 'base.stale_revoke_ignored', 'success', [ 'command' => $id ] );
+                AICOM_Base_State::mark_command_done( $id );
+                continue;
+            }
             if ( $type === 'execute' && microtime( true ) > $deadline ) {
                 continue; // out of time budget; AICOMBase will redeliver it
             }

@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.16.0
+Stable tag: 3.17.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,17 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.17.0 =
+
+* New: optional AICOMBase connector (AICOMBase menu). Connect this site to AICOMBase to monitor it, view AICOM activity and run centrally authorized tasks. AICOM works exactly as before if you never connect, or if AICOMBase is unreachable.
+* Identity: a per-site Ed25519 key pair is generated locally with libsodium; the private key is encrypted at rest and never leaves the site. Your WordPress admin password and AI API keys are never sent to AICOMBase. Pairing is confirmed by you in AICOMBase; the AICOMBase public key is pinned on the site.
+* Signed heartbeat every minute (WP-Cron `aicom_minute`, plus a throttled admin fallback) with versions, health, lock state and a capability hash. No site content is transmitted.
+* Capability inventory: AICOM's tools are grouped into capabilities (Content, Media, SEO, Commerce, Languages…) with real scopes, risk, reversibility and input schemas, uploaded when AICOMBase asks or when the set of tools changes.
+* Remote tasks are executed only after verifying a short-lived signed authorization (pinned key, audience, expiry, single-use nonce) AND your local policy: the requested scopes must be inside the "Local policy for AICOMBase work" list (critical scopes off by default). Violations are refused and reported as a `scope_rejected` security event. Locks and pause always win; tasks run under a fresh AICOM session with a short-lived internal key.
+* Durable local event queue (DB schema 4.9) reports sessions, actions, security and lock events in batches; credential-shaped values are scrubbed before anything is sent.
+* Internal inspections (privacy, security, technical, accessibility) return only the evidence an audit needs.
+* Credential rotation with overlap, remote pause / soft lock / hard lock, and revoke (wipes the pairing) — all audited in the AICOM log.
 
 = 3.16.0 =
 
