@@ -217,12 +217,12 @@ class AICOM_Base_Executor {
 
     private static function refuse( array $cmd, string $code, string $message, array $extra = [] ): bool {
         $tt = (string) ( $cmd['task_target_id'] ?? '' );
-        // AICOMBase's result endpoint knows only completed|failed; a refusal is a failure with a `refused:` reason.
+        // PROTOCOL §4a: `refused` = not run because of this site's LOCAL policy / lock / pause / token checks.
         $detail = $extra ? ' ' . wp_json_encode( $extra ) : '';
         self::report( $tt, [
-            'status'  => 'failed',
+            'status'  => 'refused',
             'summary' => 'Refused by the site: ' . $code,
-            'error'   => substr( 'refused:' . $code . ' — ' . $message . $detail, 0, 1900 ),
+            'error'   => substr( $code . ' — ' . $message . $detail, 0, 1900 ),
         ] );
         return true;
     }

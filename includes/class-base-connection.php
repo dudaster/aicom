@@ -189,6 +189,19 @@ class AICOM_Base_Connection {
     /** Admin-initiated: forget the pairing. AICOMBase will show the site offline; revoke there to invalidate keys. */
     public static function disconnect( string $reason = 'user' ): void {
         $was = AICOM_Base_State::status();
+        // Tell AICOMBase first (PROTOCOL §4a) so it revokes its side. Best-effort: short timeout,
+        // failures are ignored — the local disconnect below always happens.
+        if ( $reason === 'user' && AICOM_Base_State::is_connected() ) {
+            try {
+                AICOM_Base_Client::raw( 'POST', '/api/v1/site/disconnect', [], [
+                    'base_url' => (string) AICOM_Base_State::get( 'base_url', '' ) ?: AICOM_Base_State::base_url(),
+                    'site_id'  => AICOM_Base_State::site_id(),
+                    'timeout'  => 4,
+                ] );
+            } catch ( \Throwable $e ) {
+                // ignore
+            }
+        }
         self::wipe( AICOM_Base_State::S_NONE, '' );
         if ( $was !== AICOM_Base_State::S_NONE ) {
             self::audit( 'base.disconnected', 'success', [ 'reason' => $reason ] );

@@ -149,6 +149,7 @@ delete_option( AICOM_Base_Policy::OPT_ALLOWED );
 // ═══ 4. Event queue ══════════════════════════════════════════════════════════
 section( 'Event queue' );
 delete_option( AICOM_Base_State::OPT );
+$wpdb->query( "DELETE FROM $t_events" );
 AICOM_Base_Events::enqueue( 'lock', [ 'state' => 'soft', 'by' => 'local' ] );
 ok( 'nothing is queued while not connected', count( queued() ) === 0 );
 fake_connect();
@@ -204,7 +205,7 @@ AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute'
     'authorization' => issue_token( [ 'task_target_id' => $tt2, 'allowed_scopes' => [ 'manage.plugins' ] ] ) ] );
 $sec = array_values( array_filter( queued(), static fn( $e ) => $e['type'] === 'security' && $e['kind'] === 'scope_rejected' ) );
 ok( 'scope beyond local policy → refused + security scope_rejected', count( $sec ) === 1 && ( $sec[0]['data']['excess'] ?? [] ) === [ 'manage.plugins' ] );
-ok( 'refusal reported as failed result', ( AICOM_Base_State::get( 'pending_results', [] )[ $tt2 ]['status'] ?? '' ) === 'failed' && strpos( AICOM_Base_State::get( 'pending_results' )[ $tt2 ]['error'], 'scope_rejected' ) !== false );
+ok( 'refusal reported with status refused', ( AICOM_Base_State::get( 'pending_results', [] )[ $tt2 ]['status'] ?? '' ) === 'refused' && strpos( AICOM_Base_State::get( 'pending_results' )[ $tt2 ]['error'], 'scope_rejected' ) !== false );
 
 // Tool needing more than the token grants
 AICOM_Base_Events::purge();
