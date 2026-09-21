@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.15.0
+Stable tag: 3.16.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -81,7 +81,7 @@ A typical AI-driven accessibility workflow: run the site report, get the list of
 * **Yoast SEO** *(optional)* — read and write SEO titles, meta descriptions, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **SEOPress** *(optional)* — read and write SEO titles, meta descriptions, robots directives, canonical URLs, Open Graph and Twitter card fields; bulk audit across all posts in one session
 * **Skills** *(optional)* — save, version, and run reusable multi-step workflows
-* **Clautron** *(optional)* — blueprint management, capability catalog, event analytics
+* **Clautron** *(optional)* — capability catalog with a machine-readable manifest per capability (version, requirements, scopes, effects, reversibility), install/update/inspect/deactivate lifecycle, blueprint management, primitive verification, event analytics
 * **ECS** *(optional)* — Ele Custom Skin color schemes, font schemes, custom looks
 
 = Who is this for? =
@@ -206,6 +206,14 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.16.0 =
+
+* New: Capability Contract for Clautron — 3 new tools (`clautron.capability.inspect`, `clautron.capability.update`, `clautron.capability.deactivate`) on top of a machine-readable manifest per capability (version, platform/version requirements, required scopes, declared effects, reversibility). Requirements and scopes are validated before Clautron ever compiles anything, independent of the tool's own static scope.
+* `clautron.capability.inspect` reports whether a capability is installed, its installed vs. available version, compatibility, and which lifecycle actions actually work right now (not just what the capability declares in principle).
+* `clautron.capability.update` re-syncs an installed capability to its manifest's current version in place, without creating a duplicate.
+* `clautron.capability.deactivate` stops a capability without touching any data it wrote while active — the response says so explicitly (`data_preserved`, `residual_effects`). Reinstalling afterward reactivates the same capability instead of creating a new one.
+* `clautron.blueprint.smoke_test` verification is no longer a fixed, hardcoded checklist — each Clautron primitive now declares its own check, and any primitive without one is reported explicitly instead of being silently skipped.
 
 = 3.15.0 =
 
