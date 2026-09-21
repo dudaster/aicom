@@ -34,8 +34,11 @@ Hooks added to existing classes: `aicom_audit_logged` (audit logger), `aicom_ses
 4. the tool's own `required_scopes` ⊆ token scopes
 5. Tool Router gates still apply (lock matrix, confirm flag, session, audit). The task runs with an ephemeral internal API key limited to the token scopes, revoked + archived right after; it never leaves the process.
 
-Refusals are reported as `failed` with error `refused:<code> — …` (the result endpoint only knows completed|failed);
+Refusals are reported with status `refused` and error `<code> — …` (PROTOCOL §4a);
 scope violations additionally emit a `security` event `scope_rejected`.
+
+Disconnect (admin button) first sends a best-effort signed `POST /api/v1/site/disconnect` (4 s timeout, ignored on failure), then wipes locally.
+A `revoke` command issued before the current pairing is ignored client-side (belt and braces with the server-side expiry).
 
 ## Never sent / logged
 WP admin password, the Ed25519 private key, AI Bearer keys. `AICOM_Base_Client::scrub()` redacts credential-shaped
