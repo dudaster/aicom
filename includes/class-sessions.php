@@ -33,14 +33,18 @@ class AICOM_Sessions {
             ]
         );
 
-        return self::get( (int) $wpdb->insert_id );
+        $row = self::get( (int) $wpdb->insert_id );
+        if ( $row ) {
+            do_action( 'aicom_session_opened', $row );
+        }
+        return $row;
     }
 
     /**
      * Close the active session for an API key.
      * Returns the closed session row or null if no active session.
      */
-    public static function close( int $key_id ): ?array {
+    public static function close( int $key_id, string $end_status = 'completed' ): ?array {
         $session = self::get_active( $key_id );
         if ( ! $session ) {
             return null;
@@ -56,7 +60,11 @@ class AICOM_Sessions {
             [ 'id' => $session['id'] ]
         );
 
-        return self::get( (int) $session['id'] );
+        $row = self::get( (int) $session['id'] );
+        if ( $row ) {
+            do_action( 'aicom_session_closed', $row, $end_status );
+        }
+        return $row;
     }
 
     /**
@@ -66,6 +74,15 @@ class AICOM_Sessions {
     public static function close_stale( int $hours = 2 ): void {
         global $wpdb;
         $now = current_time( 'mysql', true );
+        // Collect the ids first so observers (AICOMBase events) can be told which sessions were auto-closed.
+        $stale_ids = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT id FROM {$wpdb->prefix}aicom_sessions
+                 WHERE status = 'open' AND opened_at < DATE_SUB(%s, INTERVAL %d HOUR)",
+                $now,
+                $hours
+            )
+        );
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$wpdb->prefix}aicom_sessions
@@ -76,6 +93,12 @@ class AICOM_Sessions {
                 $hours
             )
         );
+        foreach ( (array) $stale_ids as $sid ) {
+            $row = self::get( (int) $sid );
+            if ( $row ) {
+                do_action( 'aicom_session_closed', $row, 'cancelled' );
+            }
+        }
     }
 
     // ── Read ──────────────────────────────────────────────────────────────

@@ -50,6 +50,13 @@ class AICOM_Audit_Logger {
         $wpdb->insert( self::table(), $row );
         $insert_id = (int) $wpdb->insert_id;
 
+        // Observers (e.g. the AICOMBase events queue) — never allowed to break logging.
+        try {
+            do_action( 'aicom_audit_logged', $row, $insert_id );
+        } catch ( \Throwable $e ) {
+            // swallow: audit logging must not fail because an observer did
+        }
+
         // Critical-event side channel: anything that looks like a thwarted
         // intrusion attempt is pushed to paired Hubs immediately, so the
         // central audit dashboard surfaces it before the hourly batch.
