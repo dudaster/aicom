@@ -32,6 +32,9 @@ class AICOM_Base_Client {
             return self::fail( 0, 'backoff', 'Backing off after earlier failures.' );
         }
         $res = self::raw( $method, $path, $body, [
+            // Talk only to the AICOMBase origin that was pinned at pairing time — a later change
+            // to the configurable URL must never redirect a live connection's signed traffic.
+            'base_url' => (string) AICOM_Base_State::get( 'base_url', '' ) ?: AICOM_Base_State::base_url(),
             'site_id' => AICOM_Base_State::site_id(),
             'key'     => $opts['key'] ?? 'active',
             'timeout' => $opts['timeout'] ?? self::TIMEOUT_DEFAULT,
