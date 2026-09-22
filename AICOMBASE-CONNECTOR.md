@@ -19,6 +19,7 @@ network call is time-bounded, off the front-end path, and backs off exponentiall
 | `class-base-capabilities.php` | inventory from `AICOM_Tool_Registry`, hash, upload |
 | `class-base-events.php` | queue (`wp_aicom_base_events`) + producers/hooks + batched flush |
 | `class-base-executor.php` | token verification → local policy → ephemeral key + fresh session → tool router → `/tasks/{id}/result` |
+| `class-base-wake.php` | inbound `/wake` REST route — AICOMBase-signed nudge to check in now instead of waiting for the next scheduled heartbeat; bounded long-poll for a multi-step session (§11) |
 | `class-base-policy.php` | local scope cap (admin-configurable; critical scopes excluded by default) |
 | `class-base-inspector.php` | privacy / security / technical / accessibility evidence |
 | `class-base-rotation.php` | §8 rotation: propose (old key) → confirm (new key) → promote |
@@ -39,6 +40,19 @@ scope violations additionally emit a `security` event `scope_rejected`.
 
 Disconnect (admin button) first sends a best-effort signed `POST /api/v1/site/disconnect` (4 s timeout, ignored on failure), then wipes locally.
 A `revoke` command issued before the current pairing is ignored client-side (belt and braces with the server-side expiry).
+
+## Wake ping (§11)
+
+`POST /wp-json/aicom/v1/wake` — the only inbound route AICOMBase calls (everything else is the site
+calling out). Body `{token}`: a Base-signed token, same shape/verifier as an execution authorization
+(`allowed_scopes:[]`, plus a `purpose:"wake"` claim `verify_token()` ignores and this endpoint checks
+itself) — no new crypto, single-use via the same nonce store. On success, runs the heartbeat tick
+immediately (bypasses wp-cron/backoff entirely, `$force=true`), then keeps re-checking every 3s for up
+to 20s **only while the previous tick actually carried commands** — an idle site costs one extra tick,
+an active multi-step session gets each new step almost immediately instead of waiting out a full wake
+round-trip per step. Best-effort only, sent fire-and-forget by AICOMBase right after it queues a
+command: if it never arrives (older AICOM version, request lost, site unreachable), the normal
+heartbeat cadence still delivers the same work — this only shaves latency, never a hard dependency.
 
 ## Never sent / logged
 WP admin password, the Ed25519 private key, AI Bearer keys. `AICOM_Base_Client::scrub()` redacts credential-shaped

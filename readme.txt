@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.17.0
+Stable tag: 3.18.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.18.0 =
+
+* AICOMBase connector: a new signed "wake" ping so a remote task starts almost immediately instead of waiting for the next scheduled heartbeat (which, on a quiet site, depends on WP-Cron firing from real traffic and can lag several minutes). Uses the exact same authorization-token format and verifier as remote task execution — no new credentials, single-use like everything else. Purely a latency optimization: if it's never received, the normal heartbeat still delivers the same work, nothing about what runs or what's authorized changes.
 
 = 3.17.0 =
 

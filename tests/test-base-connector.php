@@ -254,6 +254,52 @@ ok( 'unknown inspection kind → null', AICOM_Base_Inspector::collect( 'nope' ) 
 $privjson = (string) wp_json_encode( $priv );
 ok( 'privacy evidence contains no emails / passwords', ! preg_match( '/[\w.+-]+@[\w-]+\.[\w.]+/', $privjson ) && stripos( $privjson, 'password' ) === false );
 
+// ═══ 7. Wake ping (PROTOCOL §11) ═════════════════════════════════════════════
+section( 'Wake ping' );
+function issue_wake_token( array $over = [] ): string {
+    global $base_sec, $base_kid, $site_id;
+    $now = time();
+    $c   = array_merge( [
+        'v' => 1, 'iss' => $base_kid, 'aud' => $site_id, 'purpose' => 'wake', 'allowed_scopes' => [],
+        'iat' => $now, 'expires_at' => $now + 60, 'nonce' => bin2hex( random_bytes( 12 ) ),
+    ], $over );
+    $payload = json_encode( $c );
+    return AICOM_Base_Signer::b64u( $payload ) . '.' . AICOM_Base_Signer::b64u( sodium_crypto_sign_detached( $payload, $base_sec ) );
+}
+function wake_request( string $token ): array {
+    $req = new WP_REST_Request( 'POST', '/aicom/v1/wake' );
+    $req->set_body( wp_json_encode( [ 'token' => $token ] ) );
+    $res = AICOM_Base_Wake::handle( $req );
+    return [ 'status' => $res->get_status(), 'data' => $res->get_data() ];
+}
+
+fake_connect();
+$r = wake_request( 'not-a-token' );
+ok( 'garbage token refused (401)', $r['status'] === 401 && ( $r['data']['error'] ?? '' ) === 'malformed_token' );
+
+$r = wake_request( issue_wake_token( [ 'expires_at' => time() - 10, 'iat' => time() - 100 ] ) );
+ok( 'expired wake token refused', $r['status'] === 401 && ( $r['data']['error'] ?? '' ) === 'expired' );
+
+$r = wake_request( issue_wake_token( [ 'aud' => wp_generate_uuid4() ] ) );
+ok( 'wrong audience refused', $r['status'] === 401 && ( $r['data']['error'] ?? '' ) === 'wrong_audience' );
+
+// A perfectly valid EXECUTE-style token (no purpose:"wake" claim) must not be usable to wake — the two
+// token kinds share a verifier but not a use.
+$r = wake_request( issue_token() );
+ok( 'execute-authorization token (no purpose:wake) refused for /wake', $r['status'] === 401 && ( $r['data']['error'] ?? '' ) === 'wrong_purpose' );
+
+$valid = issue_wake_token();
+$r1    = wake_request( $valid );
+ok( 'valid wake token accepted (200)', $r1['status'] === 200 );
+ok( 'response reports how long it lingered', isset( $r1['data']['waited_s'] ) );
+$r2 = wake_request( $valid );
+ok( 'replayed wake token refused', $r2['status'] === 401 && ( $r2['data']['error'] ?? '' ) === 'replayed' );
+
+AICOM_Base_State::update( [ 'status' => 'pairing' ] );
+$r = wake_request( issue_wake_token() );
+ok( 'not connected → 409', $r['status'] === 409 && ( $r['data']['error'] ?? '' ) === 'not_connected' );
+fake_connect();
+
 // ═══ Summary ═════════════════════════════════════════════════════════════════
 restore_state();
 echo "\n" . ( $fail ? "FAILED" : "OK" ) . ": $pass passed, $fail failed\n";
