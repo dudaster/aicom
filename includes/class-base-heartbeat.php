@@ -30,14 +30,15 @@ class AICOM_Base_Heartbeat {
     // ── tick ──────────────────────────────────────────────────────────────
 
     /**
-     * @param string $source cron|admin|connect|manual
-     * @return array{ok:bool,skipped?:string,error?:string}
+     * @param string $source cron|admin|connect|manual|wake
+     * @return array{ok:bool,skipped?:string,error?:string,commands?:int}
      */
     public static function run( string $source = 'cron' ): array {
         if ( ! AICOM_Base_State::is_connected() ) {
             return [ 'ok' => false, 'skipped' => 'not_connected' ];
         }
-        $force = in_array( $source, [ 'connect', 'manual' ], true );
+        // A wake ping means AICOMBase just queued something — bypass backoff like an explicit admin action would.
+        $force = in_array( $source, [ 'connect', 'manual', 'wake' ], true );
         if ( ! $force && time() < (int) AICOM_Base_State::get( 'next_attempt_at', 0 ) ) {
             return [ 'ok' => false, 'skipped' => 'backoff' ];
         }
@@ -70,8 +71,8 @@ class AICOM_Base_Heartbeat {
             ] );
 
             // Commands first (they may take a while), then uploads.
-            $deadline = microtime( true ) + 100;
-            self::process_commands( is_array( $d['commands'] ?? null ) ? $d['commands'] : [], $deadline );
+            $deadline   = microtime( true ) + 100;
+            $cmd_count  = self::process_commands( is_array( $d['commands'] ?? null ) ? $d['commands'] : [], $deadline );
             if ( ! AICOM_Base_State::is_connected() ) {
                 return [ 'ok' => true ]; // revoked mid-tick
             }
@@ -85,7 +86,7 @@ class AICOM_Base_Heartbeat {
             }
             AICOM_Base_Events::flush();
             AICOM_Base_Executor::flush_pending_results();
-            return [ 'ok' => true ];
+            return [ 'ok' => true, 'commands' => $cmd_count ];
         } catch ( \Throwable $e ) {
             AICOM_Base_State::update( [ 'last_error' => [ 'code' => 'exception', 'status' => 0, 'message' => substr( $e->getMessage(), 0, 200 ), 'at' => time() ] ] );
             return [ 'ok' => false, 'error' => 'exception' ];
@@ -143,7 +144,8 @@ class AICOM_Base_Heartbeat {
 
     // ── commands ──────────────────────────────────────────────────────────
 
-    private static function process_commands( array $cmds, float $deadline ): void {
+    /** @return int how many commands this heartbeat response carried — used by AICOM_Base_Wake to decide whether to keep lingering for more. */
+    private static function process_commands( array $cmds, float $deadline ): int {
         foreach ( $cmds as $cmd ) {
             if ( ! is_array( $cmd ) ) {
                 continue;
@@ -193,7 +195,7 @@ class AICOM_Base_Heartbeat {
                     break;
                 case 'revoke':
                     AICOM_Base_Connection::handle_revoked( 'Revoked from AICOMBase.' );
-                    return;
+                    return count( $cmds );
                 case 'rotate_credentials':
                     AICOM_Base_Rotation::run( (string) ( $cmd['rotation_id'] ?? ( $cmd['payload']['rotation_id'] ?? '' ) ) );
                     break;
@@ -207,6 +209,7 @@ class AICOM_Base_Heartbeat {
                 AICOM_Base_State::mark_command_done( $id );
             }
         }
+        return count( $cmds );
     }
 
     private static function cmd_lock( string $state ): void {
