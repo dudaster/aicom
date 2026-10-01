@@ -144,7 +144,10 @@ $unk = AICOM_Base_Policy::check_scopes( [ 'read.wp', 'nuke.everything' ] );
 ok( 'unknown scope refused outright', ! $unk['ok'] && $unk['unknown'] === [ 'nuke.everything' ] );
 AICOM_Base_Policy::set_allowed_scopes( [ 'read.wp' ] );
 ok( 'admin-narrowed policy applies', ! AICOM_Base_Policy::check_scopes( [ 'write.wp.posts' ] )['ok'] && AICOM_Base_Policy::check_scopes( [ 'read.wp' ] )['ok'] );
+ok( 'heartbeat reports the narrowed local cap', AICOM_Base_Heartbeat::body( [] )['local_allowed_scopes'] === [ 'read.wp' ] );
 delete_option( AICOM_Base_Policy::OPT_ALLOWED );
+$hb_scopes = AICOM_Base_Heartbeat::body( [] )['local_allowed_scopes'];
+ok( 'heartbeat reports the default cap (no critical scopes)', $hb_scopes === AICOM_Base_Policy::default_scopes() && ! in_array( 'manage.plugins', $hb_scopes, true ) );
 
 // ═══ 4. Event queue ══════════════════════════════════════════════════════════
 section( 'Event queue' );
