@@ -1370,8 +1370,16 @@ class AICOM_Admin {
                 foreach ( $payload['meta'] ?? [] as $key => $values ) {
                     delete_post_meta( $original_id, $key );
                     foreach ( (array) $values as $val ) {
+                        // Same gadget-chain guard as AICOM_Module_Backup::handle_post_restore().
+                        if ( is_string( $val ) && preg_match( '/^[OC]:\d+:/', $val ) ) {
+                            continue;
+                        }
                         add_post_meta( $original_id, $key, maybe_unserialize( $val ) );
                     }
+                }
+                // Meta the session created (absent at backup time) is removed — e.g. an alt text added to an image that had none.
+                foreach ( (array) ( $payload['absent_meta'] ?? [] ) as $key ) {
+                    delete_post_meta( $original_id, (string) $key );
                 }
                 foreach ( $payload['terms'] ?? [] as $tax => $term_ids ) {
                     wp_set_post_terms( $original_id, $term_ids, $tax );
