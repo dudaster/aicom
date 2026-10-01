@@ -121,6 +121,9 @@ class AICOM_Base_Heartbeat {
             'connection_state'   => $state,
             'lock'               => [ 'soft' => $lock === 'soft', 'hard' => $lock === 'hard' ],
             'acks'               => array_values( $acks ),
+            // Local cap for AICOMBase-issued work (AICOM_Base_Policy) — lets AICOMBase grey out
+            // scopes this site won't accept instead of only finding out at execution time.
+            'local_allowed_scopes' => AICOM_Base_Policy::allowed_scopes(),
         ];
     }
 
