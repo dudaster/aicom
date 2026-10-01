@@ -55,7 +55,32 @@ class AICOM_Base_Events {
     }
 
     private static function session_ref( int $local_id ): string {
-        return self::$remote_sessions[ $local_id ]['session_id'] ?? ( 'local-' . $local_id );
+        if ( isset( self::$remote_sessions[ $local_id ]['session_id'] ) ) {
+            return self::$remote_sessions[ $local_id ]['session_id'];
+        }
+        // Sessions opened by AICOMBase carry its id permanently (not just for the current request).
+        $base = AICOM_Sessions::base_id_of( $local_id );
+        return $base !== '' ? $base : 'local-' . $local_id;
+    }
+
+    /** A task AICOMBase sent is running inside its session — lets AICOMBase mark the task target running. */
+    public static function task_started( string $base_session_id, string $task_target_id, string $title ): void {
+        self::enqueue( 'session.started', [
+            'session_id'     => $base_session_id,
+            'title'          => substr( $title, 0, 300 ),
+            'initiator'      => 'ai',
+            'task_target_id' => $task_target_id,
+            'started_at'     => gmdate( 'Y-m-d\TH:i:s\Z' ),
+        ] );
+    }
+
+    /** Result of a `restore_session` command. */
+    public static function session_restored( string $base_session_id, int $restored, string $error = '' ): void {
+        $e = [ 'session_id' => $base_session_id, 'restored' => $restored, 'at' => gmdate( 'Y-m-d\TH:i:s\Z' ) ];
+        if ( $error !== '' ) {
+            $e['error'] = substr( $error, 0, 500 );
+        }
+        self::enqueue( 'session.restored', $e );
     }
 
     // ── queue primitives ──────────────────────────────────────────────────
@@ -225,7 +250,7 @@ class AICOM_Base_Events {
         $e   = [
             'session_id' => self::session_ref( $id ),
             'title'      => substr( (string) ( $s['name'] ?? 'AICOM session' ), 0, 300 ),
-            'initiator'  => $ref ? 'system' : 'ai',
+            'initiator'  => ( $ref && ( $s['source'] ?? 'local' ) !== 'aicombase' ) ? 'system' : 'ai',
             'started_at' => gmdate( 'Y-m-d\TH:i:s\Z', (int) strtotime( ( $s['opened_at'] ?? 'now' ) . ' UTC' ) ),
         ];
         if ( $ref ) {

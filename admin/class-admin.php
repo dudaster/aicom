@@ -707,6 +707,10 @@ class AICOM_Admin {
                 $this->handle_delete_backup( absint( wp_unslash( $_POST['backup_id'] ?? 0 ) ) );
                 break;
 
+            case 'close_session':
+                AICOM_Sessions::close_by_id( absint( wp_unslash( $_POST['session_id'] ?? 0 ) ), 'cancelled' );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-audit-logs&tab=sessions&closed=1' ) );
+                exit;
             case 'restore_session':
                 $this->handle_restore_session( absint( wp_unslash( $_POST['session_id'] ?? 0 ) ) );
                 break;

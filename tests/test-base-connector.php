@@ -174,26 +174,74 @@ ok( 'queue accepts >200 events (batched on send)', AICOM_Base_Events::pending_co
 AICOM_Base_Events::purge();
 
 // ═══ 5. Token-authorized execution, in-process ═══════════════════════════════
-section( 'Execute (token → ephemeral key → fresh session → tool)' );
+section( 'Execute — only inside a session AICOMBase opened' );
 fake_connect();
 $tt    = wp_generate_uuid4();
 $sess  = wp_generate_uuid4();
 $token = issue_token( [ 'task_target_id' => $tt, 'session_id' => $sess, 'allowed_scopes' => [ 'read.wp' ] ] );
 $cmd   = [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'authorization' => $token, 'task_target_id' => $tt, 'tool_id' => 'wp.site.info', 'params' => [] ];
 $keys_before = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_api_keys WHERE status='active'" );
+
+// No session opened by AICOMBase → nothing runs.
+$tt0 = wp_generate_uuid4();
+AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $tt0, 'tool_id' => 'wp.site.info', 'params' => [],
+    'authorization' => issue_token( [ 'task_target_id' => $tt0, 'session_id' => wp_generate_uuid4(), 'allowed_scopes' => [ 'read.wp' ] ] ) ] );
+ok( 'without an open AICOMBase session the work is refused (NO_ACTIVE_SESSION), nothing ran',
+    strpos( (string) ( AICOM_Base_State::get( 'pending_results', [] )[ $tt0 ]['error'] ?? '' ), 'NO_ACTIVE_SESSION' ) !== false && ! in_array( 'action', array_column( queued(), 'type' ), true ) );
+
+// open_session command → an ordinary AICOM session, tagged as AICOMBase's, listed in WP admin.
+AICOM_Base_Events::purge();
+$local = AICOM_Sessions::open_remote( $sess, 'Bilingual news post', 'Add a bilingual RO/EN article to News.', 'Claude Desktop' );
+ok( 'open_session creates an AICOM session tagged aicombase with the agent label', is_array( $local ) && $local['source'] === 'aicombase' && $local['base_session_id'] === $sess && strpos( $local['api_key_label'], 'Claude Desktop' ) !== false );
+ok( 'opening it again returns the same session', (int) AICOM_Sessions::open_remote( $sess, 'x', 'y' )['id'] === (int) $local['id'] );
+$opened = current( array_filter( queued(), static fn( $e ) => $e['type'] === 'session.started' ) );
+ok( 'session.started reported with the AICOMBase session id', ( $opened['session_id'] ?? '' ) === $sess );
+
+AICOM_Base_Events::purge();
 ok( 'execute() handles the command', AICOM_Base_Executor::execute( $cmd ) === true );
 $ev    = queued();
 $types = array_column( $ev, 'type' );
-ok( 'session.started, action, session.ended queued in order', array_values( array_intersect( $types, [ 'session.started', 'action', 'session.ended' ] ) ) === [ 'session.started', 'action', 'session.ended' ], implode( ',', $types ) );
 $started = current( array_filter( $ev, static fn( $e ) => $e['type'] === 'session.started' ) );
-ok( 'session.started carries the AICOMBase session id + task target', ( $started['session_id'] ?? '' ) === $sess && ( $started['task_target_id'] ?? '' ) === $tt );
+ok( 'task linked to its target inside the session (session.started + task_target_id)', ( $started['session_id'] ?? '' ) === $sess && ( $started['task_target_id'] ?? '' ) === $tt );
 $action = current( array_filter( $ev, static fn( $e ) => $e['type'] === 'action' ) );
-ok( 'action: tool wp.site.info, success, capability content', ( $action['tool_id'] ?? '' ) === 'wp.site.info' && ( $action['result'] ?? '' ) === 'success' && ( $action['capability_id'] ?? '' ) === 'content' );
+ok( 'action: tool wp.site.info, success, capability content, in the session', ( $action['tool_id'] ?? '' ) === 'wp.site.info' && ( $action['result'] ?? '' ) === 'success' && ( $action['capability_id'] ?? '' ) === 'content' && ( $action['session_id'] ?? '' ) === $sess );
+ok( 'the session stays open after the task (AICOMBase closes it)', ! in_array( 'session.ended', $types, true ) && AICOM_Sessions::find_open_remote( $sess ) !== null );
 ok( 'no ephemeral API key left active', (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_api_keys WHERE status='active'" ) === $keys_before );
-ok( 'the session was closed', (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_sessions WHERE status='open' AND name LIKE 'AICOMBase task:%'" ) === 0 );
 ok( 'result kept for retry while AICOMBase is unreachable', isset( AICOM_Base_State::get( 'pending_results', [] )[ $tt ] ) && AICOM_Base_State::get( 'pending_results' )[ $tt ]['status'] === 'completed' );
 $blob = (string) wp_json_encode( [ $ev, get_option( AICOM_Base_State::OPT ) ] );
 ok( 'no bearer key / secret material in queued events or state', ! preg_match( '/aicom_[A-Za-z0-9]{8}_[a-f0-9]{40}/', $blob ) && strpos( $blob, 'secret_enc' ) === false );
+
+// A second task in the same session runs in the same AICOM session; its change is backed up there and restorable.
+$post_id = wp_insert_post( [ 'post_title' => 'Original title', 'post_status' => 'draft', 'post_type' => 'post' ] );
+$tt8 = wp_generate_uuid4();
+AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $tt8, 'tool_id' => 'wp.posts.update', 'params' => [ 'id' => $post_id, 'title' => 'Changed by the agent' ],
+    'authorization' => issue_token( [ 'task_target_id' => $tt8, 'session_id' => $sess, 'allowed_scopes' => [ 'read.wp', 'write.wp.posts' ] ] ) ] );
+ok( 'second task ran in the same session', ( AICOM_Base_State::get( 'pending_results', [] )[ $tt8 ]['status'] ?? '' ) === 'completed' && count( AICOM_Sessions::remote_ids( $sess ) ) === 1 );
+ok( 'its change landed', get_the_title( $post_id ) === 'Changed by the agent' );
+AICOM_Base_Events::purge();
+AICOM_Base_Heartbeat::cmd_restore_session( $sess );
+clean_post_cache( $post_id );
+ok( 'restore_session puts the backed-up content back', get_the_title( $post_id ) === 'Original title' );
+$restored = current( array_filter( queued(), static fn( $e ) => $e['type'] === 'session.restored' ) );
+ok( 'session.restored reported to AICOMBase with the count', ( $restored['session_id'] ?? '' ) === $sess && (int) ( $restored['restored'] ?? 0 ) >= 1 );
+ok( 'a restored session is closed — nothing more runs in it', AICOM_Sessions::find_open_remote( $sess ) === null );
+wp_delete_post( $post_id, true );
+
+// close_session command / admin "Close" → session.ended to AICOMBase.
+$sess2 = wp_generate_uuid4();
+$l2    = AICOM_Sessions::open_remote( $sess2, 'To close', 'closing test' );
+AICOM_Base_Events::purge();
+AICOM_Sessions::close_remote( $sess2, 'completed' );
+$ended = current( array_filter( queued(), static fn( $e ) => $e['type'] === 'session.ended' ) );
+ok( 'close_session closes it and reports session.ended', ( $ended['session_id'] ?? '' ) === $sess2 && AICOM_Sessions::find_open_remote( $sess2 ) === null );
+$sess3 = wp_generate_uuid4();
+$l3    = AICOM_Sessions::open_remote( $sess3, 'Admin closes', 'admin closing test' );
+AICOM_Base_Events::purge();
+AICOM_Sessions::close_by_id( (int) $l3['id'] );
+$ended3 = current( array_filter( queued(), static fn( $e ) => $e['type'] === 'session.ended' ) );
+ok( 'closing it in WP admin reports session.ended (cancelled) to AICOMBase', ( $ended3['session_id'] ?? '' ) === $sess3 && ( $ended3['status'] ?? '' ) === 'cancelled' );
+// Re-open the first session for the token tests below (replay etc.).
+AICOM_Sessions::open_remote( $sess, 'Bilingual news post', 'Add a bilingual RO/EN article to News.' );
 
 // Replay of the same authorization
 AICOM_Base_Events::purge();

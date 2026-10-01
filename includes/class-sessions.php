@@ -40,6 +40,103 @@ class AICOM_Sessions {
         return $row;
     }
 
+    // ── Sessions opened by AICOMBase ──────────────────────────────────────
+    // AICOMBase can't run anything here outside a session it opened first (signed `open_session` command).
+    // They're ordinary AICOM sessions (same table, same hooks → listed in AICOM → Activity → Sessions, can be
+    // closed / restored there, reported back to AICOMBase), tagged source 'aicombase' + the AICOMBase id.
+
+    /** Open (or return the already-open) session for an AICOMBase session id. */
+    public static function open_remote( string $base_id, string $name, string $desc = '', string $agent_label = '' ): ?array {
+        $base_id = substr( sanitize_text_field( $base_id ), 0, 64 );
+        if ( $base_id === '' ) {
+            return null;
+        }
+        $open = self::find_open_remote( $base_id );
+        if ( $open ) {
+            return $open;
+        }
+        global $wpdb;
+        $wpdb->insert(
+            $wpdb->prefix . 'aicom_sessions',
+            [
+                'api_key_id'      => 0,
+                'api_key_label'   => substr( 'AICOMBase' . ( $agent_label !== '' ? ' · ' . sanitize_text_field( $agent_label ) : '' ), 0, 191 ),
+                'name'            => sanitize_text_field( $name !== '' ? $name : 'AICOMBase session' ),
+                'description'     => sanitize_textarea_field( $desc ),
+                'status'          => 'open',
+                'opened_at'       => current_time( 'mysql', true ),
+                'base_session_id' => $base_id,
+                'source'          => 'aicombase',
+            ]
+        );
+        $row = self::get( (int) $wpdb->insert_id );
+        if ( $row ) {
+            do_action( 'aicom_session_opened', $row );
+        }
+        return $row;
+    }
+
+    /** The open local session for an AICOMBase session id, if any. */
+    public static function find_open_remote( string $base_id ): ?array {
+        global $wpdb;
+        return $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}aicom_sessions WHERE base_session_id = %s AND status = 'open' ORDER BY opened_at DESC LIMIT 1",
+                $base_id
+            ),
+            ARRAY_A
+        ) ?: null;
+    }
+
+    /** Every local session (any status) that belonged to an AICOMBase session id, newest first. @return int[] */
+    public static function remote_ids( string $base_id ): array {
+        global $wpdb;
+        return array_map( 'intval', (array) $wpdb->get_col(
+            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}aicom_sessions WHERE base_session_id = %s ORDER BY opened_at DESC, id DESC", $base_id )
+        ) );
+    }
+
+    /** Close the open local session(s) of an AICOMBase session id. Returns how many were closed. */
+    public static function close_remote( string $base_id, string $end_status = 'completed' ): int {
+        global $wpdb;
+        $ids = array_map( 'intval', (array) $wpdb->get_col(
+            $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}aicom_sessions WHERE base_session_id = %s AND status = 'open'", $base_id )
+        ) );
+        foreach ( $ids as $id ) {
+            $wpdb->update( $wpdb->prefix . 'aicom_sessions', [ 'status' => 'closed', 'closed_at' => current_time( 'mysql', true ) ], [ 'id' => $id ] );
+            $row = self::get( $id );
+            if ( $row ) {
+                do_action( 'aicom_session_closed', $row, $end_status );
+            }
+        }
+        return count( $ids );
+    }
+
+    /** Close one open session by id (admin "Close" button) — fires the usual hook, so AICOMBase hears about it. */
+    public static function close_by_id( int $id, string $end_status = 'cancelled' ): bool {
+        global $wpdb;
+        $n = $wpdb->update( $wpdb->prefix . 'aicom_sessions', [ 'status' => 'closed', 'closed_at' => current_time( 'mysql', true ) ], [ 'id' => $id, 'status' => 'open' ] );
+        if ( $n ) {
+            $row = self::get( $id );
+            if ( $row ) {
+                do_action( 'aicom_session_closed', $row, $end_status );
+            }
+        }
+        return (bool) $n;
+    }
+
+    /** Hand an open remote session to the ephemeral key of one execution, so the Tool Router sees it as that key's session. */
+    public static function attach_key( int $session_id, int $key_id ): void {
+        global $wpdb;
+        $wpdb->update( $wpdb->prefix . 'aicom_sessions', [ 'api_key_id' => $key_id ], [ 'id' => $session_id, 'status' => 'open' ] );
+    }
+
+    /** The AICOMBase session id a local session belongs to ('' for local sessions). */
+    public static function base_id_of( int $local_id ): string {
+        global $wpdb;
+        return (string) $wpdb->get_var( $wpdb->prepare( "SELECT base_session_id FROM {$wpdb->prefix}aicom_sessions WHERE id = %d", $local_id ) );
+    }
+
     /**
      * Close the active session for an API key.
      * Returns the closed session row or null if no active session.
