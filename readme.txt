@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.20.0
+Stable tag: 3.21.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.21.0 =
+
+* Image descriptions can now be undone: a11y.set_image_alt and media.update_meta take an automatic backup of the image (post + meta) before writing, so restoring the session puts the old alt text, title and caption back — and removes an alt text that didn't exist before. Both tools are now reported as reversible to AICOMBase.
+* Session restore applies the same protection against serialized PHP objects in backed-up meta as single-backup restore.
 
 = 3.20.0 =
 

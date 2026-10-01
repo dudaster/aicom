@@ -192,6 +192,17 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             'meta'  => AICOM_Json::obj( $meta ),
             'terms' => AICOM_Json::obj( $terms ),
         ];
+        // Meta keys the upcoming write may create: remember which ones don't exist yet, so restore can delete them.
+        $absent = [];
+        foreach ( (array) ( $args['track_meta'] ?? [] ) as $k ) {
+            $k = (string) $k;
+            if ( $k !== '' && ! metadata_exists( 'post', $post_id, $k ) ) {
+                $absent[] = $k;
+            }
+        }
+        if ( $absent ) {
+            $payload['absent_meta'] = $absent;
+        }
 
         if ( $dry_run ) {
             return $this->ok( [ 'dry_run' => true, 'would_backup_post_id' => $post_id ] );
@@ -263,6 +274,11 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
                     add_post_meta( $post_id, $meta_key, maybe_unserialize( $val ) );
                 }
             }
+        }
+
+        // Remove meta that didn't exist when the backup was taken (e.g. an alt text added to an image that had none)
+        foreach ( (array) ( $payload['absent_meta'] ?? [] ) as $meta_key ) {
+            delete_post_meta( $post_id, (string) $meta_key );
         }
 
         // Restore terms

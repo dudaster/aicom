@@ -53,7 +53,7 @@ class AICOM_Base_Capabilities {
         return [
             'wp.posts.update', 'wp.posts.trash', 'wp.posts.delete', 'wp.terms.update', 'wp.terms.delete',
             'elementor.widget.update_field', 'elementor.page.bulk_update_texts', 'elementor.template.set_conditions',
-            'pll.create_bilingual_pair', 'wp.posts.create', 'wp.posts.restore',
+            'pll.create_bilingual_pair', 'wp.posts.create', 'wp.posts.restore', 'a11y.set_image_alt', 'media.update_meta',
         ];
     }
 

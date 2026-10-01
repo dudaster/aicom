@@ -109,6 +109,12 @@ class AICOM_Tool_Router {
         // Creates a NEW draft (nothing to snapshot there), but also rewrites the
         // SOURCE post's Polylang translation-group meta — snapshot that existing post.
         'pll.create_bilingual_pair' => [ 'type' => 'post', 'id_arg' => 'source_post_id' ],
+
+        // Image descriptions and media details live on the attachment post + its meta. track_meta lists keys the tool
+        // may CREATE: if one didn't exist before, the backup records it as absent so a restore removes it again
+        // (otherwise undoing "set alt text" on an image that had none would leave the new alt in place).
+        'a11y.set_image_alt' => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
+        'media.update_meta'  => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
     ];
 
     // ── Main Dispatch ─────────────────────────────────────────────────────
@@ -1133,7 +1139,7 @@ class AICOM_Tool_Router {
             $backup = new AICOM_Module_Backup();
 
             if ( $spec['type'] === 'post' ) {
-                $backup->handle_post_create( [ 'post_id' => $id ], $key_record, false );
+                $backup->handle_post_create( [ 'post_id' => $id, 'track_meta' => $spec['track_meta'] ?? [] ], $key_record, false );
             } elseif ( $spec['type'] === 'term' ) {
                 $backup->handle_term_create( [
                     'term_id'  => $id,
