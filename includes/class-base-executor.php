@@ -105,8 +105,17 @@ class AICOM_Base_Executor {
             return self::refuse( $cmd, 'soft_locked', __( 'Soft lock: only read-only remote work is allowed.', 'aicom' ) );
         }
 
-        // 5 ── run under an ephemeral key + fresh session ──────────────────
-        $result = self::run_tool( $cmd, $claims, $scopes, $tool, $params, $meta );
+        // 5 ── only inside a session AICOMBase opened (signed open_session command) ──
+        // Nothing runs here without one: the same rule every agent connected directly to AICOM follows.
+        $base_session = (string) ( $claims['session_id'] ?? '' );
+        $session      = $base_session !== '' ? AICOM_Sessions::find_open_remote( $base_session ) : null;
+        if ( ! $session ) {
+            AICOM_Base_Connection::audit( 'base.execute', 'blocked', [ 'reason' => 'no_active_session', 'task_target_id' => $tt ] );
+            return self::refuse( $cmd, 'NO_ACTIVE_SESSION', __( 'There is no open AICOM session for this work. AICOMBase must open a session first — nothing runs outside a session.', 'aicom' ) );
+        }
+
+        // 6 ── run under an ephemeral key, inside that session ────────────
+        $result = self::run_tool( $cmd, $claims, $scopes, $tool, $params, $meta, $session );
         $ms     = (int) round( ( microtime( true ) - $t0 ) * 1000 );
         // PROTOCOL: /site/tasks/{id}/result → {status:completed|failed, summary?, result?:object, error?:string, session_id?, verification?:object}
         $body = [
@@ -129,7 +138,7 @@ class AICOM_Base_Executor {
 
     // ── run ───────────────────────────────────────────────────────────────
 
-    private static function run_tool( array $cmd, array $claims, array $scopes, string $tool, array $params, array $meta ): array {
+    private static function run_tool( array $cmd, array $claims, array $scopes, string $tool, array $params, array $meta, array $session ): array {
         $tt      = (string) $claims['task_target_id'];
         $started = gmdate( 'Y-m-d\TH:i:s\Z' );
 
@@ -146,15 +155,12 @@ class AICOM_Base_Executor {
         $saved_auth = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key'];
 
-        $out     = [ 'status' => 'failed', 'tool_id' => $tool, 'session_id' => (string) $claims['session_id'], 'started_at' => $started ];
-        $session = null;
+        $out = [ 'status' => 'failed', 'tool_id' => $tool, 'session_id' => (string) $claims['session_id'], 'started_at' => $started ];
         try {
-            AICOM_Base_Events::expect_remote_session( (string) $claims['session_id'], $tt );
-            $title   = sprintf( /* translators: %s: tool id */ __( 'AICOMBase task: %s', 'aicom' ), $tool );
-            $session = AICOM_Sessions::open( $key_id, 'AICOMBase task ' . substr( $tt, 0, 8 ), $title, 'Remote work authorized by AICOMBase (task target ' . $tt . ')' );
-            if ( ! is_array( $session ) ) {
-                $out['error'] = [ 'code' => 'session_failed', 'message' => 'Could not open a session.' ];
-            } else {
+            // The session belongs to AICOMBase's session; this execution's ephemeral key works inside it.
+            AICOM_Sessions::attach_key( (int) $session['id'], $key_id );
+            AICOM_Base_Events::task_started( (string) $claims['session_id'], $tt, (string) ( $session['name'] ?? $tool ) );
+            {
                 AICOM_Base_Events::bind_remote_session( (int) $session['id'], (string) $claims['session_id'], $tt );
                 $out['local_session_id'] = (int) $session['id'];
 
@@ -192,10 +198,9 @@ class AICOM_Base_Executor {
             }
         }
 
-        // Close the session (emits session.ended with the final status) and burn the ephemeral key.
-        if ( is_array( $session ) ) {
-            AICOM_Sessions::close( $key_id, $out['status'] === 'completed' ? 'completed' : 'failed' );
-        }
+        // The session stays open — AICOMBase closes it (session.close, or with the task for a one-task session),
+        // or the 2 h stale rule does. Only the ephemeral key is burnt.
+        AICOM_Base_Events::unbind_remote_session( (int) $session['id'] );
         AICOM_Auth::revoke_key( $key_id );
         AICOM_Auth::archive_key( $key_id );
 

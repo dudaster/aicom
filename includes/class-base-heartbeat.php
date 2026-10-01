@@ -127,6 +127,30 @@ class AICOM_Base_Heartbeat {
         ];
     }
 
+    /** Undo an AICOMBase session: replay the backups of every local session that belonged to it, newest first. */
+    public static function cmd_restore_session( string $base_id ): void {
+        if ( $base_id === '' ) {
+            return;
+        }
+        $ids = AICOM_Sessions::remote_ids( $base_id );
+        if ( ! $ids ) {
+            AICOM_Base_Events::session_restored( $base_id, 0, 'No session with that id on this site.' );
+            return;
+        }
+        AICOM_Sessions::close_remote( $base_id, 'cancelled' ); // nothing more runs in a session being undone
+        $restored = 0;
+        try {
+            foreach ( $ids as $id ) {
+                $restored += AICOM_Admin::do_restore_session( (int) $id );
+            }
+            AICOM_Base_Events::session_restored( $base_id, $restored );
+            AICOM_Base_Connection::audit( 'base.session_restored', 'success', [ 'session_id' => $base_id, 'restored' => $restored ] );
+        } catch ( \Throwable $e ) {
+            AICOM_Base_Events::session_restored( $base_id, $restored, $e->getMessage() );
+            AICOM_Base_Connection::audit( 'base.session_restored', 'error', [ 'session_id' => $base_id, 'error' => substr( $e->getMessage(), 0, 200 ) ] );
+        }
+    }
+
     /** Small self-diagnosis: {ok, issues[]}. */
     public static function health(): array {
         $issues = [];
@@ -204,6 +228,22 @@ class AICOM_Base_Heartbeat {
                     break;
                 case 'resync_capabilities':
                     AICOM_Base_State::update( [ 'caps_needed' => true, 'caps_uploaded_at' => 0 ] );
+                    break;
+                // AICOM sessions opened by AICOMBase — nothing it sends runs outside one (see AICOM_Base_Executor).
+                case 'open_session':
+                    AICOM_Sessions::open_remote(
+                        (string) ( $cmd['session_id'] ?? '' ),
+                        (string) ( $cmd['name'] ?? '' ),
+                        (string) ( $cmd['description'] ?? '' ),
+                        (string) ( $cmd['agent_label'] ?? '' )
+                    );
+                    break;
+                case 'close_session':
+                    $st = (string) ( $cmd['status'] ?? 'completed' );
+                    AICOM_Sessions::close_remote( (string) ( $cmd['session_id'] ?? '' ), in_array( $st, [ 'completed', 'failed', 'cancelled' ], true ) ? $st : 'completed' );
+                    break;
+                case 'restore_session':
+                    self::cmd_restore_session( (string) ( $cmd['session_id'] ?? '' ) );
                     break;
                 default:
                     AICOM_Base_Connection::audit( 'base.command_unknown', 'error', [ 'type' => substr( $type, 0, 40 ) ] );

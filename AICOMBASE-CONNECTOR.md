@@ -41,6 +41,17 @@ scope violations additionally emit a `security` event `scope_rejected`.
 Disconnect (admin button) first sends a best-effort signed `POST /api/v1/site/disconnect` (4 s timeout, ignored on failure), then wipes locally.
 A `revoke` command issued before the current pairing is ignored client-side (belt and braces with the server-side expiry).
 
+## Sessions (3.20.0)
+
+Nothing AICOMBase sends runs outside a session AICOMBase opened: `open_session` (heartbeat command) creates an ordinary
+AICOM session tagged `source='aicombase'` with `base_session_id` = AICOMBase's id (`AICOM_Sessions::open_remote`), shown in
+AICOM → Activity → Sessions with an "AICOMBase" badge and a Close button. `AICOM_Base_Executor` refuses an `execute` whose
+authorization `session_id` has no open session (`NO_ACTIVE_SESSION`); otherwise it attaches that execution's ephemeral key
+to the session (`attach_key`), so every task of one AICOMBase session runs — and is backed up — in the same AICOM session,
+which stays open after the task. `close_session` / `restore_session` close it / replay its backups newest first
+(`AICOM_Base_Heartbeat::cmd_restore_session`, reported as `session.restored`). Closing in WP admin, the 2 h stale rule and a
+restore all report back through the usual session events, so AICOMBase stops using the session.
+
 ## Wake ping (§11)
 
 `POST /wp-json/aicom/v1/wake` — the only inbound route AICOMBase calls (everything else is the site

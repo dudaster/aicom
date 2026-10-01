@@ -5,7 +5,7 @@
  */
 class AICOM_DB {
 
-    const DB_VERSION    = '4.9';
+    const DB_VERSION    = '5.0';
     const VERSION_OPT   = 'aicom_db_version';
 
     public static function install(): void {
@@ -274,9 +274,12 @@ class AICOM_DB {
             status        VARCHAR(20)     NOT NULL DEFAULT 'open',
             opened_at     DATETIME        NOT NULL,
             closed_at     DATETIME        NULL,
+            base_session_id VARCHAR(64)   NULL DEFAULT NULL,
+            source        VARCHAR(20)     NOT NULL DEFAULT 'local',
             PRIMARY KEY (id),
             KEY idx_api_key_status (api_key_id, status),
-            KEY idx_opened_at      (opened_at)
+            KEY idx_opened_at      (opened_at),
+            KEY idx_base_session   (base_session_id)
         ) $charset;";
 
         // ── User Presets ──────────────────────────────────────────────────

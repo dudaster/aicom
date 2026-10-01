@@ -287,8 +287,21 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
                     <?php if ( $is_open ) : ?>
                     <span class="aicom-badge-active"><?php esc_html_e( 'Active', 'aicom' ); ?></span>
                     <?php endif; ?>
+                    <?php if ( ( $s['source'] ?? 'local' ) === 'aicombase' ) : ?>
+                    <span class="aicom-badge-active" style="background:#f1e8d6;color:#c44a20;border-color:#f4b896" title="<?php esc_attr_e( 'Opened by AICOMBase for an AI agent. Closing it here stops the agent from doing anything more in it.', 'aicom' ); ?>"><?php esc_html_e( 'AICOMBase', 'aicom' ); ?></span>
+                    <?php endif; ?>
                     <span class="aicom-session-meta"><?php echo esc_html( $s['api_key_label'] ); ?> &middot; <?php echo esc_html( substr( (string) $s['opened_at'], 0, 16 ) ); ?></span>
                     <span class="aicom-session-meta"><?php echo (int) $s['request_count']; ?> <?php esc_html_e( 'requests', 'aicom' ); ?> &middot; <?php echo (int) $s['backup_count']; ?> <?php esc_html_e( 'backups', 'aicom' ); ?></span>
+                    <?php if ( $is_open ) : ?>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0">
+                        <input type="hidden" name="action" value="aicom_save" />
+                        <input type="hidden" name="aicom_action" value="close_session" />
+                        <input type="hidden" name="session_id" value="<?php echo (int) $s['id']; ?>" />
+                        <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                        <button type="submit" class="button button-small"
+                                onclick="return confirm('<?php echo esc_js( __( 'Close this session? The agent working in it won\'t be able to do anything more in it.', 'aicom' ) ); ?>')"><?php esc_html_e( 'Close', 'aicom' ); ?></button>
+                    </form>
+                    <?php endif; ?>
                     <?php if ( (int) $s['backup_count'] > 0 ) : ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0">
                         <input type="hidden" name="action" value="aicom_save" />
