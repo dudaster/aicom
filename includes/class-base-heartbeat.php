@@ -204,6 +204,13 @@ class AICOM_Base_Heartbeat {
             if ( $type === 'execute' && microtime( true ) > $deadline ) {
                 continue; // out of time budget; AICOMBase will redeliver it
             }
+            // Second, independent guard: claim this command id atomically. A command AICOMBase delivered twice
+            // (it re-sends unacked commands on every check-in) is a duplicate delivery, not an attack — skip it
+            // quietly instead of letting its already-used authorization raise a credential_anomaly.
+            if ( $type === 'execute' && ! AICOM_Base_Executor::consume_nonce( 'cmd:' . substr( $id, 0, 60 ), (int) ( $cmd['expires_at'] ?? 0 ) ?: time() + DAY_IN_SECONDS ) ) {
+                AICOM_Base_State::update( [ 'acks' => array_values( array_unique( array_merge( (array) AICOM_Base_State::get( 'acks', [] ), [ $id ] ) ) ) ] );
+                continue;
+            }
 
             $handled = true;
             switch ( $type ) {
@@ -270,16 +277,25 @@ class AICOM_Base_Heartbeat {
 
     // ── overlap lock (atomic add_option) ──────────────────────────────────
 
+    /**
+     * Atomic: only one check-in at a time. add_option() is NOT a lock — WordPress implements it as
+     * INSERT … ON DUPLICATE KEY UPDATE, so two simultaneous check-ins (e.g. several wake pings in a row) both
+     * "won" and processed the same commands; the second run then hit the nonce guard and reported a false
+     * credential_anomaly (authorization_replay). Plain INSERT IGNORE / conditional UPDATE are race-free.
+     */
     private static function acquire(): bool {
-        if ( add_option( self::LOCK_OPT, time(), '', 'no' ) ) {
-            return true;
+        global $wpdb;
+        $now = time();
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+        $got = $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'no')", self::LOCK_OPT, (string) $now ) );
+        if ( $got !== 1 ) {
+            // Take over a stale lock (a crashed run) — but only one taker can win the compare-and-swap.
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+            $got = $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->options} SET option_value = %s WHERE option_name = %s AND CAST(option_value AS UNSIGNED) < %d", (string) $now, self::LOCK_OPT, $now - self::LOCK_TTL ) );
         }
-        $t = (int) get_option( self::LOCK_OPT, 0 );
-        if ( $t && time() - $t > self::LOCK_TTL ) {
-            update_option( self::LOCK_OPT, time(), false );
-            return true;
-        }
-        return false;
+        wp_cache_delete( self::LOCK_OPT, 'options' );
+        wp_cache_delete( 'notoptions', 'options' );
+        return $got === 1;
     }
 
     private static function release(): void {

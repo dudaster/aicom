@@ -249,6 +249,30 @@ AICOM_Base_Executor::execute( $cmd );
 $ev = queued();
 ok( 'replayed token is refused (credential_anomaly security event, no session)', in_array( 'credential_anomaly', array_column( array_filter( $ev, static fn( $e ) => $e['type'] === 'security' ), 'kind' ), true ) && ! in_array( 'session.started', array_column( $ev, 'type' ), true ) );
 
+// Duplicate DELIVERY of one command (live 2026-10-01: several wake pings → simultaneous check-ins → the same execute
+// command processed more than once → false credential_anomaly). The second delivery must be skipped quietly.
+AICOM_Base_Events::purge();
+$ttd  = wp_generate_uuid4();
+$dcmd = [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $ttd, 'tool_id' => 'wp.site.info', 'params' => [], 'expires_at' => time() + 600,
+    'authorization' => issue_token( [ 'task_target_id' => $ttd, 'session_id' => $sess, 'allowed_scopes' => [ 'read.wp' ] ] ) ];
+$pc = new ReflectionMethod( 'AICOM_Base_Heartbeat', 'process_commands' );
+$pc->setAccessible( true );
+$pc->invoke( null, [ $dcmd ], microtime( true ) + 30 );
+$first = queued();
+AICOM_Base_State::update( [ 'done_commands' => array_values( array_diff( (array) AICOM_Base_State::get( 'done_commands', [] ), [ $dcmd['id'] ] ) ) ] ); // as if the 2nd check-in raced the 1st
+AICOM_Base_Events::purge();
+$pc->invoke( null, [ $dcmd ], microtime( true ) + 30 );
+$second = queued();
+ok( 'a command delivered twice runs once', in_array( 'session.started', array_column( $first, 'type' ), true ) && ! in_array( 'session.started', array_column( $second, 'type' ), true ), json_encode( array_column( $second, 'type' ) ) );
+ok( 'duplicate delivery raises no credential_anomaly', ! in_array( 'credential_anomaly', array_column( array_filter( $second, static fn( $e ) => $e['type'] === 'security' ), 'kind' ), true ) );
+$lk = new ReflectionMethod( 'AICOM_Base_Heartbeat', 'acquire' );
+$lk->setAccessible( true );
+$rl = new ReflectionMethod( 'AICOM_Base_Heartbeat', 'release' );
+$rl->setAccessible( true );
+$rl->invoke( null );
+ok( 'heartbeat lock: first acquire wins, second loses', $lk->invoke( null ) === true && $lk->invoke( null ) === false );
+$rl->invoke( null );
+
 // Scope escalation
 AICOM_Base_Events::purge();
 $tt2 = wp_generate_uuid4();
