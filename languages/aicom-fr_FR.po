@@ -2797,3 +2797,140 @@ msgstr "Champs Yoast SEO"
 #: includes/class-auth.php:60
 msgid "Clautron blueprints"
 msgstr "Blueprints Clautron"
+
+#: includes/class-dudee-lite.php
+msgid "Dudee"
+msgstr "Dudee"
+
+#: includes/class-dudee-lite.php
+msgid "Ask Dudee"
+msgstr "Demander à Dudee"
+
+#: includes/class-dudee-lite.php
+msgid "Not now"
+msgstr "Pas maintenant"
+
+#: includes/class-dudee-lite.php
+msgid "Hi, I'm Dudee! I can show you around AICOM in under a minute. Want the tour?"
+msgstr "Salut, je suis Dudee ! Je peux te faire visiter AICOM en moins d'une minute. On fait le tour ?"
+
+#: includes/class-dudee-lite.php
+msgid "Yes, show me"
+msgstr "Oui, montre-moi"
+
+#: includes/class-dudee-lite.php
+msgid "Don't show Dudee again"
+msgstr "Ne plus afficher Dudee"
+
+#: includes/class-dudee-lite.php
+msgid "OK, I'll stay out of the way. You can bring me back from Help."
+msgstr "D'accord, je me fais discret. Tu peux me faire revenir depuis Aide."
+
+#: includes/class-dudee-lite.php
+msgid "How can I help?"
+msgstr "Comment puis-je t'aider ?"
+
+#: includes/class-dudee-lite.php
+msgid "Show me around AICOM"
+msgstr "Fais-moi visiter AICOM"
+
+#: includes/class-dudee-lite.php
+msgid "Connect to AICOMBase"
+msgstr "Se connecter à AICOMBase"
+
+#: includes/class-dudee-lite.php
+msgid "Open AICOMBase"
+msgstr "Ouvrir AICOMBase"
+
+#: includes/class-dudee-lite.php
+msgid "What can you do in AICOMBase?"
+msgstr "Que peux-tu faire dans AICOMBase ?"
+
+#: includes/class-dudee-lite.php
+msgid "Stop the tour"
+msgstr "Arrêter la visite"
+
+#: includes/class-dudee-lite.php
+#, php-format
+msgid "%1$d of %2$d"
+msgstr "%1$d sur %2$d"
+
+#: includes/class-dudee-lite.php
+msgid "Start here: pick what your AI may do, and AICOM makes a key with just those rights."
+msgstr "Commence ici : choisis ce que ton IA a le droit de faire, et AICOM crée une clé avec uniquement ces droits."
+
+#: includes/class-dudee-lite.php
+msgid "All your AI keys live here. You can pause, change or revoke any of them at any time."
+msgstr "Toutes les clés de ton IA sont ici. Tu peux mettre en pause, modifier ou révoquer chacune d'elles à tout moment."
+
+#: includes/class-dudee-lite.php
+msgid "Everything an AI did on your site, step by step: which key, what, and when."
+msgstr "Tout ce qu'une IA a fait sur ton site, étape par étape : avec quelle clé, quoi et quand."
+
+#: includes/class-dudee-lite.php
+msgid "Your locks. One click stops every AI change, and you can set working hours."
+msgstr "Tes verrous. Un clic arrête toute modification par l'IA, et tu peux définir des heures de travail."
+
+#: includes/class-dudee-lite.php
+msgid "Before an AI changes something, AICOM keeps a snapshot, so you can undo what it did."
+msgstr "Avant qu'une IA ne modifie quoi que ce soit, AICOM garde un snapshot, pour que tu puisses annuler ce qu'elle a fait."
+
+#: includes/class-dudee-lite.php
+msgid "Ready-made prompts, and how to connect Claude, ChatGPT and other AI agents."
+msgstr "Des prompts prêts à l'emploi, et comment connecter Claude, ChatGPT et d'autres agents IA."
+
+#: includes/class-dudee-lite.php
+msgid "Here I can do much more. Connect this site to AICOMBase and I'll tell you when it goes down or has a security problem, explain what your AI did and why something was stopped, and walk you through anything, step by step."
+msgstr "Ici, je peux faire bien plus. Connecte ce site à AICOMBase et je te préviendrai quand il tombe en panne ou a un problème de sécurité, je t'expliquerai ce que ton IA a fait et pourquoi quelque chose a été bloqué, et je te guiderai pas à pas pour tout."
+
+#: includes/class-dudee-lite.php
+msgid "Want me to show you how to connect?"
+msgstr "Tu veux que je te montre comment te connecter ?"
+
+#: includes/class-dudee-lite.php
+msgid "This site is connected to AICOMBase. That is where I can help you the most, so look for me there."
+msgstr "Ce site est connecté à AICOMBase. C'est là que je peux t'aider le plus, alors retrouve-moi là-bas."
+
+#: includes/class-dudee-lite.php
+msgid "Show me how"
+msgstr "Montre-moi comment"
+
+#: includes/class-dudee-lite.php
+msgid "Maybe later"
+msgstr "Plus tard peut-être"
+
+#: includes/class-dudee-lite.php
+msgid "Thanks"
+msgstr "Merci"
+
+#: includes/class-dudee-lite.php
+msgid "Want to connect this site to AICOMBase? I can show you how. It takes about a minute."
+msgstr "Tu veux connecter ce site à AICOMBase ? Je te montre comment. Ça prend environ une minute."
+
+#: includes/class-dudee-lite.php
+msgid "What do I get?"
+msgstr "Qu'est-ce que j'y gagne ?"
+
+#: includes/class-dudee-lite.php
+msgid "Press this button. AICOMBase opens in a new tab: sign in there, or create a free account, then confirm the connection."
+msgstr "Appuie sur ce bouton. AICOMBase s'ouvre dans un nouvel onglet : connecte-toi ou crée un compte gratuit, puis confirme la connexion."
+
+#: includes/class-dudee-lite.php
+msgid "I'm waiting for you to confirm in the AICOMBase tab. This page updates by itself once it's done. If the tab didn't open, use this button."
+msgstr "J'attends que tu confirmes dans l'onglet AICOMBase. Cette page se met à jour toute seule une fois que c'est fait. Si l'onglet ne s'est pas ouvert, utilise ce bouton."
+
+#: includes/class-dudee-lite.php
+msgid "Done, this site is connected! From now on I can help you in AICOMBase: alerts, explanations and step-by-step guides."
+msgstr "C'est fait, ce site est connecté ! Désormais, je peux t'aider dans AICOMBase : alertes, explications et guides pas à pas."
+
+#: includes/class-dudee-lite.php
+msgid "Got it"
+msgstr "Compris"
+
+#: admin/pages/help.php
+msgid "Rather be shown around? Bring Dudee back."
+msgstr "Tu préfères une visite guidée ? Fais revenir Dudee."
+
+#: admin/pages/base.php
+msgid "Not sure how? Dudee can show you."
+msgstr "Pas sûr de comment faire ? Dudee peut te montrer."

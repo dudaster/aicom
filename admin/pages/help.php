@@ -173,6 +173,7 @@ $helpers_json = wp_json_encode( $helpers );
             <p class="aicom-help-signed">
                 <?php esc_html_e( '— a short read, maybe four minutes', 'aicom' ); ?>
             </p>
+            <?php AICOM_Dudee_Lite::show_link( __( 'Rather be shown around? Bring Dudee back.', 'aicom' ), 'aicom-help-signed' ); ?>
         </section>
 
         <div class="aicom-help-fleuron" aria-hidden="true">&#10086;</div>
