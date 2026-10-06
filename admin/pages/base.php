@@ -84,6 +84,7 @@ defined( 'ABSPATH' ) || exit;
                 /* translators: %s: AICOMBase URL */
                 printf( esc_html__( 'You will sign in to AICOMBase (%s) in a new tab and confirm the connection there.', 'aicom' ), '<code>' . esc_html( $base ) . '</code>' );
             ?></p>
+            <?php AICOM_Dudee_Lite::show_link( __( 'Not sure how? Dudee can show you.', 'aicom' ), 'description' ); ?>
 
         <?php elseif ( $status === AICOM_Base_State::S_PAIRING ) : ?>
             <p style="margin:0 0 12px"><span class="spinner is-active" style="float:none;margin:0 6px 0 0"></span><?php esc_html_e( 'Waiting for you to confirm the connection in AICOMBase…', 'aicom' ); ?></p>

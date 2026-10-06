@@ -27,6 +27,9 @@ foreach ( [ 'aicom_base_state', 'aicom_base_identity', 'aicom_base_installation_
 wp_clear_scheduled_hook( 'aicom_base_heartbeat' );
 wp_clear_scheduled_hook( 'aicom_base_pairing_poll' );
 
+// Dudee lite (v3.22): what he remembers per user.
+delete_metadata( 'user', 0, 'aicom_dudee_lite', '', true );
+
 // Remove plugin options.
 delete_option( 'aicom_db_version' );
 delete_option( 'aicom_soft_lock' );
