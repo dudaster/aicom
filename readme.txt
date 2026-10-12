@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.22.0
+Stable tag: 3.22.1
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,12 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.22.1 =
+
+* Fixed: Dudee's guided tour now walks through each admin page's own sections (not just a one-line summary), circling the whole section and picking "Next" to actually move between pages and tabs — pages, tabs, and sections now all behave the same way, instead of some advancing in place and others requiring a manual click.
+* Fixed: a tall section (e.g. a very long table) could push Dudee and his message on top of each other; the tour could also appear to "reset" on an admin page where tabs are separate links rather than in-page JS tabs (Snapshots) — both are now handled correctly.
+* Fixed: his message panel is more transparent, so it blocks less of the page behind it, and if there's no room above a target it now tries beside him — left or right, whichever side has room, never on top of wp-admin's own menu, and never covering the very section he's circling — before falling back to stacking above or below; a cramped stack can no longer run his message off the bottom of the screen, and his pointing hand now aims around his own message instead of through it.
 
 = 3.22.0 =
 
