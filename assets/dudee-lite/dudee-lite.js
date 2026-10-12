@@ -17,6 +17,8 @@
 	var RUN_KEY = 'aicom-dudee-run';       // a flow to pick up after a page load: "connect"
 	var SNOOZE_KEY = 'aicom-dudee-snooze'; // "Not now" on the AICOMBase reminder: quiet until the browser closes
 	var PAIRING_KEY = 'aicom-dudee-pairing'; // this tab saw "waiting for confirmation": a connection now is theirs to celebrate
+	var TOUR_KEY = 'aicom-dudee-tour';     // which tour stop to resume at, if a sidebar click navigates away mid-tour
+	var PAGE_STEP_KEY = 'aicom-dudee-pagestep'; // mid-page-tour step to resume, if a tab is a real link (full page reload, same ?page=)
 	var BASE = 'aicom-base';
 	var TOUR = [ 'aicom', 'aicom-api-keys', 'aicom-audit-logs', 'aicom-safety', 'aicom-backups', 'aicom-help' ];
 	var A = 56; // avatar size, px
@@ -67,8 +69,13 @@
 		'.joy{display:none}.happy .eyes{display:none}.happy .joy{display:inline}' +
 		'.hand{display:none;transform-box:fill-box;transform-origin:center}' +
 		'.waving .wave{display:inline;animation:wave .5s ease-in-out 4 alternate}' +
+		// .point overrides .hand's transform-box/-origin: it needs to swing
+		// around the avatar's own body centre (view-box coords), not its own
+		// bounding box, so --point-angle (set in JS, see place()) actually
+		// orients it toward whatever he's circling.
+		'.point{transform-box:view-box;transform-origin:50px 53px;transform:rotate(var(--point-angle,0deg))}' +
 		'.pointing .point{display:inline;animation:poke .7s ease-in-out infinite alternate}' +
-		'.panel{width:min(340px,calc(100vw - 32px));background:#fff;color:#16181d;border:1px solid #e6e3dc;border-radius:14px;padding:14px 16px 12px;' +
+		'.panel{width:min(340px,calc(100vw - 32px));background:rgba(255,255,255,.72);color:#16181d;border:1px solid rgba(230,227,220,.8);border-radius:14px;padding:14px 16px 12px;' +
 		'box-shadow:0 10px 30px rgba(22,24,29,.14),0 2px 8px rgba(22,24,29,.06);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;' +
 		'opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .2s,transform .2s,visibility .2s;pointer-events:none}' +
 		'.panel.on{opacity:1;visibility:visible;transform:none;pointer-events:auto}' +
@@ -87,7 +94,7 @@
 		'@keyframes bob{50%{transform:translateY(-3px)}}' +
 		'@keyframes blink{0%,95%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}' +
 		'@keyframes wave{from{transform:rotate(-20deg) translateY(2px)}to{transform:rotate(25deg) translateY(-4px)}}' +
-		'@keyframes poke{from{transform:translateX(0)}to{transform:translateX(-5px)}}' +
+		'@keyframes poke{from{transform:rotate(var(--point-angle,0deg)) translateX(0)}to{transform:rotate(var(--point-angle,0deg)) translateX(-5px)}}' +
 		'@keyframes pulse{50%{box-shadow:0 0 0 8px rgba(9,130,253,.08)}}' +
 		'@media (prefers-reduced-motion:reduce){.me,.panel,.ring{transition:none}.me svg,.eyes,.hand,.ring{animation:none!important}}';
 
@@ -96,6 +103,7 @@
 	var host, root, me, panel, ring;
 	var target = null;  // the element he is pointing at
 	var onClose = null; // what closing the panel means for the current message
+	var preferAbove = false; // position from above the target, see place()
 
 	function mount() {
 		if ( host ) {
@@ -165,6 +173,18 @@
 		var pw = panel.offsetWidth, ph = panel.offsetHeight;
 		var ax, ay, px, py;
 		var at = visible( target ) ? target : null;
+		// Set true only when his message ends up covering the straight line
+		// from him to the section's own center (pinned to its left edge,
+		// message to his right, inside a section too wide to clear) — his
+		// pointing hand should aim around that, not straight through it.
+		var pointBelowPanel = false;
+
+		// Never let his message land on top of wp-admin's own sidebar — the
+		// usual GAP from the screen edge isn't enough of a boundary there,
+		// since the real "nothing to see here" zone ends wherever
+		// #wpcontent actually starts (collapsed/expanded, mobile, etc).
+		var wpcontent = document.getElementById( 'wpcontent' );
+		var minX = Math.max( GAP, wpcontent ? wpcontent.getBoundingClientRect().left : GAP );
 
 		if ( at ) {
 			var r = at.getBoundingClientRect();
@@ -173,22 +193,110 @@
 			ring.style.top = ( r.top - 5 ) + 'px';
 			ring.style.width = ( r.width + 10 ) + 'px';
 			ring.style.height = ( r.height + 10 ) + 'px';
-			if ( r.right + 14 + A + 10 + pw <= vw - GAP ) {
-				// Beside it, his message to his right.
+
+			// For the placement math below (not the ring, which should
+			// still trace the real edges): clamp to the visible viewport
+			// first. A very tall section (e.g. a long table) can have real
+			// edges far off-screen, where "space above/below" would be
+			// meaningless negative numbers and every fallback would
+			// collapse onto the same corner as him.
+			var top = clamp( r.top, GAP, vh - GAP );
+			var bottom = clamp( r.bottom, GAP, vh - GAP );
+
+			if ( preferAbove ) {
+				// Sections: he sits left-aligned to whatever he's circling,
+				// so the section itself extends off to his right — his
+				// message going there would sit right on top of the very
+				// thing he's showing. Priority: above (reads best for a
+				// card) → beside him, left (away from the section, nothing
+				// to cover) → beside him, right, only if the left truly has
+				// no room → stacked under/over as the very last resort.
+				// "Beside" here means beside HIM (his own 56px width), not
+				// beside the whole section — a wide card (a long table,
+				// say) can span nearly the full viewport with no room past
+				// either of ITS edges, even though there's plenty past his.
+				ax = clamp( r.left, minX, vw - A - GAP );
+				if ( top - 10 - A - 8 - ph >= GAP ) {
+					px = clamp( r.left, minX, vw - pw - GAP );
+					ay = top - 10 - A;
+					py = ay - 8 - ph;
+				} else if ( ax - 10 - pw >= minX ) {
+					ay = clamp( top + ( bottom - top ) / 2 - A / 2, GAP, vh - A - GAP );
+					px = ax - 10 - pw;
+					py = clamp( ay - 6, GAP, vh - ph - GAP );
+				} else if ( ax + A + 10 >= r.right && ax + A + 10 + pw <= vw - GAP ) {
+					// Beside him, right — only when that lands past the
+					// section's own right edge. Pinned to its left edge, he
+					// sits inside it; a wide section (most of them) would
+					// have his message start well short of getting clear,
+					// covering its content instead of standing beside it.
+					ay = clamp( top + ( bottom - top ) / 2 - A / 2, GAP, vh - A - GAP );
+					px = ax + A + 10;
+					py = clamp( ay - 6, GAP, vh - ph - GAP );
+				} else {
+					// Last resort: under it, or over it when that fits
+					// better — never both independently clamped against the
+					// viewport (two separate clamps can each legally land
+					// on GAP and put the panel exactly on top of him
+					// instead of above or below him); py is always derived
+					// from the already-placed ay.
+					px = clamp( r.left, minX, vw - pw - GAP );
+					if ( bottom + 10 + A + 8 + ph <= vh - GAP || vh - bottom >= top ) {
+						// Under: the second half of that condition is only a
+						// "more room below than above" preference, not proof
+						// the full stack actually fits below `bottom` — so
+						// py still needs its own clamp here, with ay then
+						// re-derived from it (not independently clamped)
+						// so a cramped fit never pushes the panel off the
+						// bottom of the screen.
+						ay = clamp( bottom + 10, GAP, vh - A - GAP );
+						py = clamp( ay + A + 8, GAP, vh - ph - GAP );
+						ay = py - A - 8;
+					} else if ( ax + A + 10 + pw <= vw - GAP ) {
+						// Under doesn't fit either, and that only happens
+						// when the section is too close to the top for
+						// "over" to have room — cramming his message
+						// against the very top of the screen, over the
+						// page's own title, looks worse than beside him,
+						// even though that covers part of the section here.
+						ay = clamp( top + ( bottom - top ) / 2 - A / 2, GAP, vh - A - GAP );
+						px = ax + A + 10;
+						py = clamp( ay - 6, GAP, vh - ph - GAP );
+						pointBelowPanel = true;
+					} else {
+						// Over: truly nowhere else left. py is derived
+						// first and clamped to fit, then ay is placed below
+						// it — never the other way around, or a tall panel
+						// that doesn't fit above can get its py clamped to
+						// the screen edge while ay stays put, overlapping
+						// him with his own message.
+						py = clamp( top - 10 - A - 8 - ph, GAP, vh - ph - GAP );
+						ay = Math.min( py + ph + 8, vh - A - GAP );
+					}
+				}
+			} else if ( r.right + 14 + A + 10 + pw <= vw - GAP ) {
+				// Tabs etc: beside the real target edges (tight to it, e.g.
+				// a narrow tab button) — right first, then left, then
+				// stacked under/over as the last resort.
 				ax = r.right + 14;
-				ay = clamp( r.top + r.height / 2 - A / 2, GAP, vh - A - GAP );
+				ay = clamp( top + ( bottom - top ) / 2 - A / 2, GAP, vh - A - GAP );
 				px = ax + A + 10;
 				py = clamp( ay - 6, GAP, vh - ph - GAP );
+			} else if ( r.left - 14 - A - 10 - pw >= minX ) {
+				ax = r.left - 14 - A;
+				ay = clamp( top + ( bottom - top ) / 2 - A / 2, GAP, vh - A - GAP );
+				px = ax - 10 - pw;
+				py = clamp( ay - 6, GAP, vh - ph - GAP );
 			} else {
-				// Under it (or over it, near the bottom), his message under (over) him.
-				ax = clamp( r.left, GAP, vw - A - GAP );
-				px = clamp( r.left, GAP, vw - pw - GAP );
-				if ( r.bottom + 10 + A + 8 + ph <= vh - GAP ) {
-					ay = r.bottom + 10;
-					py = ay + A + 8;
+				ax = clamp( r.left, minX, vw - A - GAP );
+				px = clamp( r.left, minX, vw - pw - GAP );
+				if ( bottom + 10 + A + 8 + ph <= vh - GAP || vh - bottom >= top ) {
+					ay = clamp( bottom + 10, GAP, vh - A - GAP );
+					py = clamp( ay + A + 8, GAP, vh - ph - GAP );
+					ay = py - A - 8;
 				} else {
-					ay = clamp( r.top - 10 - A, GAP, vh - A - GAP );
-					py = clamp( ay - 8 - ph, GAP, vh - ph - GAP );
+					py = clamp( top - 10 - A - 8 - ph, GAP, vh - ph - GAP );
+					ay = Math.min( py + ph + 8, vh - A - GAP );
 				}
 			}
 		} else {
@@ -202,6 +310,17 @@
 				px = vw - pw - GAP;
 				py = clamp( ay - 10 - ph, GAP, vh - ph - GAP );
 			}
+		}
+		if ( at ) {
+			// Orient his pointing hand toward the actual target, wherever it
+			// ended up relative to him (above, beside, below...), instead of
+			// it always poking the same fixed direction. 0deg = its native
+			// unrotated pose (left) — see the .point CSS rule.
+			var acx = ax + A / 2, acy = ay + A / 2;
+			var tcx = r.left + r.width / 2;
+			var tcy = pointBelowPanel ? clamp( py + ph + 16, r.top, r.bottom ) : r.top + r.height / 2;
+			var angle = Math.atan2( tcy - acy, tcx - acx ) * 180 / Math.PI;
+			me.style.setProperty( '--point-angle', ( angle - 180 ) + 'deg' );
 		}
 		me.style.left = ax + 'px';
 		me.style.top = ay + 'px';
@@ -222,13 +341,15 @@
 	}
 
 	/**
-	 * Say something. o: { text, at (element to show), step: [i, n], buttons: [[label, fn, primary]], links: [[label, fn]],
-	 * close (what the × means; default: just close), happy, wave, focus (move focus to the first button: only when asked) }.
+	 * Say something. o: { text, at (element to show), above (position from above it instead of beside/under), step: [i, n],
+	 * buttons: [[label, fn, primary]], links: [[label, fn]], close (what the × means; default: just close), happy, wave,
+	 * focus (move focus to the first button: only when asked) }.
 	 */
 	function say( o ) {
 		mount();
 		target = o.at || null;
 		onClose = o.close || null;
+		preferAbove = !! o.above;
 		var who = root.querySelector( '.who' );
 		var right = document.createElement( 'span' );
 		right.className = 'r';
@@ -330,22 +451,50 @@
 		return document.querySelector( '.aicom-sidenav-menu a[href$="page=' + slug + '"]' );
 	}
 
+	/** Ends the whole tour (cross-page stops and any in-page walkthrough).
+	 * The only thing that stops it short of its natural end — everything
+	 * else (finishing a page's steps, navigating between stops) continues
+	 * on to the next part automatically. */
+	function stopTour() {
+		session.del( TOUR_KEY );
+		save( 'tour_stopped' );
+		quiet();
+	}
+
 	/** The tour: one stop per item of AICOM's own menu, ending at AICOMBase. */
 	function tour( i ) {
 		var stops = TOUR.filter( function ( s ) { return menuLink( s ); } );
+		// Skip any stop that IS the current page — there's nowhere to
+		// navigate to there, we're already on it. Without this, "Next" on
+		// the very first stop (shown while already on the Dashboard, which
+		// is stops[0]) would just reload the same page instead of actually
+		// moving on.
+		while ( i < stops.length && stops[ i ] === C.page ) {
+			i++;
+		}
 		var n = stops.length + 1;
-		var stopTour = function () { save( 'tour_stopped' ); quiet(); };
 		if ( i < stops.length ) {
+			// The stop he's pointing at is a real sidebar link. "Next" (like
+			// clicking that link directly, or just refreshing) reloads the
+			// browser — remember this same step, and which page it was shown
+			// on, so the next page load picks up right here: resumes on this
+			// same stop if nothing actually changed page (refresh), or flows
+			// into that page's own walkthrough if it really navigated. Pages
+			// and tabs behave the same way on purpose — no discrepancy
+			// between "Next" moving within a page vs. across pages.
+			session.set( TOUR_KEY, i + '|' + C.page );
+			var link = menuLink( stops[ i ] );
 			say( {
 				text: T.tour[ stops[ i ] ],
-				at: menuLink( stops[ i ] ),
+				at: link,
 				step: [ i + 1, n ],
-				buttons: [ [ T.next, function () { tour( i + 1 ); }, true ] ],
+				buttons: [ [ T.next, function () { window.location.assign( link.href ); }, true ] ],
 				links: [ [ T.stop, stopTour ] ],
 				close: stopTour,
 			} );
 			return;
 		}
+		session.del( TOUR_KEY );
 		var done = function ( fn ) { return function () { save( 'tour_done' ); fn(); }; };
 		say( connected ? {
 			text: T.pitchDone,
@@ -361,6 +510,104 @@
 			happy: true,
 			buttons: [ [ T.showHow, done( connect ), true ], [ T.later, done( quiet ) ] ],
 			close: done( function () {} ),
+		} );
+	}
+
+	/** Finds what to circle for a page-tour step: a tab (by its button label,
+	 * e.g. "Generate New Key", which has no section heading of its own), or
+	 * a whole section by its heading/card title text — never just the
+	 * heading alone, so the ring wraps everything in it. */
+	function pageSpot( text ) {
+		var scope = document.getElementById( 'wpbody-content' ) || document;
+
+		// Sections first: a tab's own label and its section's heading are
+		// often the exact same text (e.g. "Connection Info" names both),
+		// and the section — the bigger, more informative target — should
+		// win that match. Tabs are only the fallback, for the ones with no
+		// section heading of their own (e.g. "Generate New Key").
+		var candidates = scope.querySelectorAll( 'h1, h2, h3, .aicom-card-title' );
+		for ( var k = 0; k < candidates.length; k++ ) {
+			if ( candidates[ k ].textContent.trim() === text ) {
+				return revealTab( sectionOf( candidates[ k ] ) );
+			}
+		}
+
+		// Tabs come in two flavours: JS buttons that swap content in place
+		// (API Keys), and plain links that reload the page with a different
+		// ?tab= (Snapshots). Only the button kind is safe to click here —
+		// clicking a real link navigates away immediately, which pageTour()
+		// must set up a resume for first, not just fire blindly.
+		var tabs = scope.querySelectorAll( '.aicom-tab-btn' );
+		for ( var t = 0; t < tabs.length; t++ ) {
+			if ( tabs[ t ].textContent.trim() === text ) {
+				if ( tabs[ t ].tagName === 'BUTTON' ) {
+					tabs[ t ].click();
+				}
+				return tabs[ t ];
+			}
+		}
+		return null;
+	}
+
+	/** The whole visual section a heading belongs to (its card, or
+	 * equivalent wrapper), so the ring can circle everything in it instead
+	 * of just the title text. Falls back to the heading itself if it isn't
+	 * inside a recognisable wrapper. */
+	function sectionOf( heading ) {
+		if ( ! heading.closest ) {
+			return heading;
+		}
+		return heading.closest( '.aicom-card' ) || heading.closest( '.aicom-help-recipe-step' ) || heading.closest( 'section' ) || heading;
+	}
+
+	/** If el lives inside an inactive tab panel (API Keys' Generate/Connection
+	 * Info/Existing Keys tabs), switch to that tab first so he can actually
+	 * point at it. No-op for anything not inside a tabbed page. */
+	function revealTab( el ) {
+		var panel = el.closest && el.closest( '.aicom-tab-panel' );
+		if ( ! panel || panel.classList.contains( 'is-active' ) ) {
+			return el;
+		}
+		var tab = panel.id.replace( 'aicom-tab-', '' );
+		var btn = document.querySelector( '.aicom-tab-btn[data-tab="' + tab + '"]' );
+		if ( btn ) {
+			btn.click();
+		}
+		return el;
+	}
+
+	/** Steps through this page's own sections, one at a time. After the last
+	 * one, "Next" leads on to the next cross-page tour stop (points him at
+	 * the next sidebar link) instead of stopping — the tour only ends when
+	 * the admin explicitly stops it. tourIndex is this page's own position
+	 * in the cross-page TOUR, so that handoff knows where to continue. */
+	function pageTour( steps, j, tourIndex ) {
+		var last = j >= steps.length - 1;
+		var el = pageSpot( steps[ j ].at );
+
+		// A real <a href> tab (Snapshots' Dashboard/Cleanup Settings/Backup
+		// Snapshots tabs reload the page instead of swapping via JS) needs
+		// an actual navigation, not a click-and-hope — remember which step
+		// to resume at once we're back, same idea as the cross-page tour's
+		// own TOUR_KEY, so he picks up exactly here instead of just
+		// vanishing when the page reloads out from under him.
+		if ( el && el.tagName === 'A' && el.getAttribute( 'href' ) ) {
+			session.set( PAGE_STEP_KEY, j + '|' + tourIndex + '|' + C.page );
+			window.location.assign( el.href );
+			return;
+		}
+
+		// Tabs are thin targets in a single bar — "beside" (the default)
+		// suits them. Sections are wide cards — present from above those.
+		var isTab = el && el.classList && el.classList.contains( 'aicom-tab-btn' );
+		say( {
+			text: steps[ j ].text,
+			at: el,
+			above: ! isTab,
+			step: [ j + 1, steps.length ],
+			buttons: [ [ T.next, last ? function () { tour( tourIndex + 1 ); } : function () { pageTour( steps, j + 1, tourIndex ); }, true ] ],
+			links: [ [ T.stop, stopTour ] ],
+			close: stopTour,
 		} );
 	}
 
@@ -446,6 +693,46 @@
 	function start() {
 		if ( C.state.hidden ) {
 			return;
+		}
+		// Resume a mid-page-tour step after a real-link tab reload (see
+		// pageTour()'s PAGE_STEP_KEY comment) — checked first since it's
+		// more specific than the cross-page TOUR_KEY below, and both could
+		// in principle be set at once.
+		var pageResume = session.get( PAGE_STEP_KEY );
+		if ( pageResume !== null ) {
+			session.del( PAGE_STEP_KEY );
+			var pParts = pageResume.split( '|' );
+			var pStep = parseInt( pParts[ 0 ], 10 ) || 0;
+			var pTourIndex = parseInt( pParts[ 1 ], 10 ) || 0;
+			var pPage = pParts[ 2 ] || '';
+			var pSteps = T.page && T.page[ pPage ];
+			if ( pPage === C.page && pSteps && pStep < pSteps.length ) {
+				pageTour( pSteps, pStep, pTourIndex );
+				return;
+			}
+		}
+		// Resume an in-progress tour at the same step if the page reloaded
+		// (refresh, or the admin clicked the real sidebar link Dudee was
+		// pointing at instead of his "Next" button) — see tour()'s comment
+		// on TOUR_KEY. A plain refresh (same page) just resumes the same
+		// stop; actually arriving at a new page flows straight into that
+		// page's own walkthrough, if it has one.
+		var resume = session.get( TOUR_KEY );
+		if ( resume !== null ) {
+			session.del( TOUR_KEY );
+			var parts = resume.split( '|' );
+			var i = parseInt( parts[ 0 ], 10 ) || 0;
+			var shownOn = parts[ 1 ] || '';
+			var stops = TOUR.filter( function ( s ) { return menuLink( s ); } );
+			if ( i <= stops.length ) {
+				var pageSteps = T.page && T.page[ C.page ];
+				if ( shownOn !== C.page && pageSteps && pageSteps.length ) {
+					pageTour( pageSteps, 0, i );
+				} else {
+					tour( i );
+				}
+				return;
+			}
 		}
 		if ( C.page === BASE ) {
 			var run = session.get( RUN_KEY );
