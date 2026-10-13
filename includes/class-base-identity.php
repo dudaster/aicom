@@ -36,6 +36,17 @@ class AICOM_Base_Identity {
         return function_exists( 'sodium_crypto_sign_keypair' ) && function_exists( 'sodium_crypto_sign_detached' );
     }
 
+    /** Best-effort: wipe a secret from memory. Without the real sodium extension (sodium_compat
+     * polyfill only), memzero can't actually do this from pure PHP and throws rather than
+     * silently no-op — there's nothing more we can do about that here, so just move on. */
+    private static function safe_memzero( string &$secret ): void {
+        try {
+            sodium_memzero( $secret );
+        } catch ( \SodiumException $e ) {
+            $secret = '';
+        }
+    }
+
     private static function generate(): array {
         $kp  = sodium_crypto_sign_keypair();
         $pub = AICOM_Base_Signer::b64u( sodium_crypto_sign_publickey( $kp ) );
@@ -46,7 +57,7 @@ class AICOM_Base_Identity {
             'secret_enc' => self::encrypt( $sec ),
             'created_at' => time(),
         ];
-        sodium_memzero( $sec );
+        self::safe_memzero( $sec );
         return $rec;
     }
 
@@ -97,7 +108,7 @@ class AICOM_Base_Identity {
             return null;
         }
         $sig = AICOM_Base_Signer::sign( $message, $sec );
-        sodium_memzero( $sec );
+        self::safe_memzero( $sec );
         return [ 'key_id' => $rec['key_id'], 'signature' => $sig ];
     }
 
