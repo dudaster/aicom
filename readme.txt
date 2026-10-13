@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.22.1
+Stable tag: 3.22.2
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.22.2 =
+
+* Fixed: connecting to AICOMBase could fail with a generic "Could not start the connection" on hosts without the native `sodium` PHP extension (WordPress's pure-PHP sodium_compat fallback refuses to securely wipe a key from memory and throws, which crashed the request). The wipe is now best-effort instead of fatal.
 
 = 3.22.1 =
 
