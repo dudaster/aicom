@@ -427,11 +427,14 @@
 
 	function greet() {
 		save( 'greeted' );
+		var buttons = [ [ T.tourYes, function () { tour( 0 ); }, true ] ];
+		buttons.push( connected ? [ T.menuOpen, openApp ] : [ T.menuConnect, connect ] );
+		buttons.push( [ T.notNow, quiet ] );
 		say( {
 			text: T.greet,
 			wave: true,
 			happy: true,
-			buttons: [ [ T.tourYes, function () { tour( 0 ); }, true ], [ T.notNow, quiet ] ],
+			buttons: buttons,
 			links: [ [ T.never, hide ] ],
 		} );
 	}
