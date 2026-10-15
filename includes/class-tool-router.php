@@ -598,18 +598,6 @@ class AICOM_Tool_Router {
         $is_error = isset( $result['error'] );
         $meta     = $result['_meta'] ?? [];
 
-        // A successful write just changed something a cache plugin may be
-        // holding a stale copy of — see AICOM_Cache_Buster's docblock for
-        // which plugins it clears and why. Best-effort: must never block
-        // the actual response.
-        if ( ! $is_dry_run && ! $is_error && in_array( $tool_class, AICOM_Tool_Registry::WRITE_CLASSES, true ) ) {
-            try {
-                AICOM_Cache_Buster::purge_all();
-            } catch ( Throwable $e ) {
-                // Deliberately swallowed — a cache plugin misbehaving on this signal is not this tool call's problem.
-            }
-        }
-
         AICOM_Audit_Logger::log( [
             'request_id'          => $request_id,
             'session_id'          => self::$current_session_id ?: null,

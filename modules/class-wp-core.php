@@ -1,8 +1,7 @@
 <?php
 /**
  * WordPress Core Ops module.
- * Covers: site info, post types, taxonomies, posts, terms, meta, options.
- * 22 tools total.
+ * Covers: site info, post types, taxonomies, posts, terms, meta, options, cache, plugins.
  */
 class AICOM_Module_WP_Core extends AICOM_Module_Base {
 
@@ -283,6 +282,16 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'confirm'      => [ 'type' => 'boolean', 'required' => true, 'description' => 'Must be true to execute.' ],
             ],
             'handler'          => [ $this, 'handle_options_set' ],
+        ] );
+
+        // ── Cache ─────────────────────────────────────────────────────────
+        $this->register( 'wp.cache.purge', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'manage.wordpress.settings' ],
+            'supports_dry_run' => true,
+            'description'      => 'Clear the site\'s caching plugin, if one is active (LiteSpeed Cache, WP Fastest Cache, W3 Total Cache, WP Super Cache, WP Rocket, WP-Optimize, Autoptimize). Call this after a change a visitor would otherwise keep seeing a stale cached version of. A no-op if no supported cache plugin is active.',
+            'input_schema'     => [],
+            'handler'          => [ $this, 'handle_cache_purge' ],
         ] );
 
         // ── Plugins ───────────────────────────────────────────────────────
@@ -1359,6 +1368,19 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             [ 'option_name' => $option_name, 'updated' => true ],
             [ 'target_type' => 'option', 'target_id' => $option_name ]
         );
+    }
+
+    public function handle_cache_purge( array $args, array $key_record, bool $dry_run ): array {
+        if ( $dry_run ) {
+            return $this->ok( [ 'dry_run' => true, 'would_purge_cache' => true ] );
+        }
+
+        $problems = AICOM_Cache_Buster::purge_all();
+
+        return $this->ok( [
+            'purged'   => true,
+            'problems' => $problems,
+        ] );
     }
 
     public function handle_plugins_list( array $args, array $key_record, bool $dry_run ): array {
