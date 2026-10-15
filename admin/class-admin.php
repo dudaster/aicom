@@ -1119,35 +1119,37 @@ class AICOM_Admin {
             'read-only' => [
                 'name'   => __( 'Read-only', 'aicom' ),
                 // Includes manage.skills (create/update a saved Skill) at the
-                // user's explicit request, applied to every preset below —
+                // user's explicit request, applied to every preset below — and
+                // read.skills with it (2026-10-15): without it a key could save
+                // a Skill but never find or run it, nor run skills.match first —
                 // note this preset is no longer strictly read-only on the
                 // site itself, only on WordPress content; risk bumped
                 // accordingly so the badge doesn't undersell it.
-                'scopes' => [ 'read.wp', 'read.users', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'read.users', 'read.skills', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Safe browsing only, plus saving Skills', 'aicom' ),
             ],
             'content-assistant' => [
                 'name'   => __( 'Content Assistant', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'read.skills', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Write & publish content', 'aicom' ),
             ],
             'elementor-editor' => [
                 'name'   => __( 'Elementor Editor', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.elementor', 'manage.media', 'read.skills', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Build Elementor pages', 'aicom' ),
             ],
             'woocommerce-catalog' => [
                 'name'   => __( 'WooCommerce Catalog', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.woocommerce.products', 'read.skills', 'manage.skills' ],
                 'risk'   => 'med',
                 'desc'   => __( 'Manage products', 'aicom' ),
             ],
             'site-maintenance' => [
                 'name'   => __( 'Site Maintenance', 'aicom' ),
-                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings', 'read.skills', 'manage.skills' ],
                 'risk'   => 'high',
                 'desc'   => __( 'Updates, backups, settings', 'aicom' ),
             ],
@@ -1173,7 +1175,7 @@ class AICOM_Admin {
             $presets['translator'] = [
                 'name'   => __( 'Translator', 'aicom' ),
                 'scopes' => array_merge(
-                    [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.media', 'manage.skills' ],
+                    [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'manage.media', 'read.skills', 'manage.skills' ],
                     $translation_scopes
                 ),
                 'risk'   => 'high',
@@ -1194,7 +1196,7 @@ class AICOM_Admin {
                 // manage.yoast/manage.seopress cover writes; reading is
                 // already covered by read.wp (see each scope's own
                 // description) so no extra read.* scope is needed here.
-                'scopes' => array_merge( [ 'read.wp', 'manage.skills' ], $seo_scopes ),
+                'scopes' => array_merge( [ 'read.wp', 'read.skills', 'manage.skills' ], $seo_scopes ),
                 'risk'   => 'med',
                 'desc'   => __( 'Edit SEO meta with the active SEO plugin', 'aicom' ),
             ];
