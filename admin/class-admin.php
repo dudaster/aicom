@@ -86,6 +86,8 @@ class AICOM_Admin {
         $aicom_url    = admin_url( 'admin.php?page=aicom' );
         $help_url     = admin_url( 'admin.php?page=aicom-help' );
         $audit_url    = admin_url( 'admin.php?page=aicom-audit-logs' );
+        $base_url     = admin_url( 'admin.php?page=aicom-base' );
+        $base_connected = class_exists( 'AICOM_Base_State' ) && AICOM_Base_State::is_connected();
         $logo_url     = AICOM_URL . 'assets/branding/aicom-logo-primary.svg';
         ?>
         <div class="aicom-dash-widget">
@@ -137,6 +139,12 @@ class AICOM_Admin {
                     </ul>
                 <?php endif; ?>
             </div>
+
+            <?php if ( ! $base_connected ) : ?>
+                <div class="aicom-dash-widget-section aicom-dash-widget-base-cta">
+                    <a href="<?php echo esc_url( $base_url ); ?>" class="button aicom-dash-widget-base-btn"><?php esc_html_e( 'Connect to AICOMBase', 'aicom' ); ?></a>
+                </div>
+            <?php endif; ?>
 
             <div class="aicom-dash-widget-footer">
                 <a href="<?php echo esc_url( $help_url ); ?>" class="aicom-dash-widget-help">
