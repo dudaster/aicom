@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.22.2
+Stable tag: 3.23.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.23.0 =
+
+* New: `wp.cache.purge` tool — clears the site's caching plugin (LiteSpeed Cache, WP Fastest Cache, W3 Total Cache, WP Super Cache, WP Rocket, WP-Optimize, Autoptimize — whichever is active), via each plugin's own documented purge API. A no-op if none is active. Call it after a change a visitor would otherwise keep seeing a stale cached version of.
+* New: "Connect to AICOMBase" is now offered earlier — one of Dudee's first three options (instead of only at the very end of his full tour), and its own button on the native WordPress dashboard widget (hidden once already connected).
 
 = 3.22.2 =
 
