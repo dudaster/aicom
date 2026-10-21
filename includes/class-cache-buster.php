@@ -40,7 +40,14 @@ class AICOM_Cache_Buster {
             error_log( 'AICOM cache purge failed for: ' . wp_json_encode( $problems ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- deliberate: surfaces a cache plugin's own API change without touching the actual tool response.
         }
 
-        wp_cache_flush();
+        // On multisite, a persistent object cache is shared network-wide —
+        // flushing it here would wipe every other site on the network for
+        // one site's purge call. Each page-cache plugin's own purge above
+        // already scoped itself to this site; this is only the object-cache
+        // flush, and only makes sense to do globally on a single-site install.
+        if ( ! is_multisite() ) {
+            wp_cache_flush();
+        }
 
         return $problems;
     }

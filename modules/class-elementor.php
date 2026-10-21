@@ -533,6 +533,11 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
     // ── Private Helpers ───────────────────────────────────────────────────
 
     private function get_elementor_data( int $post_id ): ?array {
+        // Force a DB read, not whatever's sitting in the object cache from
+        // before this request — a write earlier in the same request (or by
+        // a near-simultaneous one) can otherwise read back its own stale
+        // pre-write value. Cheap: this is a single key eviction, not a flush.
+        wp_cache_delete( $post_id, 'post_meta' );
         $raw = get_post_meta( $post_id, '_elementor_data', true );
         if ( ! $raw ) {
             return null;
@@ -549,12 +554,24 @@ class AICOM_Module_Elementor extends AICOM_Module_Base {
         }
         // wp_slash() counteracts update_post_meta's internal wp_unslash(),
         // preserving backslash sequences in JSON (e.g. \", \n, \\).
-        update_post_meta( $post_id, '_elementor_data', wp_slash( $encoded ) );
+        $updated = update_post_meta( $post_id, '_elementor_data', wp_slash( $encoded ) );
+        if ( $updated === false ) {
+            // update_post_meta() returns false both on a genuine write failure
+            // and when the new value is identical to what's already stored —
+            // the second case is normal and not an error, but worth a note in
+            // case it's ever actually the former (e.g. masking a stale read
+            // upstream that made the new value look like a no-op).
+            error_log( "AICOM: update_post_meta(_elementor_data) returned false for post $post_id — either already up to date, or the write didn't take." ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- deliberate: visibility into a meta-API quirk, never blocks the actual save.
+        }
         update_post_meta( $post_id, '_elementor_edit_mode', 'builder' );
         // Clear all Elementor caches so the page re-renders with updated content.
         delete_post_meta( $post_id, '_elementor_css' );
         delete_post_meta( $post_id, '_elementor_element_cache' ); // Elementor Pro HTML cache
         delete_post_meta( $post_id, '_elementor_page_assets' );
+        // Belt-and-braces alongside update_post_meta()'s own internal cache
+        // invalidation: clears the whole post-meta cache bucket for this post,
+        // not just the single key, so nothing else cached under the old data survives.
+        clean_post_cache( $post_id );
         return true;
     }
 

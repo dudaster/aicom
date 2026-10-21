@@ -287,7 +287,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         // ── Cache ─────────────────────────────────────────────────────────
         $this->register( 'wp.cache.purge', [
             'class'            => 'write',
-            'required_scopes'  => [ 'manage.wordpress.settings' ],
+            'required_scopes'  => [ 'write.wp.posts' ],
             'supports_dry_run' => true,
             'description'      => 'Clear the site\'s caching plugin, if one is active (LiteSpeed Cache, WP Fastest Cache, W3 Total Cache, WP Super Cache, WP Rocket, WP-Optimize, Autoptimize). Call this after a change a visitor would otherwise keep seeing a stale cached version of. A no-op if no supported cache plugin is active.',
             'input_schema'     => [],
