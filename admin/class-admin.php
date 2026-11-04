@@ -1451,6 +1451,13 @@ class AICOM_Admin {
                     delete_option( (string) $payload['option'] );
                 }
                 $restored++;
+
+            } elseif ( $backup['target_type'] === 'ability_undo' ) {
+                // A change a plugin made through one of its abilities (e.g. a Clautron capability installed):
+                // run the undo step that plugin returned with its result. Newest first, like everything above.
+                if ( AICOM_Module_Abilities::run_undo( $payload ) ) {
+                    $restored++;
+                }
             }
         }
 

@@ -23,6 +23,14 @@
  *   dependency  the namespace, so the tool follows Module_Detector like any
  *               hand-written module's tools
  *   dry_run     supported when the input schema has a dry_run property
+ *   reversible  meta.reversible === true (its undo step is always complete);
+ *               the inventory then lists the tool as undoable up front
+ *
+ * Undo: when a call changes state the ability may return
+ * `undo: { ability, input, complete }`. The bridge records it in the session's
+ * backups (target_type ability_undo) and Restore session runs it, newest
+ * first like every other backup. Only an ability in the same namespace is
+ * accepted as the undo step, and it runs the same authorised way as a call.
  *
  * At call time, meta.scopes_resolver (a read-only ability in the same
  * namespace, same input) can name extra scopes the key must hold for this
@@ -71,7 +79,8 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
                 continue; // never shadow a tool another module owns
             }
             $ability_name    = $ability->get_name();
-            $meta['handler'] = fn( array $args, array $key_record, bool $dry_run ): array => $this->run( $ability_name, $args, $key_record, $dry_run );
+            $tool_name       = $meta['tool_name'];
+            $meta['handler'] = fn( array $args, array $key_record, bool $dry_run ): array => $this->run( $ability_name, $args, $key_record, $dry_run, $tool_name );
             AICOM_Tool_Registry::register( $meta['tool_name'], $meta );
         }
     }
@@ -115,6 +124,7 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
             'class'            => $class,
             'required_scopes'  => $scopes,
             'destructive'      => 'destructive' === $class,
+            'reversible'       => ! $readonly && true === ( $meta['reversible'] ?? null ),
             'supports_dry_run' => isset( $schema['properties']['dry_run'] ),
             'description'      => (string) $ability->get_description(),
             'input_schema'     => self::input_schema( $schema ),
@@ -162,7 +172,7 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
 
     // ── Execution ─────────────────────────────────────────────────────────
 
-    public function run( string $ability_name, array $args, array $key_record, bool $dry_run ): array {
+    public function run( string $ability_name, array $args, array $key_record, bool $dry_run, string $tool_name = '' ): array {
         $ability = wp_get_ability( $ability_name );
         if ( ! $ability ) {
             return $this->err( 'ABILITY_UNAVAILABLE', "$ability_name is no longer registered on this site.", 'error', 404 );
@@ -184,6 +194,16 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
         }
 
         $data = is_array( $result ) ? $result : [ 'result' => $result ];
+
+        $undo = $dry_run ? null : self::valid_undo( $ability_name, $data['undo'] ?? null );
+        if ( $undo ) {
+            try {
+                AICOM_Module_Backup::record_ability_undo( $tool_name ?: $ability_name, $undo, $key_record );
+            } catch ( Throwable $e ) {
+                // Same rule as the router's snapshots: the change already happened, report it anyway.
+            }
+        }
+
         return $this->ok( $data, [
             'target_type' => $ability_name,
             'target_id'   => $data['blueprint_id'] ?? $input['capability_id'] ?? $input['blueprint_id'] ?? $input['post_id'] ?? '',
@@ -211,6 +231,40 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
             : null;
         $out = self::execute_authorised( $resolver, $resolver_input );
         return is_wp_error( $out ) ? $out : array_values( array_filter( (array) ( $out['scopes'] ?? [] ), 'is_string' ) );
+    }
+
+    /**
+     * The undo step an ability returned, normalised, or null when there is
+     * none or it can't be trusted: it must name a registered ability in the
+     * same namespace as the one that made the change.
+     *
+     * @return array{ability: string, input: array, complete: bool}|null
+     */
+    public static function valid_undo( string $ability_name, mixed $undo ): ?array {
+        if ( ! is_array( $undo ) || ! is_string( $undo['ability'] ?? null ) || ! is_array( $undo['input'] ?? null ) ) {
+            return null;
+        }
+        $namespace = explode( '/', $ability_name )[0];
+        if ( explode( '/', $undo['ability'] )[0] !== $namespace || ! wp_get_ability( $undo['ability'] ) ) {
+            return null;
+        }
+        return [ 'ability' => $undo['ability'], 'input' => $undo['input'], 'complete' => true === ( $undo['complete'] ?? null ) ];
+    }
+
+    /**
+     * Restore session: run a recorded undo step. Re-checked at run time, since
+     * the namespace may have been opted out or the plugin removed since.
+     */
+    public static function run_undo( array $payload ): bool {
+        if ( ! function_exists( 'wp_get_ability' ) || ! is_string( $payload['ability'] ?? null ) ) {
+            return false;
+        }
+        $ability = wp_get_ability( $payload['ability'] );
+        if ( ! $ability || ! in_array( explode( '/', $payload['ability'] )[0], self::namespaces(), true ) ) {
+            return false;
+        }
+        $input = self::ability_input( $ability, (array) ( $payload['input'] ?? [] ), false );
+        return ! is_wp_error( self::execute_authorised( $ability, $input ) );
     }
 
     /** Run one ability with permission granted for exactly that ability, for exactly this call. */

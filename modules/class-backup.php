@@ -17,7 +17,7 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             'required_scopes' => [ $scope ],
             'description'     => 'List available backups with optional target_type filter.',
             'input_schema'    => [
-                'target_type' => [ 'type' => 'string', 'description' => 'Filter by type: post, term, elementor_page.' ],
+                'target_type' => [ 'type' => 'string', 'description' => 'Filter by type: post, term, elementor_page, option, ability_undo (the step that reverses a change a plugin made through its abilities).' ],
                 'target_id'   => [ 'type' => 'string' ],
                 'limit'       => [ 'type' => 'integer', 'default' => 20 ],
             ],
@@ -247,6 +247,29 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             'target_id'     => $name,
             'manifest_json' => wp_json_encode( [ 'option' => $name ] ),
             'payload_json'  => wp_json_encode( [ 'option' => $name, 'exists' => $exists, 'value' => $exists ? $value : null ] ),
+        ] );
+        return (int) $wpdb->insert_id;
+    }
+
+    /**
+     * Record the undo step an ability returned with its result (target_type "ability_undo"): the ability and input
+     * that reverse what it just did, e.g. deactivate the Clautron capability it installed. Unlike the other backups
+     * this is not a copy of the old data; the plugin that made the change knows best how to reverse it, and
+     * AICOM_Admin::do_restore_session() runs it through AICOM_Module_Abilities::run_undo().
+     *
+     * @param array $undo { ability: string, input: array, complete: bool } — already validated by the bridge.
+     */
+    public static function record_ability_undo( string $tool_name, array $undo, array $key_record ): int {
+        global $wpdb;
+        $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
+            'created_at'    => current_time( 'mysql', true ),
+            'session_id'    => AICOM_Tool_Router::$current_session_id ?: null,
+            'api_key_id'    => (int) ( $key_record['id'] ?? 0 ),
+            'tool_name'     => $tool_name,
+            'target_type'   => 'ability_undo',
+            'target_id'     => substr( (string) ( $undo['input']['capability_id'] ?? $undo['ability'] ), 0, 100 ),
+            'manifest_json' => wp_json_encode( [ 'ability' => $undo['ability'], 'complete' => $undo['complete'] ] ),
+            'payload_json'  => wp_json_encode( $undo ),
         ] );
         return (int) $wpdb->insert_id;
     }

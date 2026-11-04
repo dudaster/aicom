@@ -116,7 +116,8 @@ class AICOM_Base_Capabilities {
             [ $cid, $domain, $cname ] = self::group_for( $name, (string) $meta['module'] );
 
             $is_read     = in_array( $meta['class'], AICOM_Tool_Registry::READ_ONLY_CLASSES, true );
-            $reversible  = $is_read || in_array( $name, self::snapshot_tools(), true );
+            // Or bridged from an ability whose undo step is always complete (AICOM_Module_Abilities).
+            $reversible  = $is_read || in_array( $name, self::snapshot_tools(), true ) || ! empty( $meta['reversible'] );
             $verification = $is_read ? 'none' : 'readback';
             $risk        = self::risk( $meta );
 

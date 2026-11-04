@@ -189,6 +189,65 @@ ok( 'inspect sees it installed and active', ( $r['result']['installed'] ?? false
 tool( 'clautron.capability.deactivate', [ 'capability_id' => $cap_id ] );
 tool( 'session.close' );
 
+section( 'Undo through Restore session' );
+$inv     = AICOM_Base_Capabilities::build();
+$cl      = current( array_filter( $inv, static fn( $c ) => $c['id'] === 'clautron' ) );
+$by_id   = array_column( $cl['tools'] ?? [], null, 'id' );
+ok( 'inventory: capability.deactivate is undoable up front (its undo is always complete)', ( $by_id['clautron.capability.deactivate']['reversible'] ?? null ) === true );
+ok( '... primitive.apply is not: how complete its undo is depends on the config', ( $by_id['clautron.primitive.apply']['reversible'] ?? null ) === false );
+
+$state       = static fn(): string => (string) CLAUTRON_Catalog::inspect( $cap_id )['status'];
+$undo_rows   = static fn( int $sid ): array => $wpdb->get_results( $wpdb->prepare(
+    "SELECT tool_name, target_id, payload_json FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d AND target_type = 'ability_undo'", $sid
+), ARRAY_A );
+$open        = static function ( string $name ) use ( &$sessions ): int {
+    $r = tool( 'session.open', [ 'name' => $name, 'description' => 'Abilities bridge undo test.' ] );
+    $sessions[] = (int) ( $r['session_id'] ?? 0 );
+    return (int) ( $r['session_id'] ?? 0 );
+};
+$sessions = [];
+
+ok( 'starting point: the capability is deactivated', $state() !== 'active', $state() );
+
+$s1 = $open( 'Undo test: apply' );
+tool( 'clautron.primitive.apply', [ 'type' => 'hide_wp_version' ] );
+$rows = $undo_rows( $s1 );
+ok( 'applying records its undo step in the session backups',
+    count( $rows ) === 1 && $rows[0]['tool_name'] === 'clautron.primitive.apply' && $rows[0]['target_id'] === $cap_id
+    && ( json_decode( $rows[0]['payload_json'], true )['ability'] ?? '' ) === 'clautron/capability-deactivate', wp_json_encode( $rows ) );
+ok( '... and the capability is active', $state() === 'active' );
+tool( 'session.close' );
+$n = AICOM_Admin::do_restore_session( $s1 );
+ok( 'Restore session runs it: the capability is no longer active', $n === 1 && $state() !== 'active', "restored=$n status=" . $state() );
+
+$s2 = $open( 'Undo test: reactivate' );
+tool( 'clautron.primitive.apply', [ 'type' => 'hide_wp_version' ] );
+tool( 'session.close' );
+$s3 = $open( 'Undo test: deactivate' );
+tool( 'clautron.capability.deactivate', [ 'capability_id' => $cap_id ] );
+tool( 'session.close' );
+ok( 'deactivated in a session', $state() !== 'active' );
+$n = AICOM_Admin::do_restore_session( $s3 );
+ok( 'Restore session of a deactivate reactivates it', $n === 1 && $state() === 'active', "restored=$n status=" . $state() );
+
+$s4 = $open( 'Undo test: no-ops' );
+tool( 'clautron.primitive.apply', [ 'type' => 'hide_wp_version', 'dry_run' => true ] );
+tool( 'clautron.primitive.apply', [ 'type' => 'hide_wp_version' ] ); // already active
+tool( 'session.close' );
+ok( 'dry runs and calls that changed nothing record no undo step', ! $undo_rows( $s4 ) );
+
+ok( 'valid_undo refuses an undo step in another namespace', null === AICOM_Module_Abilities::valid_undo( 'clautron/primitive-apply', [ 'ability' => 'core/get-site-info', 'input' => [] ] ) );
+ok( 'valid_undo refuses an unregistered ability', null === AICOM_Module_Abilities::valid_undo( 'clautron/primitive-apply', [ 'ability' => 'clautron/no-such-thing', 'input' => [] ] ) );
+$ns_before = get_option( AICOM_Module_Abilities::OPTION, null );
+update_option( AICOM_Module_Abilities::OPTION, [ 'someone-else' ] );
+ok( 'run_undo refuses a namespace no longer opted in', ! AICOM_Module_Abilities::run_undo( [ 'ability' => 'clautron/capability-deactivate', 'input' => [ 'capability_id' => $cap_id ] ] ) && $state() === 'active' );
+null === $ns_before ? delete_option( AICOM_Module_Abilities::OPTION ) : update_option( AICOM_Module_Abilities::OPTION, $ns_before );
+
+CLAUTRON_Catalog::deactivate( $cap_id );
+foreach ( array_filter( $sessions ) as $sid ) {
+    $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'session_id' => $sid ] );
+}
+
 // ── Clean up ──────────────────────────────────────────────────────────────
 foreach ( array_filter( $blueprints ) as $id ) {
     CLAUTRON_Blueprint_Store::update_status( $id, 'draft' );
