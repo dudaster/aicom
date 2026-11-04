@@ -115,6 +115,9 @@ class AICOM_Tool_Router {
         // (otherwise undoing "set alt text" on an image that had none would leave the new alt in place).
         'a11y.set_image_alt' => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
         'media.update_meta'  => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
+
+        // A setting: the option's value before the change (or that it didn't exist), so Restore session puts it back.
+        'wp.security.xmlrpc.set' => [ 'type' => 'option', 'option' => AICOM_Xmlrpc::OPTION ],
     ];
 
     // ── Main Dispatch ─────────────────────────────────────────────────────
@@ -1118,13 +1121,26 @@ class AICOM_Tool_Router {
      * but does not require that key to hold manage.backups — this is a
      * router-level safety net, not a user-invoked tool call.
      */
+    /** Options the router snapshots before a settings tool — the only ones Restore session may write back. */
+    public static function snapshotted_options(): array {
+        return array_values( array_filter( array_column( self::AUTO_BACKUP_MAP, 'option' ) ) );
+    }
+
     private static function maybe_auto_backup( string $tool_name, array $arguments, array $key_record ): void {
         if ( ! isset( self::AUTO_BACKUP_MAP[ $tool_name ] ) ) {
             return;
         }
 
         $spec = self::AUTO_BACKUP_MAP[ $tool_name ];
-        $id   = (int) ( $arguments[ $spec['id_arg'] ] ?? 0 );
+        if ( $spec['type'] === 'option' ) {
+            try {
+                AICOM_Module_Backup::snapshot_option( $spec['option'], $tool_name, $key_record );
+            } catch ( Throwable $e ) {
+                // Same rule as below: a failed safety snapshot must not block the real write.
+            }
+            return;
+        }
+        $id = (int) ( $arguments[ $spec['id_arg'] ] ?? 0 );
 
         if ( ! $id ) {
             return;

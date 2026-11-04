@@ -248,7 +248,8 @@ class AICOM_Base_Inspector {
             'config'  => [
                 'https'                   => is_ssl() || strpos( (string) home_url(), 'https://' ) === 0,
                 'force_ssl_admin'         => defined( 'FORCE_SSL_ADMIN' ) && FORCE_SSL_ADMIN,
-                'xmlrpc_enabled'          => (bool) apply_filters( 'xmlrpc_enabled', true ),
+                // Our own setting is read directly too: it may have changed earlier in this same request.
+                'xmlrpc_enabled'          => ! AICOM_Xmlrpc::is_off() && (bool) apply_filters( 'xmlrpc_enabled', true ),
                 'file_edit_disabled'      => defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT,
                 'file_mods_disabled'      => defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS,
                 'wp_debug'                => defined( 'WP_DEBUG' ) && WP_DEBUG,
@@ -259,6 +260,7 @@ class AICOM_Base_Inspector {
                 'environment_type'        => function_exists( 'wp_get_environment_type' ) ? wp_get_environment_type() : 'production',
                 'auto_update_core'        => defined( 'WP_AUTO_UPDATE_CORE' ) ? WP_AUTO_UPDATE_CORE : null,
                 'aicom_lockdown_mode'     => class_exists( 'AICOM_Lockdown' ) && method_exists( 'AICOM_Lockdown', 'is_enabled' ) ? (bool) AICOM_Lockdown::is_enabled() : null,
+                'aicom_xmlrpc_disabled'   => AICOM_Xmlrpc::is_disabled_by_setting(),
             ],
         ];
     }

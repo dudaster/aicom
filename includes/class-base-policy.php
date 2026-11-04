@@ -14,14 +14,23 @@ defined( 'ABSPATH' ) || exit;
 class AICOM_Base_Policy {
 
     const OPT_ALLOWED = 'aicom_base_allowed_scopes';
+    /** Every scope that existed when the admin last saved the allow-list — what they were shown. */
+    const OPT_SEEN = 'aicom_base_scopes_seen';
+    /** Scopes added since lists were saved without OPT_SEEN; such a list was never offered these. */
+    const ADDED_SINCE_SEEN = [ 'manage.security.hardening' ];
 
     /** Scopes AICOMBase may request on this site. */
     public static function allowed_scopes(): array {
         $stored = get_option( self::OPT_ALLOWED, null );
-        if ( is_array( $stored ) ) {
-            return array_values( array_intersect( $stored, AICOM_Auth::scope_slugs() ) );
+        if ( ! is_array( $stored ) ) {
+            return self::default_scopes();
         }
-        return self::default_scopes();
+        // A scope added after the admin last saved this list wasn't offered to them: it follows the default
+        // (allowed unless critical) instead of being refused on every site that was set up before it existed.
+        $seen = get_option( self::OPT_SEEN, null );
+        $seen = is_array( $seen ) ? $seen : array_diff( AICOM_Auth::scope_slugs(), self::ADDED_SINCE_SEEN );
+        $new  = array_intersect( self::default_scopes(), array_diff( AICOM_Auth::scope_slugs(), $seen ) );
+        return array_values( array_intersect( AICOM_Auth::scope_slugs(), array_merge( $stored, $new ) ) );
     }
 
     /** Default cap: the whole scope tree minus `critical` scopes. */
@@ -38,6 +47,7 @@ class AICOM_Base_Policy {
     public static function set_allowed_scopes( array $scopes ): void {
         $scopes = array_values( array_unique( array_intersect( array_map( 'strval', $scopes ), AICOM_Auth::scope_slugs() ) ) );
         update_option( self::OPT_ALLOWED, $scopes, false );
+        update_option( self::OPT_SEEN, AICOM_Auth::scope_slugs(), false );
     }
 
     /**

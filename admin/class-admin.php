@@ -608,6 +608,11 @@ class AICOM_Admin {
                 wp_safe_redirect( add_query_arg( 'updated', 'lockdown', admin_url( 'admin.php?page=aicom-safety' ) ) );
                 exit;
 
+            case 'set_xmlrpc':
+                AICOM_Xmlrpc::set_disabled( ! empty( $_POST['xmlrpc_disabled'] ) );
+                wp_safe_redirect( add_query_arg( 'updated', 'xmlrpc', admin_url( 'admin.php?page=aicom-safety' ) ) );
+                exit;
+
             case 'clear_rate_limit':
                 $ip = sanitize_text_field( wp_unslash( $_POST['ip'] ?? '' ) );
                 if ( $ip ) {
@@ -1149,7 +1154,7 @@ class AICOM_Admin {
             ],
             'site-maintenance' => [
                 'name'   => __( 'Site Maintenance', 'aicom' ),
-                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings', 'read.skills', 'manage.skills' ],
+                'scopes' => [ 'read.wp', 'manage.plugins', 'manage.backups', 'manage.wordpress.settings', 'manage.security.hardening', 'read.skills', 'manage.skills' ],
                 'risk'   => 'high',
                 'desc'   => __( 'Updates, backups, settings', 'aicom' ),
             ],
@@ -1330,7 +1335,9 @@ class AICOM_Admin {
 
         $backups = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d ORDER BY created_at DESC",
+                // Newest first, so the oldest snapshot is applied last and wins. created_at has 1-second
+                // resolution: several changes in the same second need the auto-increment id to stay in order.
+                "SELECT * FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d ORDER BY created_at DESC, id DESC",
                 $session_id
             ),
             ARRAY_A
@@ -1431,6 +1438,17 @@ class AICOM_Admin {
                     foreach ( (array) $values as $val ) {
                         add_term_meta( (int) $t['term_id'], $key, maybe_unserialize( $val ) );
                     }
+                }
+                $restored++;
+
+            } elseif ( $backup['target_type'] === 'option'
+                && in_array( (string) ( $payload['option'] ?? '' ), AICOM_Tool_Router::snapshotted_options(), true )
+            ) {
+                // A setting the session changed: its old value back, or gone again if it didn't exist.
+                if ( ! empty( $payload['exists'] ) ) {
+                    update_option( (string) $payload['option'], $payload['value'] );
+                } else {
+                    delete_option( (string) $payload['option'] );
                 }
                 $restored++;
             }

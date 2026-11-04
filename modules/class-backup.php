@@ -227,6 +227,30 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
         );
     }
 
+    /**
+     * Snapshot one option before a settings tool changes it (router auto-backup, target_type "option"): its
+     * value, or that it didn't exist, so AICOM_Admin::do_restore_session() can put it back or remove it.
+     * Stored as JSON — fine for the scalar settings this is used for.
+     */
+    public static function snapshot_option( string $name, string $tool_name, array $key_record ): int {
+        global $wpdb;
+        $missing = new stdClass();
+        $value   = get_option( $name, $missing );
+        $exists  = $value !== $missing;
+
+        $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
+            'created_at'    => current_time( 'mysql', true ),
+            'session_id'    => AICOM_Tool_Router::$current_session_id ?: null,
+            'api_key_id'    => (int) ( $key_record['id'] ?? 0 ),
+            'tool_name'     => $tool_name,
+            'target_type'   => 'option',
+            'target_id'     => $name,
+            'manifest_json' => wp_json_encode( [ 'option' => $name ] ),
+            'payload_json'  => wp_json_encode( [ 'option' => $name, 'exists' => $exists, 'value' => $exists ? $value : null ] ),
+        ] );
+        return (int) $wpdb->insert_id;
+    }
+
     public function handle_post_restore( array $args, array $key_record, bool $dry_run ): array {
         global $wpdb;
         $backup_id = $this->require_int( $args, 'backup_id' );

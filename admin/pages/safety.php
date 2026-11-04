@@ -298,7 +298,55 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
                     <span><strong><?php esc_html_e( 'Block external write paths (Application Passwords, XML-RPC, REST writes signed in from outside)', 'aicom' ); ?></strong></span>
                 </label>
                 <p style="margin:10px 0 16px;color:var(--aicom-text-sm);font-size:0.85em">
-                    <?php esc_html_e( 'wp-admin and Gutenberg keep working — they send a wp_rest nonce that we honor. Only anonymous or password-only writes are refused.', 'aicom' ); ?>
+                    <?php esc_html_e( 'wp-admin and Gutenberg keep working, and so do visitors. Only writes signed in from outside the site — by JWT, OAuth or Basic Auth plugins — are refused.', 'aicom' ); ?>
+                </p>
+                <button type="submit" class="button button-primary"><?php esc_html_e( 'Save', 'aicom' ); ?></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- XML-RPC on its own (also off whenever AICOM-Only Mode is on) -->
+    <?php
+    $xmlrpc_setting_off  = AICOM_Xmlrpc::is_disabled_by_setting();
+    $xmlrpc_off          = AICOM_Xmlrpc::is_off();
+    $xmlrpc_needed_by    = AICOM_Xmlrpc::needed_by();
+    $xmlrpc_just_updated = isset( $_GET['updated'] ) && $_GET['updated'] === 'xmlrpc';
+    ?>
+    <div class="aicom-card">
+        <div class="aicom-card-head">
+            <h2 class="aicom-card-title"><?php esc_html_e( 'XML-RPC', 'aicom' ); ?></h2>
+            <span class="aicom-badge <?php echo $xmlrpc_off ? 'aicom-badge-success' : ''; ?>">
+                <?php echo $xmlrpc_off ? esc_html__( 'Off', 'aicom' ) : esc_html__( 'On', 'aicom' ); ?>
+            </span>
+        </div>
+        <div class="aicom-card-body">
+            <?php if ( $xmlrpc_just_updated ) : ?>
+                <div class="notice notice-success inline" style="margin:0 0 14px"><p><?php esc_html_e( 'XML-RPC setting saved.', 'aicom' ); ?></p></div>
+            <?php endif; ?>
+            <p style="margin:0 0 14px;color:var(--aicom-text-sm);font-size:0.92em">
+                <?php esc_html_e( 'XML-RPC (xmlrpc.php) is an old remote interface. It is a common target for password-guessing attacks and is rarely needed today — the block editor, the REST API and AICOM don\'t use it. Jetpack and the WordPress mobile app do.', 'aicom' ); ?>
+            </p>
+            <?php if ( $xmlrpc_needed_by ) : ?>
+                <div class="notice notice-warning inline" style="margin:0 0 14px"><p>
+                    <?php
+                    /* translators: %s: plugin names, e.g. "Jetpack" */
+                    echo esc_html( sprintf( __( '%s is active and needs XML-RPC — turning XML-RPC off will break it.', 'aicom' ), implode( ', ', $xmlrpc_needed_by ) ) );
+                    ?>
+                </p></div>
+            <?php endif; ?>
+            <?php if ( $lockdown_on ) : ?>
+                <p style="margin:0 0 14px;font-size:0.88em"><?php esc_html_e( 'AICOM-Only Mode is on, so XML-RPC is off whatever this setting says.', 'aicom' ); ?></p>
+            <?php endif; ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0">
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <input type="hidden" name="action" value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="set_xmlrpc" />
+                <label class="aicom-toggle-row" style="display:flex;align-items:center;gap:10px">
+                    <input type="checkbox" name="xmlrpc_disabled" value="1" <?php checked( $xmlrpc_setting_off ); ?> />
+                    <span><strong><?php esc_html_e( 'Disable XML-RPC', 'aicom' ); ?></strong></span>
+                </label>
+                <p style="margin:10px 0 16px;color:var(--aicom-text-sm);font-size:0.85em">
+                    <?php esc_html_e( 'AICOMBase can also turn it off for you, as the fix for its "XML-RPC endpoint enabled" finding — with Undo.', 'aicom' ); ?>
                 </p>
                 <button type="submit" class="button button-primary"><?php esc_html_e( 'Save', 'aicom' ); ?></button>
             </form>

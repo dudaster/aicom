@@ -38,13 +38,15 @@ $snap = [
     'state'    => get_option( AICOM_Base_State::OPT, null ),
     'identity' => get_option( AICOM_Base_Identity::OPT_IDENTITY, null ),
     'policy'   => get_option( AICOM_Base_Policy::OPT_ALLOWED, null ),
+    'seen'     => get_option( AICOM_Base_Policy::OPT_SEEN, null ),
+    'xmlrpc'   => get_option( AICOM_Xmlrpc::OPTION, null ),
     'url'      => get_option( AICOM_Base_State::OPT_URL, null ),
     'events'   => $wpdb->get_results( "SELECT * FROM $t_events", ARRAY_A ),
 ];
 
 function restore_state(): void {
     global $wpdb, $snap, $t_events;
-    foreach ( [ AICOM_Base_State::OPT => 'state', AICOM_Base_Identity::OPT_IDENTITY => 'identity', AICOM_Base_Policy::OPT_ALLOWED => 'policy', AICOM_Base_State::OPT_URL => 'url' ] as $opt => $k ) {
+    foreach ( [ AICOM_Base_State::OPT => 'state', AICOM_Base_Identity::OPT_IDENTITY => 'identity', AICOM_Base_Policy::OPT_ALLOWED => 'policy', AICOM_Base_Policy::OPT_SEEN => 'seen', AICOM_Xmlrpc::OPTION => 'xmlrpc', AICOM_Base_State::OPT_URL => 'url' ] as $opt => $k ) {
         if ( $snap[ $k ] === null ) { delete_option( $opt ); } else { update_option( $opt, $snap[ $k ], false ); }
     }
     $wpdb->query( "DELETE FROM $t_events" );
@@ -226,6 +228,20 @@ $restored = current( array_filter( queued(), static fn( $e ) => $e['type'] === '
 ok( 'session.restored reported to AICOMBase with the count', ( $restored['session_id'] ?? '' ) === $sess && (int) ( $restored['restored'] ?? 0 ) >= 1 );
 ok( 'a restored session is closed — nothing more runs in it', AICOM_Sessions::find_open_remote( $sess ) === null );
 wp_delete_post( $post_id, true );
+
+// The one-click fix AICOMBase sends for finding SEC-EXP-003 ("Turn off XML-RPC"): the signed execute exactly as
+// dispatchTarget queues it (params = the task's params: arguments + tool_id), then Undo (restore_session).
+$xsess = wp_generate_uuid4();
+AICOM_Sessions::open_remote( $xsess, 'Turn off XML-RPC', 'The owner pressed "Turn off XML-RPC" on finding SEC-EXP-003.' );
+delete_option( AICOM_Xmlrpc::OPTION );
+$xtt = wp_generate_uuid4();
+AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $xtt, 'tool_id' => 'wp.security.xmlrpc.set',
+    'params' => [ 'arguments' => [ 'enabled' => false ], 'tool_id' => 'wp.security.xmlrpc.set' ],
+    'authorization' => issue_token( [ 'task_target_id' => $xtt, 'session_id' => $xsess, 'allowed_scopes' => [ 'manage.security.hardening' ] ] ) ] );
+$xres = AICOM_Base_State::get( 'pending_results', [] )[ $xtt ] ?? [];
+ok( 'AICOMBase fix for SEC-EXP-003: XML-RPC off, result completed and verified', ( $xres['status'] ?? '' ) === 'completed' && ( $xres['result']['verified'] ?? null ) === true && AICOM_Xmlrpc::is_off(), wp_json_encode( $xres ) );
+AICOM_Base_Heartbeat::cmd_restore_session( $xsess );
+ok( 'Undo from AICOMBase (restore_session) turns it back on — the setting is gone again', get_option( AICOM_Xmlrpc::OPTION, null ) === null && ! AICOM_Xmlrpc::is_off() );
 
 // close_session command / admin "Close" → session.ended to AICOMBase.
 $sess2 = wp_generate_uuid4();

@@ -46,19 +46,10 @@ class AICOM_Lockdown {
             return;
         }
 
-        // Hard-block XML-RPC entirely. The `xmlrpc_enabled` filter only stops
-        // authenticated methods; system.listMethods (defined in IXR_Server) is
-        // not filterable, so it still leaks the method list. Honest fix is to
-        // refuse the request before WP loads the XML-RPC server.
-        if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
-            status_header( 403 );
-            header( 'Content-Type: text/plain; charset=UTF-8' );
-            echo 'XML-RPC is disabled — site is in AICOM-only mode.';
-            exit;
-        }
+        // Hard-block XML-RPC entirely (same block as the separate "Disable XML-RPC" setting).
+        AICOM_Xmlrpc::block( 'XML-RPC is disabled — site is in AICOM-only mode.' );
 
         add_filter( 'wp_is_application_passwords_available', '__return_false' );
-        add_filter( 'xmlrpc_enabled', '__return_false' );
         add_filter( 'rest_pre_dispatch', [ self::class, 'gate_rest_writes' ], 10, 3 );
     }
 

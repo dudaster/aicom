@@ -133,6 +133,8 @@ add_action( 'plugins_loaded', 'aicom_boot', 5 );
 // Registered on plugins_loaded so the xmlrpc_methods filter is in place before
 // wp_xmlrpc_server applies it during set_callbacks().
 add_action( 'plugins_loaded', [ 'AICOM_Lockdown', 'bootstrap' ], 1 );
+// "Disable XML-RPC" on its own (Safety page / wp.security.xmlrpc.set / AICOMBase fix for SEC-EXP-003).
+add_action( 'plugins_loaded', [ 'AICOM_Xmlrpc', 'bootstrap' ], 1 );
 
 // ── HTTP response reliability ────────────────────────────────────────────
 // $aicom_dispatching is true only while we are actually inside one of our own

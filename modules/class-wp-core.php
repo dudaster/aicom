@@ -294,6 +294,26 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'handler'          => [ $this, 'handle_cache_purge' ],
         ] );
 
+        // ── Security hardening ────────────────────────────────────────────
+        $this->register( 'wp.security.xmlrpc.get', [
+            'class'           => 'read',
+            'required_scopes' => [ 'read.wp' ],
+            'description'     => 'Whether XML-RPC (xmlrpc.php) is on or off for visitors, and why: the "Disable XML-RPC" setting, AICOM-only mode, and active plugins that need it (Jetpack).',
+            'input_schema'    => [],
+            'handler'         => [ $this, 'handle_xmlrpc_get' ],
+        ] );
+        $this->register( 'wp.security.xmlrpc.set', [
+            'class'            => 'write',
+            'required_scopes'  => [ 'manage.security.hardening' ],
+            'supports_dry_run' => true,
+            'description'      => 'Turn XML-RPC (xmlrpc.php) off, or back on. Off answers every xmlrpc.php request with 403 — a common brute-force target, rarely needed today. Refused while an active plugin needs XML-RPC (Jetpack) unless force=true; the WordPress mobile app needs it too, so ask the site owner if they use it. The previous setting is snapshotted, so Restore session puts it back.',
+            'input_schema'     => [
+                'enabled' => [ 'type' => 'boolean', 'required' => true, 'description' => 'false turns XML-RPC off; true turns it back on.' ],
+                'force'   => [ 'type' => 'boolean', 'description' => 'Turn it off even though an active plugin needs it. Only when the site owner confirms.' ],
+            ],
+            'handler'          => [ $this, 'handle_xmlrpc_set' ],
+        ] );
+
         // ── Plugins ───────────────────────────────────────────────────────
         $this->register( 'wp.plugins.list', [
             'class'           => 'read',
@@ -1381,6 +1401,59 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'purged'   => true,
             'problems' => $problems,
         ] );
+    }
+
+    /** XML-RPC as visitors get it, and why. */
+    private function xmlrpc_state(): array {
+        return [
+            'xmlrpc_enabled'              => ! AICOM_Xmlrpc::is_off(),
+            'disabled_by_setting'         => AICOM_Xmlrpc::is_disabled_by_setting(),
+            'disabled_by_aicom_only_mode' => AICOM_Lockdown::is_enabled(),
+            'needed_by'                   => array_values( AICOM_Xmlrpc::needed_by() ),
+        ];
+    }
+
+    public function handle_xmlrpc_get( array $args, array $key_record, bool $dry_run ): array {
+        return $this->ok( $this->xmlrpc_state() );
+    }
+
+    public function handle_xmlrpc_set( array $args, array $key_record, bool $dry_run ): array {
+        // A missing value must never read as "false" (that would turn XML-RPC off): only real booleans count.
+        $raw     = $args['enabled'] ?? null;
+        $enabled = is_bool( $raw ) ? $raw : ( ( is_string( $raw ) && $raw !== '' ) || is_int( $raw ) ? filter_var( $raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE ) : null );
+        if ( $enabled === null ) {
+            return $this->err( 'MISSING_PARAM', 'Parameter enabled is required: false turns XML-RPC off, true turns it back on.', 'validation_failed' );
+        }
+        $force   = isset( $args['force'] ) && filter_var( $args['force'], FILTER_VALIDATE_BOOLEAN );
+        $disable = ! $enabled;
+        $before  = $this->xmlrpc_state();
+
+        if ( $disable && $before['needed_by'] && ! $force ) {
+            return $this->err(
+                'XMLRPC_NEEDED',
+                sprintf( 'Not turned off: %s is active and needs XML-RPC, so turning it off would break it. Pass force=true only if the site owner confirms.', implode( ', ', $before['needed_by'] ) ),
+                'validation_failed',
+                409
+            );
+        }
+
+        $changed = AICOM_Xmlrpc::is_disabled_by_setting() !== $disable;
+        if ( $dry_run ) {
+            return $this->ok( array_merge( $before, [ 'dry_run' => true, 'would_change' => $changed ] ) );
+        }
+        if ( $changed ) {
+            AICOM_Xmlrpc::set_disabled( $disable );
+        }
+
+        // Read back what visitors now get.
+        $after = $this->xmlrpc_state();
+        $out   = array_merge( $after, [ 'changed' => $changed, 'verified' => $after['disabled_by_setting'] === $disable ] );
+        if ( $enabled && $after['disabled_by_aicom_only_mode'] ) {
+            $out['note'] = 'XML-RPC stays off: AICOM-only mode is on, and it turns XML-RPC off too (AICOM → Safety).';
+        } elseif ( $disable && $before['needed_by'] ) {
+            $out['note'] = sprintf( 'Turned off although %s needs XML-RPC (forced).', implode( ', ', $before['needed_by'] ) );
+        }
+        return $this->ok( $out, [ 'target_type' => 'option', 'target_id' => AICOM_Xmlrpc::OPTION ] );
     }
 
     public function handle_plugins_list( array $args, array $key_record, bool $dry_run ): array {

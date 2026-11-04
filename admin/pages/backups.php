@@ -90,6 +90,7 @@ $type_options = [
     'post'           => __( 'Post', 'aicom' ),
     'term'           => __( 'Term', 'aicom' ),
     'elementor_page' => __( 'Elementor Page', 'aicom' ),
+    'option'         => __( 'Setting', 'aicom' ),
 ];
 
 // ── Sessions with snapshots (undo-a-whole-session) ─────────────────────────

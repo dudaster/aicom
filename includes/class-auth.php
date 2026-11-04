@@ -50,6 +50,7 @@ class AICOM_Auth {
                 'manage.wordpress.settings' => [ __( 'WordPress options/settings',  'aicom' ), 'critical' ],
                 'manage.plugins'            => [ __( 'Plugin management & updates',  'aicom' ), 'critical' ],
                 'manage.backups'            => [ __( 'Backup & restore data',        'aicom' ), 'high' ],
+                'manage.security.hardening' => [ __( 'Security hardening switches', 'aicom' ), 'med', __( 'Turn security hardening on or off, such as disabling XML-RPC. Every change is snapshotted, so Restore session puts it back. Does not allow changing any other setting.', 'aicom' ) ],
             ],
             __( 'Integrations', 'aicom' ) => [
                 'read.woocommerce'            => [ __( 'Read WooCommerce data (products, categories, settings)', 'aicom' ), 'low' ],

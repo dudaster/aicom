@@ -26,6 +26,7 @@ class AICOM_Base_Capabilities {
             'media.'           => [ 'media',         'Media',       'Media library' ],
             'files.'           => [ 'files',         'Media',       'File system' ],
             'wp.options.'      => [ 'site_settings', 'Site',        'Site settings' ],
+            'wp.security.'     => [ 'site_security', 'Site',        'Security hardening' ],
             'wp.plugins.'      => [ 'plugins',       'Site',        'Plugin management' ],
             'wp.users.'        => [ 'users',         'Users',       'Users & roles' ],
             'wp.roles.'        => [ 'users',         'Users',       'Users & roles' ],
@@ -54,6 +55,7 @@ class AICOM_Base_Capabilities {
             'wp.posts.update', 'wp.posts.trash', 'wp.posts.delete', 'wp.terms.update', 'wp.terms.delete',
             'elementor.widget.update_field', 'elementor.page.bulk_update_texts', 'elementor.template.set_conditions',
             'pll.create_bilingual_pair', 'wp.posts.create', 'wp.posts.restore', 'a11y.set_image_alt', 'media.update_meta',
+            'wp.security.xmlrpc.set',
             // Not actually snapshotted (nothing to restore) — listed here only so it
             // counts as reversible: clearing a cache plugin never deletes or alters
             // content, so it shouldn't make an otherwise-undoable session un-undoable.
