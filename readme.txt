@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.23.1
+Stable tag: 3.23.2
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,13 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.23.2 =
+
+* Fixed: AICOM-Only Mode no longer breaks your site's public features. With it on, Contact Form 7 submissions, anonymous comments sent through the REST API and the WooCommerce block cart and checkout — for visitors and signed-in customers alike — were refused with a 403. The mode now blocks only what it is meant to: writes to the REST API signed in from outside the site (JWT, OAuth or Basic Auth plugins), plus Application Passwords and XML-RPC as before. wp-admin and the block editor keep working.
+* Fixed: the version in the plugin header had stayed at 3.22.2 since 3.23.0, so sites on 3.22.2 were never offered 3.23.0 or 3.23.1. This release brings them the fixes from both.
+* Fixed (AICOMBase connection): a wake request from AICOMBase is now answered at once and the work goes on after the connection closes, so hosts that stop PHP when the caller hangs up (LiteSpeed) no longer leave a step picked up but never run.
+* Fixed (AICOMBase connection): a step that was picked up but never finished is now reported straight away as interrupted, with its outcome unknown, instead of AICOMBase waiting for a timeout. A result the site could not send is kept and re-sent on the next check-in.
 
 = 3.23.1 =
 
@@ -587,6 +594,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.23.2 =
+Recommended for every site: with AICOM-Only Mode on, Contact Form 7 forms and the WooCommerce cart and checkout were blocked. This also delivers the 3.23.0 and 3.23.1 fixes to sites that never got them.
 
 = 2.0.0 =
 Complete rewrite. After upgrading, re-generate all API keys — the key format has changed and old keys are not valid.
