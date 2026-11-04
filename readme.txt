@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.23.2
+Stable tag: 3.24.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,15 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.24.0 =
+
+* New: "Disable XML-RPC" on the Safety page, on its own, without turning on AICOM-Only Mode — xmlrpc.php then answers 403. AI agents can read and change it with the new wp.security.xmlrpc.get / wp.security.xmlrpc.set tools (new permission "Security hardening switches"), and AICOMBase offers it as the one-click fix for "XML-RPC endpoint enabled", with Undo. It refuses while Jetpack is active, since Jetpack needs XML-RPC.
+* New: plugins that describe their own operations as WordPress Abilities can publish them as AICOM tools, with no AICOM update for each new operation. Opt-in per plugin; Clautron 1.4 is the first. Needs WordPress 7.1 — on older WordPress nothing changes. Keys, scopes, sessions, locks and the audit log apply to these tools like to any other.
+* New: Restore session also puts back settings changed in the session, and undoes changes made through a plugin's abilities when the plugin says how (for example, deactivating a Clautron capability it installed).
+* Fixed: Restore session could apply several changes made within the same second in the wrong order and leave the wrong value in place.
+* Fixed: when an admin had saved the list of permissions AICOMBase may use, permissions added in later versions were refused. New permissions now follow the default (allowed unless critical); what the admin unticked stays off.
+* Fixed: the Safety page still said AICOM-Only Mode refuses anonymous writes, which stopped being true in 3.23.2.
 
 = 3.23.2 =
 
@@ -594,6 +603,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.24.0 =
+Adds Disable XML-RPC and the tools behind AICOMBase's one-click security fixes, with Undo.
 
 = 3.23.2 =
 Recommended for every site: with AICOM-Only Mode on, Contact Form 7 forms and the WooCommerce cart and checkout were blocked. This also delivers the 3.23.0 and 3.23.1 fixes to sites that never got them.
