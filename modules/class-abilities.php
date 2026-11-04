@@ -132,8 +132,9 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
         ];
     }
 
-    public static function tool_name( string $ns, string $local, mixed $override ): string {
-        if ( is_string( $override ) && str_starts_with( $override, "$ns." ) && preg_match( '/^[a-z0-9_.]+$/', $override ) ) {
+    /** @param mixed $override meta.tool_name, whatever the plugin put there. */
+    public static function tool_name( string $ns, string $local, $override ): string {
+        if ( is_string( $override ) && strpos( $override, "$ns." ) === 0 && preg_match( '/^[a-z0-9_.]+$/', $override ) ) {
             return $override;
         }
         return $ns . '.' . str_replace( '-', '.', $local );
@@ -217,7 +218,7 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
      *
      * @return string[]|WP_Error
      */
-    private function resolved_scopes( WP_Ability $ability, ?array $input ): array|WP_Error {
+    private function resolved_scopes( WP_Ability $ability, ?array $input ) {
         $resolver_name = (string) ( $ability->get_meta()['scopes_resolver'] ?? '' );
         if ( '' === $resolver_name || explode( '/', $resolver_name )[0] !== explode( '/', $ability->get_name() )[0] ) {
             return [];
@@ -238,9 +239,10 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
      * none or it can't be trusted: it must name a registered ability in the
      * same namespace as the one that made the change.
      *
+     * @param mixed $undo The result's `undo` field, whatever the ability returned.
      * @return array{ability: string, input: array, complete: bool}|null
      */
-    public static function valid_undo( string $ability_name, mixed $undo ): ?array {
+    public static function valid_undo( string $ability_name, $undo ): ?array {
         if ( ! is_array( $undo ) || ! is_string( $undo['ability'] ?? null ) || ! is_array( $undo['input'] ?? null ) ) {
             return null;
         }
@@ -267,8 +269,12 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
         return ! is_wp_error( self::execute_authorised( $ability, $input ) );
     }
 
-    /** Run one ability with permission granted for exactly that ability, for exactly this call. */
-    private static function execute_authorised( WP_Ability $ability, ?array $input ): mixed {
+    /**
+     * Run one ability with permission granted for exactly that ability, for exactly this call.
+     *
+     * @return mixed The ability's result, or WP_Error.
+     */
+    private static function execute_authorised( WP_Ability $ability, ?array $input ) {
         $name  = $ability->get_name();
         $grant = static fn( $permission, string $ability_name ) => $ability_name === $name ? true : $permission;
         add_filter( 'wp_ability_permission_result', $grant, 10, 2 );
