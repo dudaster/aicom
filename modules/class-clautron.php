@@ -24,6 +24,12 @@
  *   clautron.events.query             — read raw event rows with filters
  *   clautron.events.aggregate         — aggregate events (count/sum/avg by period)
  *   clautron.capability.ensure        — idempotent: activate capability, create if missing
+ *
+ * Legacy: Clautron 1.5+ registers these operations (and new ones, such as
+ * clautron.primitive.apply) as WordPress Abilities, and AICOM_Module_Abilities
+ * replaces every tool below with the ability-backed one of the same id. This
+ * module only still serves sites running an older Clautron or WordPress < 7.1.
+ * Don't add tools here; add an ability in Clautron instead.
  */
 class AICOM_Module_Clautron extends AICOM_Module_Base {
 

@@ -176,11 +176,21 @@ class AICOM_Base_Capabilities {
         return hash( 'sha256', (string) wp_json_encode( $caps, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
     }
 
-    /** Cheap fingerprint of everything the inventory depends on. */
+    /**
+     * Cheap fingerprint of everything the inventory depends on. Hashes each
+     * tool's published shape, not just the tool count: tools bridged from a
+     * plugin's abilities change their descriptions and schemas when that
+     * plugin updates, with no AICOM release to bump AICOM_VERSION.
+     */
     private static function fingerprint(): string {
         $active = (array) get_option( 'active_plugins', [] );
         sort( $active );
-        return md5( AICOM_VERSION . '|' . implode( ',', $active ) . '|' . count( AICOM_Tool_Registry::get_all() ) . '|' . get_locale() );
+        $tools = array_map(
+            static fn( array $m ): array => [ $m['class'], $m['required_scopes'], $m['description'], $m['input_schema'] ],
+            AICOM_Tool_Registry::get_all()
+        );
+        ksort( $tools );
+        return md5( AICOM_VERSION . '|' . implode( ',', $active ) . '|' . md5( (string) wp_json_encode( $tools ) ) . '|' . get_locale() );
     }
 
     /**

@@ -230,6 +230,10 @@ function aicom_boot(): void {
         new AICOM_Module_Backup(),
         new AICOM_Module_A11y(),
         new AICOM_Module_Skills(),
+        // Publishes plugins' WordPress Abilities as tools (namespaces opted in
+        // via aicom_ability_namespaces). Runs at init, after every module above,
+        // so it can take over a legacy module's tools for the same namespace.
+        new AICOM_Module_Abilities(),
     ];
 
     // Conditional modules (only instantiate if dependency is active)
