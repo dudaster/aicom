@@ -59,9 +59,21 @@ class AICOM_Base_Wake {
             return new WP_REST_Response( [ 'ok' => false, 'error' => $v['error'] ], 401 );
         }
 
+        AICOM_Base_Connection::audit( 'base.wake', 'success', [] );
+
+        // Answer at once and do the work after the response is out (shutdown runs after the REST server sent it).
+        // AICOMBase doesn't wait for the work, and on LiteSpeed a caller hanging up would end this PHP process
+        // in the middle of a command. Set before returning: the caller may hang up while the response is sent.
+        ignore_user_abort( true );
+        add_action( 'shutdown', [ __CLASS__, 'run_after_response' ], 100 );
+        return new WP_REST_Response( [ 'ok' => true, 'accepted' => true ], 200 );
+    }
+
+    /** The check-in a wake asked for, plus the bounded linger — after the caller has its answer. */
+    public static function run_after_response(): void {
+        AICOM_Base::detach_from_client();
         // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
         @set_time_limit( self::LINGER_MAX_S + 30 );
-        AICOM_Base_Connection::audit( 'base.wake', 'success', [] );
 
         $result = AICOM_Base_Heartbeat::run( 'wake' );
         $waited = 0;
@@ -72,7 +84,5 @@ class AICOM_Base_Wake {
             $waited += self::LINGER_STEP_S;
             $result  = AICOM_Base_Heartbeat::run( 'wake' );
         }
-
-        return new WP_REST_Response( [ 'ok' => (bool) ( $result['ok'] ?? false ), 'waited_s' => $waited ], 200 );
     }
 }

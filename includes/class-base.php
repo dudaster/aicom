@@ -64,11 +64,24 @@ class AICOM_Base {
         }
         set_transient( 'aicom_base_admin_tick', 1, 60 );
         add_action( 'shutdown', static function (): void {
-            if ( function_exists( 'fastcgi_finish_request' ) ) {
-                fastcgi_finish_request();
-            }
+            self::detach_from_client();
             AICOM_Base_Heartbeat::run( 'admin' );
         }, 100 );
+    }
+
+    /**
+     * Send the response that is already out and close the connection, then keep running. Without this,
+     * the caller waits for the work after it; and LiteSpeed ends a PHP process once its caller hangs up,
+     * which left an execute step claimed and never run (www.anconav.ro, 2026-11-04). Where neither finish
+     * function exists (mod_php), the caller still waits — but the work survives it hanging up.
+     */
+    public static function detach_from_client(): void {
+        ignore_user_abort( true );
+        if ( function_exists( 'litespeed_finish_request' ) ) {
+            litespeed_finish_request();
+        } elseif ( function_exists( 'fastcgi_finish_request' ) ) {
+            fastcgi_finish_request();
+        }
     }
 
     public static function unschedule_all(): void {

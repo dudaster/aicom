@@ -265,6 +265,19 @@ $pc->invoke( null, [ $dcmd ], microtime( true ) + 30 );
 $second = queued();
 ok( 'a command delivered twice runs once', in_array( 'session.started', array_column( $first, 'type' ), true ) && ! in_array( 'session.started', array_column( $second, 'type' ), true ), json_encode( array_column( $second, 'type' ) ) );
 ok( 'duplicate delivery raises no credential_anomaly', ! in_array( 'credential_anomaly', array_column( array_filter( $second, static fn( $e ) => $e['type'] === 'security' ), 'kind' ), true ) );
+ok( 'duplicate delivery keeps the real result (not reported as interrupted)', ( AICOM_Base_State::get( 'pending_results', [] )[ $ttd ]['status'] ?? '' ) === 'completed' );
+
+// Claimed but never finished (live 2026-11-04, www.anconav.ro: LiteSpeed ended PHP when the wake caller hung up,
+// leaving an execute claimed and never run). Its redelivery must be reported, not acked silently — and not run.
+AICOM_Base_Events::purge();
+$tti  = wp_generate_uuid4();
+$icmd = [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $tti, 'tool_id' => 'wp.site.info', 'params' => [], 'expires_at' => time() + 600,
+    'authorization' => issue_token( [ 'task_target_id' => $tti, 'session_id' => $sess, 'allowed_scopes' => [ 'read.wp' ] ] ) ];
+AICOM_Base_Executor::consume_nonce( 'cmd:' . substr( $icmd['id'], 0, 60 ), time() + 600 ); // the dead run's claim
+$pc->invoke( null, [ $icmd ], microtime( true ) + 30 );
+$ires = AICOM_Base_State::get( 'pending_results', [] )[ $tti ] ?? [];
+ok( 'claimed-but-unfinished command reported as failed: INTERRUPTED', ( $ires['status'] ?? '' ) === 'failed' && strpos( (string) ( $ires['error'] ?? '' ), 'INTERRUPTED' ) === 0, wp_json_encode( $ires ) );
+ok( 'interrupted command is not run again, and is marked done', ! in_array( 'session.started', array_column( queued(), 'type' ), true ) && AICOM_Base_State::command_done( $icmd['id'] ) );
 $lk = new ReflectionMethod( 'AICOM_Base_Heartbeat', 'acquire' );
 $lk->setAccessible( true );
 $rl = new ReflectionMethod( 'AICOM_Base_Heartbeat', 'release' );
@@ -365,8 +378,9 @@ ok( 'execute-authorization token (no purpose:wake) refused for /wake', $r['statu
 
 $valid = issue_wake_token();
 $r1    = wake_request( $valid );
-ok( 'valid wake token accepted (200)', $r1['status'] === 200 );
-ok( 'response reports how long it lingered', isset( $r1['data']['waited_s'] ) );
+ok( 'valid wake token accepted at once (200, accepted)', $r1['status'] === 200 && ! empty( $r1['data']['accepted'] ) );
+ok( 'the check-in runs after the response is sent (shutdown)', has_action( 'shutdown', [ 'AICOM_Base_Wake', 'run_after_response' ] ) !== false );
+remove_action( 'shutdown', [ 'AICOM_Base_Wake', 'run_after_response' ], 100 ); // don't tick for real when this script ends
 $r2 = wake_request( $valid );
 ok( 'replayed wake token refused', $r2['status'] === 401 && ( $r2['data']['error'] ?? '' ) === 'replayed' );
 

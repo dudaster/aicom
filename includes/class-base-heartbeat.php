@@ -205,10 +205,12 @@ class AICOM_Base_Heartbeat {
                 continue; // out of time budget; AICOMBase will redeliver it
             }
             // Second, independent guard: claim this command id atomically. A command AICOMBase delivered twice
-            // (it re-sends unacked commands on every check-in) is a duplicate delivery, not an attack — skip it
-            // quietly instead of letting its already-used authorization raise a credential_anomaly.
+            // (it re-sends unacked commands on every check-in) is a duplicate delivery, not an attack — never run it
+            // again, and don't let its already-used authorization raise a credential_anomaly. Claimed but not done
+            // means the run that claimed it never finished: report that instead of acking it silently.
             if ( $type === 'execute' && ! AICOM_Base_Executor::consume_nonce( 'cmd:' . substr( $id, 0, 60 ), (int) ( $cmd['expires_at'] ?? 0 ) ?: time() + DAY_IN_SECONDS ) ) {
-                AICOM_Base_State::update( [ 'acks' => array_values( array_unique( array_merge( (array) AICOM_Base_State::get( 'acks', [] ), [ $id ] ) ) ) ] );
+                AICOM_Base_Executor::report_interrupted( $cmd );
+                AICOM_Base_State::mark_command_done( $id );
                 continue;
             }
 

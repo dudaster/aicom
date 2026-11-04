@@ -236,13 +236,40 @@ class AICOM_Base_Executor {
         if ( $tt === '' ) {
             return;
         }
+        // Keep it before sending, drop it once delivered: the result is not lost if AICOMBase is briefly
+        // unreachable, nor if this process is ended mid-send (the next tick re-sends it, and a redelivered
+        // command sees it already has an outcome — see report_interrupted()).
+        $pending        = (array) AICOM_Base_State::get( 'pending_results', [] );
+        $pending[ $tt ] = $body;
+        AICOM_Base_State::update( [ 'pending_results' => array_slice( $pending, -20, null, true ) ] );
+
         $res = AICOM_Base_Client::site_request( 'POST', '/api/v1/site/tasks/' . rawurlencode( $tt ) . '/result', $body, [ 'timeout' => 20 ] );
-        if ( ! $res['ok'] ) {
-            // Keep it for the next tick — the result is not lost if AICOMBase is briefly unreachable.
-            $pending   = (array) AICOM_Base_State::get( 'pending_results', [] );
-            $pending[ $tt ] = $body;
-            AICOM_Base_State::update( [ 'pending_results' => array_slice( $pending, -20, null, true ) ] );
+        if ( $res['ok'] ) {
+            $pending = (array) AICOM_Base_State::get( 'pending_results', [] );
+            unset( $pending[ $tt ] );
+            AICOM_Base_State::update( [ 'pending_results' => $pending ] );
         }
+    }
+
+    /**
+     * A redelivered execute whose claim exists but that was never marked done: the process that claimed it
+     * ended before finishing (e.g. LiteSpeed ending PHP when the caller hung up — www.anconav.ro, 2026-11-04).
+     * Unless its real result is still queued to send, report it as failed so AICOMBase and the AI find out
+     * now instead of waiting out a timeout. It may have been stopped mid-tool, so the outcome is unknown —
+     * the AI must read back before retrying. AICOMBase keeps the first result per target, so this can't
+     * overwrite a real one that already arrived.
+     */
+    public static function report_interrupted( array $cmd ): void {
+        $tt = (string) ( $cmd['task_target_id'] ?? '' );
+        if ( $tt === '' || isset( ( (array) AICOM_Base_State::get( 'pending_results', [] ) )[ $tt ] ) ) {
+            return;
+        }
+        AICOM_Base_Connection::audit( 'base.execute', 'error', [ 'reason' => 'interrupted', 'task_target_id' => $tt ] );
+        self::report( $tt, [
+            'status'  => 'failed',
+            'summary' => 'Interrupted: the site stopped while handling this task',
+            'error'   => 'INTERRUPTED: the site stopped while handling this task (for example, the host ended the PHP process), so whether the tool ran is unknown. Read the current state back before retrying.',
+        ] );
     }
 
     /** Retry results that could not be delivered earlier. */

@@ -57,7 +57,11 @@ restore all report back through the usual session events, so AICOMBase stops usi
 `POST /wp-json/aicom/v1/wake` — the only inbound route AICOMBase calls (everything else is the site
 calling out). Body `{token}`: a Base-signed token, same shape/verifier as an execution authorization
 (`allowed_scopes:[]`, plus a `purpose:"wake"` claim `verify_token()` ignores and this endpoint checks
-itself) — no new crypto, single-use via the same nonce store. On success, runs the heartbeat tick
+itself) — no new crypto, single-use via the same nonce store. On success, answers at once
+(`{ok:true, accepted:true}`) and does the work after the response is out (`shutdown` →
+`AICOM_Base::detach_from_client()`: `ignore_user_abort(true)` + `litespeed_finish_request()` /
+`fastcgi_finish_request()`) — LiteSpeed ends a PHP process once its caller hangs up, which once left an
+execute step claimed and never run. The work: the heartbeat tick runs
 immediately (bypasses wp-cron/backoff entirely, `$force=true`), then keeps re-checking every 3s for up
 to 20s **only while the previous tick actually carried commands** — an idle site costs one extra tick,
 an active multi-step session gets each new step almost immediately instead of waiting out a full wake
