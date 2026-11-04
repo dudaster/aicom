@@ -128,7 +128,8 @@ add_action( 'plugins_loaded', function (): void {
 add_action( 'plugins_loaded', 'aicom_boot', 5 );
 
 // AICOM-only mode (off by default): closes Application Passwords, XML-RPC, and
-// unsigned REST writes so AI agents can only modify the site through AICOM.
+// REST writes signed in from outside the site (JWT, OAuth, Basic Auth plugins)
+// so AI agents can only modify the site through AICOM. Visitors aren't affected.
 // Registered on plugins_loaded so the xmlrpc_methods filter is in place before
 // wp_xmlrpc_server applies it during set_callbacks().
 add_action( 'plugins_loaded', [ 'AICOM_Lockdown', 'bootstrap' ], 1 );

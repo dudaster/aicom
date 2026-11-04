@@ -128,7 +128,7 @@ $gentle_presets = array_intersect_key(
                     <span>
                         <strong><?php esc_html_e( 'Block external write paths — recommended', 'aicom' ); ?></strong>
                         <span class="aicom-onboarding-lockdown-desc">
-                            <?php esc_html_e( "Closes Application Passwords, XML-RPC, and unsigned REST writes. Your AI agent must go through AICOM to change anything — every edit is scope-checked, session-tracked, and audited. wp-admin and Gutenberg keep working normally. You can flip this off any time on the Safety page.", 'aicom' ); ?>
+                            <?php esc_html_e( "Closes Application Passwords, XML-RPC, and REST writes signed in from outside the site. Your AI agent must go through AICOM to change anything — every edit is scope-checked, session-tracked, and audited. wp-admin, Gutenberg and your visitors' forms, comments, cart and checkout keep working normally. You can flip this off any time on the Safety page.", 'aicom' ); ?>
                         </span>
                     </span>
                 </label>

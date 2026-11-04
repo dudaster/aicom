@@ -287,7 +287,7 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
                 <div class="notice notice-success inline" style="margin:0 0 14px"><p><?php esc_html_e( 'AICOM-Only Mode setting saved.', 'aicom' ); ?></p></div>
             <?php endif; ?>
             <p style="margin:0 0 14px;color:var(--aicom-text-sm);font-size:0.92em">
-                <?php esc_html_e( 'When ON, the only way to change content from outside the wp-admin interface is through AICOM. Application Passwords are disabled, XML-RPC is disabled, and unsigned REST writes are refused. Every edit goes through a scope-checked, session-tracked, audited tool call.', 'aicom' ); ?>
+                <?php esc_html_e( 'When ON, the only way to change content from outside the wp-admin interface is through AICOM. Application Passwords are disabled, XML-RPC is disabled, and REST writes signed in from outside the site are refused. Every edit goes through a scope-checked, session-tracked, audited tool call. Your visitors\' forms, comments, cart and checkout keep working.', 'aicom' ); ?>
             </p>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:0">
                 <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
@@ -295,7 +295,7 @@ if ( $lock_state['effective_lock'] === 'hard_locked' ) {
                 <input type="hidden" name="aicom_action" value="set_lockdown" />
                 <label class="aicom-toggle-row" style="display:flex;align-items:center;gap:10px">
                     <input type="checkbox" name="lockdown_mode" value="1" <?php checked( $lockdown_on ); ?> />
-                    <span><strong><?php esc_html_e( 'Block external write paths (Application Passwords, XML-RPC, unsigned REST writes)', 'aicom' ); ?></strong></span>
+                    <span><strong><?php esc_html_e( 'Block external write paths (Application Passwords, XML-RPC, REST writes signed in from outside)', 'aicom' ); ?></strong></span>
                 </label>
                 <p style="margin:10px 0 16px;color:var(--aicom-text-sm);font-size:0.85em">
                     <?php esc_html_e( 'wp-admin and Gutenberg keep working — they send a wp_rest nonce that we honor. Only anonymous or password-only writes are refused.', 'aicom' ); ?>
