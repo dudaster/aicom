@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.24.0
+Stable tag: 3.24.1
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,14 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.24.1 =
+
+* Fixed: reading a post or page through AICOM (wp.posts.get) left out its text for AICOMBase and in the structured result MCP clients receive — only the title and details came through. Long pages now come through too: a result is cut only above 200 KB, and then only its long text fields, which are marked as shortened.
+* Fixed: restoring a post, page or WooCommerce product from the trash brought it back as a draft (WordPress's default since 5.6), so a published page went offline. It now comes back with the status it had before.
+* New: Restore session also undoes pages and posts the session created (they go to the trash, where they can still be recovered) and puts a post the session brought back from the trash back there.
+* Fixed: moving a post to the trash when it is already there now succeeds instead of reporting an error.
+* Fixed: a request from AICOMBase that arrived while the site was still busy with a previous check could wait until the next scheduled check; the plugin now tries again within seconds.
 
 = 3.24.0 =
 
@@ -603,6 +611,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.24.1 =
+Recommended: posts read through AICOM now include their text, and pages restored from the trash stay published.
 
 = 3.24.0 =
 Adds Disable XML-RPC and the tools behind AICOMBase's one-click security fixes, with Undo.
