@@ -20,7 +20,9 @@ defined( 'ABSPATH' ) || exit;
 class AICOM_Base_Executor {
 
     const NONCE_TTL       = 1200; // > max token lifetime (900 s)
-    const RESULT_MAX_JSON = 60000;
+    const RESULT_MAX_JSON = 200000;
+    /** Per text field, when a result is over RESULT_MAX_JSON. Non-ASCII text JSON-encodes up to 6 bytes a character. */
+    const FIELD_MAX_CHARS = 30000;
 
     // ── entry point (called from the heartbeat command loop) ──────────────
 
@@ -177,8 +179,15 @@ class AICOM_Base_Executor {
                 $r = $resp['result'] ?? null;
                 if ( is_array( $r ) && empty( $r['isError'] ) ) {
                     $out['status'] = 'completed';
-                    $data          = $r['structuredContent'] ?? $r;
-                    unset( $data['content'], $data['structuredContent'], $data['request_id'], $data['_meta'] );
+                    // structuredContent IS the tool's data: its own `content` (a post's text, from wp.posts.get)
+                    // must stay. Only the bare MCP envelope carries content/structuredContent of its own.
+                    if ( isset( $r['structuredContent'] ) && is_array( $r['structuredContent'] ) ) {
+                        $data = $r['structuredContent'];
+                    } else {
+                        $data = $r;
+                        unset( $data['content'], $data['structuredContent'] );
+                    }
+                    unset( $data['request_id'], $data['_meta'] );
                     $out['result'] = self::bound( $data );
                 } else {
                     $err = is_array( $r ) ? ( $r['error'] ?? [] ) : ( $resp['error'] ?? [] );
@@ -209,13 +218,37 @@ class AICOM_Base_Executor {
         return $out;
     }
 
-    /** Keep the reported result bounded. */
+    /**
+     * Keep the reported result bounded. Over the limit, the long text fields are cut first (a page's content,
+     * Elementor data) and listed in `_truncated` (path => original length), so the rest of the result stays whole;
+     * only if that still doesn't fit is the whole result replaced by a preview.
+     */
     private static function bound( $data ): array {
+        $data = is_array( $data ) ? $data : [ 'value' => $data ];
         $json = (string) wp_json_encode( $data );
         if ( strlen( $json ) <= self::RESULT_MAX_JSON ) {
-            return is_array( $data ) ? $data : [ 'value' => $data ];
+            return $data;
+        }
+        $cut    = [];
+        $capped = self::cut_long_strings( $data, '', $cut );
+        if ( $cut && strlen( (string) wp_json_encode( $capped ) ) <= self::RESULT_MAX_JSON ) {
+            return $capped + [ '_truncated' => $cut ];
         }
         return [ 'truncated' => true, 'bytes' => strlen( $json ), 'preview' => substr( $json, 0, 2000 ) ];
+    }
+
+    /** Strings longer than FIELD_MAX_CHARS, cut to it; $cut collects path => original length. */
+    private static function cut_long_strings( array $data, string $path, array &$cut ): array {
+        foreach ( $data as $k => $v ) {
+            $p = '' === $path ? (string) $k : $path . '.' . $k;
+            if ( is_array( $v ) ) {
+                $data[ $k ] = self::cut_long_strings( $v, $p, $cut );
+            } elseif ( is_string( $v ) && mb_strlen( $v ) > self::FIELD_MAX_CHARS ) {
+                $cut[ $p ]  = mb_strlen( $v );
+                $data[ $k ] = mb_substr( $v, 0, self::FIELD_MAX_CHARS );
+            }
+        }
+        return $data;
     }
 
     // ── reporting ─────────────────────────────────────────────────────────

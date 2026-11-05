@@ -252,6 +252,27 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
     }
 
     /**
+     * Record a post a tool just created (target_type "created_post"). There was nothing before it to copy, so
+     * AICOM_Admin::do_restore_session() undoes the creation by moving the post to the trash, where it can still be
+     * recovered if someone kept working on it.
+     */
+    public static function record_created_post( int $post_id, string $tool_name, array $key_record ): int {
+        global $wpdb;
+        $post = get_post( $post_id );
+        $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
+            'created_at'    => current_time( 'mysql', true ),
+            'session_id'    => AICOM_Tool_Router::$current_session_id ?: null,
+            'api_key_id'    => (int) ( $key_record['id'] ?? 0 ),
+            'tool_name'     => $tool_name,
+            'target_type'   => 'created_post',
+            'target_id'     => (string) $post_id,
+            'manifest_json' => wp_json_encode( [ 'post_id' => $post_id, 'post_type' => $post ? $post->post_type : null ] ),
+            'payload_json'  => wp_json_encode( [ 'post_id' => $post_id, 'post_type' => $post ? $post->post_type : null, 'title' => $post ? $post->post_title : null ] ),
+        ] );
+        return (int) $wpdb->insert_id;
+    }
+
+    /**
      * Record the undo step an ability returned with its result (target_type "ability_undo"): the ability and input
      * that reverse what it just did, e.g. deactivate the Clautron capability it installed. Unlike the other backups
      * this is not a copy of the old data; the plugin that made the change knows best how to reverse it, and

@@ -71,6 +71,7 @@ section( 'content field on success' );
 $r = rpc( 'wp.posts.create', [
     'post_type'   => 'post',
     'post_title'  => 'MCP Conformance Post',
+    'post_content' => 'MCP conformance body text',
     'post_status' => 'draft',
 ] );
 ok( 'is a success envelope', isset( $r['result'] ) && ! isset( $r['error'] ), json_encode( $r ) );
@@ -244,6 +245,21 @@ $new_body = ! is_wp_error( $new ) ? json_decode( wp_remote_retrieve_body( $new )
 ok( 'HTTP request succeeded (2025-06-18)', ! is_wp_error( $new ), is_wp_error( $new ) ? $new->get_error_message() : '' );
 ok( '2025-06-18 HAS structuredContent', isset( $new_body['result']['structuredContent'] ), json_encode( $new_body ) );
 ok( 'structuredContent mirrors flat id field', ( $new_body['result']['structuredContent']['id'] ?? null ) === ( $new_body['result']['id'] ?? null ), json_encode( $new_body ) );
+ok( "structuredContent keeps the tool's own content field (the post text)", ( $new_body['result']['structuredContent']['content'] ?? null ) === 'MCP conformance body text', json_encode( $new_body['result']['structuredContent'] ?? null ) );
+ok( 'flat content is still the MCP content block', ( $new_body['result']['content'][0]['type'] ?? '' ) === 'text', json_encode( $new_body['result']['content'] ?? null ) );
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 5b. wp.posts.restore brings a post back with the status it had (WP 5.6+ defaults to draft)
+// ═══════════════════════════════════════════════════════════════════════════
+
+section( 'restore keeps the previous status' );
+$pub = wp_insert_post( [ 'post_title' => 'MCP restore status test', 'post_status' => 'publish' ] );
+$cleanup_posts[] = $pub;
+$tr = rpc( 'wp.posts.trash', [ 'id' => $pub ] );
+ok( 'published post trashed', get_post_status( $pub ) === 'trash', json_encode( $tr ) );
+$rs = rpc( 'wp.posts.restore', [ 'id' => $pub ] );
+ok( 'restored post is published again, not a draft', get_post_status( $pub ) === 'publish' && ( $rs['result']['status'] ?? '' ) === 'publish', get_post_status( $pub ) . ' ' . json_encode( $rs ) );
+ok( 'the previous-status filter is not left behind', ! has_filter( 'wp_untrash_post_status', 'wp_untrash_post_set_previous_status' ) );
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 6. tools/list strictly matches the MCP Tool schema per negotiated version

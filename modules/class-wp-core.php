@@ -867,6 +867,15 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_trash_id' => $id ] );
         }
 
+        // Already there is what the caller wants, not a failure — e.g. AICOMBase's Undo trashes the posts a session
+        // created, and Restore session may have trashed them first (wp_trash_post() returns false for those).
+        if ( $post->post_status === 'trash' ) {
+            return $this->ok(
+                [ 'id' => $id, 'trashed' => true, 'already_in_trash' => true ],
+                [ 'target_type' => 'post', 'target_id' => $id ]
+            );
+        }
+
         $result = wp_trash_post( $id );
         if ( ! $result ) {
             return $this->err( 'WP_ERROR', 'Failed to trash post', 'error', 500 );
@@ -888,13 +897,13 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_restore_id' => $id ] );
         }
 
-        $result = wp_untrash_post( $id );
+        $result = $this->untrash_to_previous_status( $id );
         if ( ! $result ) {
             return $this->err( 'WP_ERROR', 'Failed to restore post', 'error', 500 );
         }
 
         return $this->ok(
-            [ 'id' => $id, 'restored' => true ],
+            [ 'id' => $id, 'restored' => true, 'status' => get_post_status( $id ) ],
             [ 'target_type' => 'post', 'target_id' => $id ]
         );
     }

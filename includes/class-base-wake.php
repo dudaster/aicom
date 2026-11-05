@@ -77,12 +77,23 @@ class AICOM_Base_Wake {
 
         $result = AICOM_Base_Heartbeat::run( 'wake' );
         $waited = 0;
-        // Keep polling only while the *previous* tick actually carried commands — an idle site
-        // stops after the first, empty check, so a lone wake ping costs one extra heartbeat, not 20s.
-        while ( ( $result['commands'] ?? 0 ) > 0 && $waited < self::LINGER_MAX_S ) {
+        while ( self::keep_lingering( $result, $waited ) ) {
             sleep( self::LINGER_STEP_S );
             $waited += self::LINGER_STEP_S;
             $result  = AICOM_Base_Heartbeat::run( 'wake' );
         }
+    }
+
+    /**
+     * Poll again only while the previous tick carried commands — an idle site stops after the first, empty check,
+     * so a lone wake ping costs one extra heartbeat, not 20 s — or while another check-in held the lock: it may have
+     * pulled before this wake's command was queued, and the command would otherwise wait for the next scheduled
+     * heartbeat (2026-11-05).
+     */
+    public static function keep_lingering( array $result, int $waited ): bool {
+        if ( $waited >= self::LINGER_MAX_S ) {
+            return false;
+        }
+        return ( $result['commands'] ?? 0 ) > 0 || ( $result['skipped'] ?? '' ) === 'locked';
     }
 }

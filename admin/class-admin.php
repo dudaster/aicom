@@ -1452,6 +1452,14 @@ class AICOM_Admin {
                 }
                 $restored++;
 
+            } elseif ( $backup['target_type'] === 'created_post' ) {
+                // A post the session created: to the trash, not deleted. One already there (trashed later in the
+                // session, or by AICOMBase's own Undo) is left as it is.
+                $created = get_post( (int) ( $payload['post_id'] ?? 0 ) );
+                if ( $created && $created->post_status !== 'trash' && wp_trash_post( $created->ID ) ) {
+                    $restored++;
+                }
+
             } elseif ( $backup['target_type'] === 'ability_undo' ) {
                 // A change a plugin made through one of its abilities (e.g. a Clautron capability installed):
                 // run the undo step that plugin returned with its result. Newest first, like everything above.

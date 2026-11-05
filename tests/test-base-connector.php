@@ -243,6 +243,28 @@ ok( 'AICOMBase fix for SEC-EXP-003: XML-RPC off, result completed and verified',
 AICOM_Base_Heartbeat::cmd_restore_session( $xsess );
 ok( 'Undo from AICOMBase (restore_session) turns it back on — the setting is gone again', get_option( AICOM_Xmlrpc::OPTION, null ) === null && ! AICOM_Xmlrpc::is_off() );
 
+// A tool's own `content` field reaches AICOMBase (2026-11-05: wp.posts.get's text was stripped with the MCP
+// envelope's `content`), and an oversized result is cut field by field, not replaced by a 2,000-character preview.
+$csess = wp_generate_uuid4();
+AICOM_Sessions::open_remote( $csess, 'Read a post', 'The owner asked what the post says.' );
+$short = wp_insert_post( [ 'post_title' => 'AICOM content test', 'post_content' => 'echipamente laser vansatee', 'post_status' => 'draft' ] );
+$long  = wp_insert_post( [ 'post_title' => 'AICOM long content test', 'post_content' => str_repeat( 'ăîșțâ lorem ipsum ', 20000 ), 'post_status' => 'draft' ] );
+$read  = static function ( int $post_id ) use ( $csess ): array {
+    $tt = wp_generate_uuid4();
+    AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $tt, 'tool_id' => 'wp.posts.get',
+        'params' => [ 'arguments' => [ 'id' => $post_id ], 'tool_id' => 'wp.posts.get' ],
+        'authorization' => issue_token( [ 'task_target_id' => $tt, 'session_id' => $csess, 'allowed_scopes' => [ 'read.wp' ] ] ) ] );
+    return AICOM_Base_State::get( 'pending_results', [] )[ $tt ] ?? [];
+};
+$rs = $read( $short );
+ok( 'wp.posts.get result keeps the post text (content) for AICOMBase', strpos( (string) ( $rs['result']['content'] ?? '' ), 'echipamente laser vansatee' ) !== false && ( $rs['result']['id'] ?? 0 ) === $short, wp_json_encode( $rs['result'] ?? $rs ) );
+$rl = $read( $long );
+ok( 'oversized result: content cut and listed in _truncated, the rest whole', ( $rl['result']['id'] ?? 0 ) === $long && ( $rl['result']['title'] ?? '' ) === 'AICOM long content test'
+    && mb_strlen( (string) ( $rl['result']['content'] ?? '' ) ) === AICOM_Base_Executor::FIELD_MAX_CHARS && isset( $rl['result']['_truncated']['content'] ), wp_json_encode( array_diff_key( $rl['result'] ?? $rl, [ 'content' => 1 ] ) ) );
+wp_delete_post( $short, true );
+wp_delete_post( $long, true );
+AICOM_Sessions::close_remote( $csess, 'completed' );
+
 // close_session command / admin "Close" → session.ended to AICOMBase.
 $sess2 = wp_generate_uuid4();
 $l2    = AICOM_Sessions::open_remote( $sess2, 'To close', 'closing test' );
@@ -397,6 +419,11 @@ $r1    = wake_request( $valid );
 ok( 'valid wake token accepted at once (200, accepted)', $r1['status'] === 200 && ! empty( $r1['data']['accepted'] ) );
 ok( 'the check-in runs after the response is sent (shutdown)', has_action( 'shutdown', [ 'AICOM_Base_Wake', 'run_after_response' ] ) !== false );
 remove_action( 'shutdown', [ 'AICOM_Base_Wake', 'run_after_response' ], 100 ); // don't tick for real when this script ends
+ok( 'wake lingers while commands keep coming', AICOM_Base_Wake::keep_lingering( [ 'ok' => true, 'commands' => 1 ], 0 ) );
+ok( 'wake retries when another check-in holds the lock', AICOM_Base_Wake::keep_lingering( [ 'ok' => false, 'skipped' => 'locked' ], 0 ) );
+ok( 'an empty check-in ends the wake', ! AICOM_Base_Wake::keep_lingering( [ 'ok' => true, 'commands' => 0 ], 0 ) );
+ok( 'not connected / backoff end the wake', ! AICOM_Base_Wake::keep_lingering( [ 'ok' => false, 'skipped' => 'not_connected' ], 0 ) && ! AICOM_Base_Wake::keep_lingering( [ 'ok' => false, 'skipped' => 'backoff' ], 0 ) );
+ok( 'a lock held past the linger limit ends the wake', ! AICOM_Base_Wake::keep_lingering( [ 'ok' => false, 'skipped' => 'locked' ], AICOM_Base_Wake::LINGER_MAX_S ) );
 $r2 = wake_request( $valid );
 ok( 'replayed wake token refused', $r2['status'] === 401 && ( $r2['data']['error'] ?? '' ) === 'replayed' );
 

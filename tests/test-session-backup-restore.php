@@ -81,7 +81,9 @@ ok( 'post exists in DB', $post !== null );
 ok( 'post title correct', ( $post->post_title ?? '' ) === 'Campaign Launch Post' );
 ok( 'post status is draft', ( $post->post_status ?? '' ) === 'draft' );
 
-// Session 1 has no backup (no pre-existing post to back up before creation).
+// Session 1 has nothing to copy (the post didn't exist): it records the created post, so Restore session can trash it.
+$created_row = $wpdb->get_row( $wpdb->prepare( "SELECT target_type, target_id FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d", $s1_id ), ARRAY_A );
+ok( 'session 1 records the created post', ( $created_row['target_type'] ?? '' ) === 'created_post' && (int) ( $created_row['target_id'] ?? 0 ) === $post_id, json_encode( $created_row ) );
 
 // ══ SESSION 2: Update the post ════════════════════════════════════════════
 
@@ -156,6 +158,51 @@ ok( 'post re-exists after restore', $post !== null, 'status: ' . ( $post ? $post
 ok( 'restored title is original', ( $post->post_title ?? '' ) === 'Campaign Launch Post', 'got: ' . ( $post->post_title ?? '?' ) );
 ok( 'restored content is original', strpos( $post->post_content ?? '', 'Original content' ) !== false, 'got: ' . substr( $post->post_content ?? '', 0, 80 ) );
 
+// ══ SESSION 4: create a page, then undo the session ═══════════════════════
+sep( 'Session 4 — Create, then Restore session trashes it' );
+
+$r     = tool( 'session.open', [ 'name' => 'Create summer page', 'description' => 'A page the owner later undoes' ] );
+$s4_id = $r['session_id'] ?? 0;
+$r     = tool( 'wp.posts.create', [ 'post_title' => 'Summer Camp 2027', 'post_status' => 'publish', 'post_type' => 'page' ] );
+$page_id = (int) ( $r['id'] ?? 0 );
+tool( 'wp.posts.update', [ 'id' => $page_id, 'post_title' => 'Summer Camp 2027 (edited)' ] );
+tool( 'session.close', [] );
+ok( 'page created and published', $page_id > 0 && get_post_status( $page_id ) === 'publish' );
+
+$restored = AICOM_Admin::do_restore_session( $s4_id );
+clean_post_cache( $page_id );
+ok( 'Restore session moves the created page to the trash', get_post_status( $page_id ) === 'trash', 'status: ' . get_post_status( $page_id ) . ", restored=$restored" );
+ok( 'restored count covers the edit and the creation', $restored === 2, "got: $restored" );
+AICOM_Admin::do_restore_session( $s4_id ); // replays the session's backups again
+clean_post_cache( $page_id );
+ok( 'a second restore still ends with the page in the trash', get_post_status( $page_id ) === 'trash', 'status: ' . get_post_status( $page_id ) );
+
+// AICOMBase's own Undo also trashes created posts; when Restore session got there first, that must not fail.
+$r = tool( 'session.open', [ 'name' => 'Undo: trash the created page' ] );
+$r = tool( 'wp.posts.trash', [ 'id' => $page_id ] );
+tool( 'session.close', [] );
+ok( 'wp.posts.trash on a post already in the trash succeeds', ! is_err( $r ) && ! empty( $r['already_in_trash'] ), json_encode( $r ) );
+
+// ══ SESSION 5: restore from trash, then undo the session ══════════════════
+sep( 'Session 5 — Restore from trash, then Restore session puts it back' );
+
+$pub = wp_insert_post( [ 'post_title' => 'Old announcement', 'post_status' => 'publish' ] );
+wp_trash_post( $pub );
+$r     = tool( 'session.open', [ 'name' => 'Bring back the announcement' ] );
+$s5_id = $r['session_id'] ?? 0;
+$r     = tool( 'wp.posts.restore', [ 'id' => $pub ] );
+tool( 'session.close', [] );
+clean_post_cache( $pub );
+ok( 'wp.posts.restore brings it back published, as it was', get_post_status( $pub ) === 'publish' && ( $r['status'] ?? '' ) === 'publish', get_post_status( $pub ) . ' ' . json_encode( $r ) );
+AICOM_Admin::do_restore_session( $s5_id );
+clean_post_cache( $pub );
+ok( 'Restore session puts it back in the trash', get_post_status( $pub ) === 'trash', 'status: ' . get_post_status( $pub ) );
+wp_untrash_post( $pub );
+ok( 'and WordPress can still bring it back from there', in_array( get_post_status( $pub ), [ 'publish', 'draft' ], true ), 'status: ' . get_post_status( $pub ) );
+
+wp_delete_post( $page_id, true );
+wp_delete_post( $pub, true );
+
 // ── Cleanup ────────────────────────────────────────────────────────────────
 
 sep( 'Cleanup' );
@@ -163,6 +210,7 @@ sep( 'Cleanup' );
 if ( $post_id ) {
     wp_delete_post( $post_id, true );
 }
+$wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'api_key_id' => $key['id'] ] );
 $wpdb->delete( $wpdb->prefix . 'aicom_sessions', [ 'api_key_id' => $key['id'] ] );
 AICOM_Auth::revoke_key( $key['id'] );
 echo "  Cleaned up key={$key['id']}, post_id=$post_id\n";

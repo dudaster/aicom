@@ -96,6 +96,8 @@ class AICOM_Tool_Router {
         'wp.posts.update' => [ 'type' => 'post', 'id_arg' => 'id' ],
         'wp.posts.trash'  => [ 'type' => 'post', 'id_arg' => 'id' ],
         'wp.posts.delete' => [ 'type' => 'post', 'id_arg' => 'id' ],
+        // The trashed post as it was, so Restore session puts it back in the trash.
+        'wp.posts.restore' => [ 'type' => 'post', 'id_arg' => 'id' ],
         'wp.terms.update' => [ 'type' => 'term', 'id_arg' => 'term_id', 'taxonomy_arg' => 'taxonomy' ],
         'wp.terms.delete' => [ 'type' => 'term', 'id_arg' => 'term_id', 'taxonomy_arg' => 'taxonomy' ],
 
@@ -119,6 +121,12 @@ class AICOM_Tool_Router {
         // A setting: the option's value before the change (or that it didn't exist), so Restore session puts it back.
         'wp.security.xmlrpc.set' => [ 'type' => 'option', 'option' => AICOM_Xmlrpc::OPTION ],
     ];
+
+    /**
+     * Tools that create a post. Nothing existed before to snapshot, so after a successful run the new post is
+     * recorded (target_type "created_post") and Restore session moves it to the trash.
+     */
+    private const CREATES_POST = [ 'wp.posts.create' ];
 
     // ── Main Dispatch ─────────────────────────────────────────────────────
 
@@ -592,6 +600,17 @@ class AICOM_Tool_Router {
             ];
         }
 
+        if ( ! $is_dry_run && ! isset( $result['error'] ) && in_array( $tool_name, self::CREATES_POST, true ) ) {
+            $created_id = (int) ( $result['_meta']['target_id'] ?? 0 );
+            if ( $created_id ) {
+                try {
+                    AICOM_Module_Backup::record_created_post( $created_id, $tool_name, $key_record );
+                } catch ( Throwable $e ) {
+                    // Same rule as maybe_auto_backup(): the record is a safety net, the post is already made.
+                }
+            }
+        }
+
         // ── Step 11: Touch key ────────────────────────────────────────────
         AICOM_Auth::touch_key( $key_id, $remote_ip );
 
@@ -818,11 +837,12 @@ class AICOM_Tool_Router {
      * protocol version supports it (absent, e.g., for 2024-11-05 clients).
      */
     private static function build_success_result( array $result, array $meta, string $protocol_version, $rpc_id = null ): array {
+        // Taken before the MCP content block replaces the flat `content`: a tool's own `content` field (wp.posts.get's
+        // post text) must survive in structuredContent — it was lost there until 2026-11-05.
+        $structured        = $result;
         $result['content'] = [ [ 'type' => 'text', 'text' => self::summarize_result( $result, $meta ) ] ];
 
         if ( self::protocol_supports( $protocol_version, 'structured_content' ) ) {
-            $structured = $result;
-            unset( $structured['content'] );
             $result['structuredContent'] = $structured;
         }
 

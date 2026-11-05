@@ -356,8 +356,10 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
             return $this->ok( [ 'dry_run' => true, 'would_restore_id' => $id ] );
         }
 
-        wp_untrash_post( $id );
-        return $this->ok( [ 'id' => $id, 'restored' => true ], [ 'target_type' => 'product', 'target_id' => $id ] );
+        if ( ! $this->untrash_to_previous_status( $id ) ) {
+            return $this->err( 'WP_ERROR', 'Failed to restore product', 'error', 500 );
+        }
+        return $this->ok( [ 'id' => $id, 'restored' => true, 'status' => get_post_status( $id ) ], [ 'target_type' => 'product', 'target_id' => $id ] );
     }
 
     public function handle_products_delete( array $args, array $key_record, bool $dry_run ): array {

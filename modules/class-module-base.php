@@ -63,6 +63,21 @@ abstract class AICOM_Module_Base {
     }
 
     /**
+     * wp_untrash_post(), back to the status the post had before it was trashed. Since WordPress 5.6 it comes back
+     * as a draft by default, so a restored published page went offline (football.ehot.ro, 2026-11-02).
+     *
+     * @return WP_Post|false|null
+     */
+    protected function untrash_to_previous_status( int $id ) {
+        add_filter( 'wp_untrash_post_status', 'wp_untrash_post_set_previous_status', 10, 3 );
+        try {
+            return wp_untrash_post( $id );
+        } finally {
+            remove_filter( 'wp_untrash_post_status', 'wp_untrash_post_set_previous_status', 10 );
+        }
+    }
+
+    /**
      * Register one tool with standard module/dependency filled in.
      */
     protected function register( string $tool_name, array $meta ): void {

@@ -92,6 +92,7 @@ $type_options = [
     'elementor_page' => __( 'Elementor Page', 'aicom' ),
     'option'         => __( 'Setting', 'aicom' ),
     'ability_undo'   => __( 'Plugin change (undo step)', 'aicom' ),
+    'created_post'   => __( 'Created post (undo moves it to the trash)', 'aicom' ),
 ];
 
 // ── Sessions with snapshots (undo-a-whole-session) ─────────────────────────
