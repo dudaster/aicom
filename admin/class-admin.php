@@ -668,6 +668,13 @@ class AICOM_Admin {
                 wp_safe_redirect( admin_url( 'admin.php?page=aicom' ) );
                 exit;
 
+            case 'onboarding_aicombase':
+                // AICOMBase pairs through its own page — no API key to create. Marked done first, or the wizard
+                // would redirect the AICOMBase page straight back to itself.
+                update_option( 'aicom_onboarding_done', true );
+                wp_safe_redirect( admin_url( 'admin.php?page=aicom-base' ) );
+                exit;
+
             case 'rotate_key':
                 $this->handle_rotate_key( absint( wp_unslash( $_POST['key_id'] ?? 0 ) ) );
                 break;

@@ -12,6 +12,12 @@ $skip_form_url  = admin_url( 'admin-post.php' );
 // Client cards. The wizard saves the chosen one to localStorage so the
 // key-created modal pre-selects it at the end.
 $clients = [
+    // Not an MCP client: picking it skips the key step and goes to the AICOMBase connect page (pairing, no key to copy).
+    'aicombase' => [
+        'name' => __( 'AICOMBase', 'aicom' ),
+        'tag'  => __( 'Audits, one-click fixes and AI work for all your sites in one place — connect once, no key to copy', 'aicom' ),
+        'base' => true,
+    ],
     'general' => [
         'name'        => __( 'General', 'aicom' ),
         'tag'         => __( 'Works with any MCP-aware agent', 'aicom' ),
@@ -69,7 +75,7 @@ $gentle_presets = array_intersect_key(
 
         <div class="aicom-onboarding-clients" id="aicom-onboarding-clients">
             <?php foreach ( $clients as $key => $c ) : ?>
-                <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
+                <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?><?php echo ! empty( $c['base'] ) ? ' is-base' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
                     <?php if ( ! empty( $c['recommended'] ) ) : ?>
                         <span class="aicom-onboarding-client-badge"><?php esc_html_e( 'Recommended', 'aicom' ); ?></span>
                     <?php endif; ?>
@@ -80,7 +86,12 @@ $gentle_presets = array_intersect_key(
         </div>
 
         <div class="aicom-onboarding-actions">
-            <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-onboarding&step=2' ) ); ?>" class="button button-primary button-hero aicom-onboarding-next" id="aicom-onboarding-next-1"><?php esc_html_e( 'Next →', 'aicom' ); ?></a>
+            <a href="<?php echo esc_url( admin_url( 'admin.php?page=aicom-onboarding&step=2' ) ); ?>" class="button button-primary button-hero aicom-onboarding-next" id="aicom-onboarding-next-1" data-label-next="<?php esc_attr_e( 'Next →', 'aicom' ); ?>" data-label-base="<?php esc_attr_e( 'Connect to AICOMBase →', 'aicom' ); ?>"><?php esc_html_e( 'Next →', 'aicom' ); ?></a>
+            <form method="post" action="<?php echo esc_url( $skip_form_url ); ?>" id="aicom-onboarding-base-form" style="display:none">
+                <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
+                <input type="hidden" name="action" value="aicom_save" />
+                <input type="hidden" name="aicom_action" value="onboarding_aicombase" />
+            </form>
             <form method="post" action="<?php echo esc_url( $skip_form_url ); ?>" style="display:inline">
                 <?php wp_nonce_field( AICOM_Admin::NONCE_ACTION ); ?>
                 <input type="hidden" name="action" value="aicom_save" />
@@ -172,13 +183,32 @@ $gentle_presets = array_intersect_key(
         });
     }
 
+    // AICOMBase isn't a key-based client: Next connects instead of going to the key step.
+    var isBase = function () {
+        var a = document.querySelector('.aicom-onboarding-client.is-active');
+        return !!a && a.dataset.client === 'aicombase';
+    };
+    var syncNext = function () {
+        if (nextBtn) { nextBtn.textContent = isBase() ? nextBtn.dataset.labelBase : nextBtn.dataset.labelNext; }
+    };
+
     buttons.forEach(function (b) {
         b.addEventListener('click', function () {
             buttons.forEach(function (x) { x.classList.remove('is-active'); });
             b.classList.add('is-active');
             try { localStorage.setItem('aicom_pref_client', b.dataset.client); } catch (e) {}
+            syncNext();
         });
     });
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function (e) {
+            if (!isBase()) { return; }
+            e.preventDefault();
+            document.getElementById('aicom-onboarding-base-form').submit();
+        });
+    }
+    syncNext();
 })();
 </script>
 <?php
