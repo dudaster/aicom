@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.24.2
+Stable tag: 3.24.3
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,10 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.24.3 =
+
+* New: AI agents allowed to manage Clautron ("Edit Clautron blueprints") can now add custom CSS and JavaScript through Clautron — for example a cookie-consent snippet or inline styles. AICOM grants WordPress's unfiltered_html only for the duration of such a call and only to keys with that permission; WordPress still refuses it on multisite and where DISALLOW_UNFILTERED_HTML is set. The permission's description on the API Keys page now says so — untick it on keys that shouldn't add code to the site.
 
 = 3.24.2 =
 
@@ -616,6 +620,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.24.3 =
+Keys with "Edit Clautron blueprints" can now add custom CSS and JavaScript through Clautron. Review that permission on your keys.
 
 = 3.24.2 =
 Connect to AICOMBase straight from the welcome wizard; AI agents now learn what Clautron adds when it's installed.
