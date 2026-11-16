@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.24.1
+Stable tag: 3.24.2
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,11 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
 
 == Changelog ==
+
+= 3.24.2 =
+
+* New: AICOMBase is an option in the welcome wizard. Picking it skips creating an API key and takes you straight to connecting the site — AICOMBase pairs with the site itself, so there is no key to copy.
+* New: when a plugin that extends AICOM through WordPress Abilities is installed (Clautron), AI agents are told what it adds, in that plugin's own words, and which of its read-only tools to start exploring with — in aicom.recipes and, for AICOMBase, as that capability's description. Nothing is said about a plugin that isn't installed.
 
 = 3.24.1 =
 
@@ -611,6 +616,9 @@ Yes. Each API key has an optional IP allowlist. If set, requests from any other 
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.24.2 =
+Connect to AICOMBase straight from the welcome wizard; AI agents now learn what Clautron adds when it's installed.
 
 = 3.24.1 =
 Recommended: posts read through AICOM now include their text, and pages restored from the trash stay published.
