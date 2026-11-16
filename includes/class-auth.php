@@ -65,7 +65,7 @@ class AICOM_Auth {
                 'manage.wpml'                 => [ __( 'Manage WPML translations', 'aicom' ), 'high', __( 'Set the language of posts/pages and taxonomy terms, and link or unlink their translations. Does not allow adding/removing languages or changing WPML\'s own settings — no AICOM tool exposes that.', 'aicom' ) ],
                 'manage.yoast'                => [ __( 'Edit Yoast SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
                 'manage.seopress'             => [ __( 'Edit SEOPress SEO fields (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
-                'manage.clautron'             => [ __( 'Edit Clautron blueprints (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med' ],
+                'manage.clautron'             => [ __( 'Edit Clautron blueprints, including custom CSS and JavaScript (reading is covered by Read posts/terms/meta)', 'aicom' ), 'med', __( 'Install, change and deactivate Clautron capabilities and blueprints. These can add custom CSS and JavaScript to the site, so this permission includes WordPress\'s unfiltered_html, which only administrators and editors have — except on multisite and where DISALLOW_UNFILTERED_HTML is set, where WordPress refuses it to everyone but super admins.', 'aicom' ) ],
             ],
         ];
     }

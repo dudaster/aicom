@@ -1045,6 +1045,13 @@ class AICOM_Tool_Router {
             $allcaps['publish_posts']        = true;
         }
 
+        // Clautron capabilities and blueprints can carry custom CSS and JavaScript: its validator asks for
+        // unfiltered_html (JS) and edit_css (CSS, which WordPress maps to unfiltered_html). On multisite and with
+        // DISALLOW_UNFILTERED_HTML, map_meta_cap still refuses both — this grant doesn't get around that.
+        if ( in_array( 'manage.clautron', $s, true ) ) {
+            $allcaps['unfiltered_html'] = true;
+        }
+
         return $allcaps;
     }
 

@@ -278,6 +278,26 @@ $rr = tool( 'aicom.recipes', [] );
 ok( 'without it, no extensions and no mention', AICOM_Module_Abilities::extensions() === [] && ! isset( $rr['extensions'] ) && strpos( wp_json_encode( $rr ), 'lautron' ) === false, wp_json_encode( array_diff_key( $rr, [ 'recipes' => 1 ] ) ) );
 null === $saved_ns ? delete_option( AICOM_Module_Abilities::OPTION ) : update_option( AICOM_Module_Abilities::OPTION, $saved_ns );
 
+section( 'Custom CSS and JavaScript through Clautron (unfiltered_html)' );
+
+// The grant as the router applies it during a tool call, for a request with no WordPress user of its own.
+$prev_user   = get_current_user_id();
+$scopes_prop = new ReflectionProperty( 'AICOM_Tool_Router', 'current_key_scopes' );
+$scopes_prop->setAccessible( true );
+$can_code = static function ( array $scopes ) use ( $scopes_prop ): array {
+    $scopes_prop->setValue( null, $scopes );
+    add_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
+    $r = [ current_user_can( 'unfiltered_html' ), current_user_can( 'edit_css' ) ];
+    remove_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
+    $scopes_prop->setValue( null, [] );
+    return $r;
+};
+wp_set_current_user( 0 );
+ok( 'a key with manage.clautron may add JavaScript and CSS', $can_code( [ 'read.wp', 'manage.clautron' ] ) === [ true, true ] );
+ok( 'keys without it may not', $can_code( [ 'read.wp', 'write.wp.posts', 'manage.elementor', 'manage.wordpress.settings' ] ) === [ false, false ] );
+ok( '... and nothing is left granted after the call', ! current_user_can( 'unfiltered_html' ) && ! current_user_can( 'edit_css' ) );
+wp_set_current_user( $prev_user );
+
 // ── Clean up ──────────────────────────────────────────────────────────────
 foreach ( array_filter( $blueprints ) as $id ) {
     CLAUTRON_Blueprint_Store::update_status( $id, 'draft' );
