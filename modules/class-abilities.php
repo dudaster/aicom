@@ -91,6 +91,59 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
         return array_values( array_filter( array_map( 'sanitize_key', (array) $saved ) ) );
     }
 
+    /**
+     * Plugins that extend this site beyond AICOM's own tools, in their own words: the label and description of their
+     * ability category, and their read-only tools to start exploring with. Only plugins whose tools are on this site
+     * right now (bridged or the legacy module) — nothing is said about a plugin that isn't installed. With a key,
+     * only the tools that key can call.
+     *
+     * @return array<int,array{plugin:string,name:string,adds:string,explore:string[],tools:int}>
+     */
+    public static function extensions( ?array $key_record = null ): array {
+        $out = [];
+        foreach ( self::namespaces() as $ns ) {
+            $tools = [];
+            foreach ( AICOM_Tool_Registry::get_all() as $name => $meta ) {
+                if ( ( $meta['module'] ?? '' ) !== $ns
+                    || ( $meta['dependency'] !== null && ! AICOM_Module_Detector::is_dependency_active( $meta['dependency'] ) )
+                    || ( $key_record && AICOM_Auth::missing_scopes( $key_record, (array) $meta['required_scopes'] ) )
+                ) {
+                    continue;
+                }
+                $tools[ $name ] = $meta;
+            }
+            if ( ! $tools ) {
+                continue;
+            }
+            ksort( $tools );
+            [ $label, $description ] = self::category_text( $ns );
+            $out[] = [
+                'plugin'  => $ns,
+                'name'    => $label,
+                'adds'    => $description,
+                'explore' => array_keys( array_filter( $tools, static fn( array $m ): bool => in_array( $m['class'], AICOM_Tool_Registry::READ_ONLY_CLASSES, true ) ) ),
+                'tools'   => count( $tools ),
+            ];
+        }
+        return $out;
+    }
+
+    /** [label, description] of the ability category a plugin's abilities belong to; the namespace when it has none. */
+    private static function category_text( string $ns ): array {
+        if ( function_exists( 'wp_get_abilities' ) && function_exists( 'wp_get_ability_category' ) ) {
+            foreach ( wp_get_abilities() as $ability ) {
+                if ( strpos( $ability->get_name(), $ns . '/' ) !== 0 ) {
+                    continue;
+                }
+                $category = wp_get_ability_category( $ability->get_category() );
+                if ( $category ) {
+                    return [ $category->get_label(), $category->get_description() ];
+                }
+            }
+        }
+        return [ ucfirst( $ns ), '' ];
+    }
+
     // ── Mapping (pure) ────────────────────────────────────────────────────
 
     /**

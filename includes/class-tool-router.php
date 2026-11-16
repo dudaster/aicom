@@ -236,7 +236,7 @@ class AICOM_Tool_Router {
                 'instructions'    => implode( "\n", [
                     'ALWAYS start with these 3 calls in order:',
                     '1. tools/list  →  {"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}',
-                    '2. aicom.recipes(task:"what you want to do")  →  get step-by-step guidance scoped to your key',
+                    '2. aicom.recipes(task:"what you want to do")  →  get step-by-step guidance scoped to your key, and any plugins that extend this site beyond AICOM\'s own tools ("extensions", with tools to explore them)',
                     '3. session.open(name:"label", description:"what and why")  →  required before any write tool',
                     '',
                     'Errors:',

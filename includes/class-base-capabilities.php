@@ -108,6 +108,13 @@ class AICOM_Base_Capabilities {
         $rank  = [ 'low' => 0, 'med' => 1, 'high' => 2 ];
         $names = AICOM_Tool_Registry::get_all();
         ksort( $names );
+        // What a plugin extending the site says it adds (its ability category), as its capability's description.
+        $adds = [];
+        foreach ( AICOM_Module_Abilities::extensions() as $ext ) {
+            if ( $ext['adds'] !== '' ) {
+                $adds[ $ext['plugin'] ] = $ext['adds'];
+            }
+        }
 
         foreach ( $names as $name => $meta ) {
             if ( $meta['dependency'] !== null && ! AICOM_Module_Detector::is_dependency_active( $meta['dependency'] ) ) {
@@ -140,6 +147,9 @@ class AICOM_Base_Capabilities {
                     'required_scopes' => [],
                     'tools'           => [],
                 ];
+                if ( isset( $adds[ $cid ] ) ) {
+                    $caps[ $cid ]['description'] = $adds[ $cid ];
+                }
             }
             $c =& $caps[ $cid ];
             if ( $rank[ $risk ] > $rank[ $c['risk'] ] ) {

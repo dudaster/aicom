@@ -248,6 +248,36 @@ foreach ( array_filter( $sessions ) as $sid ) {
     $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'session_id' => $sid ] );
 }
 
+section( 'What Clautron adds, for the AI to explore' );
+
+$ext = AICOM_Module_Abilities::extensions();
+$cl  = $ext[0] ?? [];
+$cat = wp_get_ability_category( 'clautron' );
+ok( 'Clautron is listed as an extension, in its own words (its ability category)',
+    count( $ext ) === 1 && ( $cl['plugin'] ?? '' ) === 'clautron' && $cat && ( $cl['name'] ?? '' ) === $cat->get_label() && ( $cl['adds'] ?? '' ) === $cat->get_description() && $cl['adds'] !== '', wp_json_encode( $ext ) );
+ok( '... with its read-only tools to explore: primitives and catalog among them, nothing that writes',
+    in_array( 'clautron.primitives.list', $cl['explore'] ?? [], true ) && in_array( 'clautron.catalog.list', $cl['explore'] ?? [], true )
+    && ! array_filter( $cl['explore'] ?? [], static fn( $t ) => ! in_array( AICOM_Tool_Registry::get( $t )['class'], AICOM_Tool_Registry::READ_ONLY_CLASSES, true ) ), wp_json_encode( $cl['explore'] ?? null ) );
+
+$reader = AICOM_Auth::create_key( 'Extensions reader', [ 'read.wp' ] );
+$keys[] = $reader['id'];
+$rx     = AICOM_Module_Abilities::extensions( AICOM_Auth::validate_key( $reader['plain_key'] ) ?? [] );
+ok( 'for a key, only the tools it can call', ( $rx[0]['tools'] ?? 0 ) > 0 && ( $rx[0]['tools'] ?? 0 ) < ( $cl['tools'] ?? 0 ), "key: " . ( $rx[0]['tools'] ?? 0 ) . " of " . ( $cl['tools'] ?? 0 ) );
+
+as_key( $reader );
+$rr = tool( 'aicom.recipes', [] );
+ok( 'aicom.recipes tells the AI about it', ( $rr['extensions'][0]['plugin'] ?? '' ) === 'clautron' && ! empty( $rr['extensions_hint'] ), wp_json_encode( array_diff_key( $rr, [ 'recipes' => 1 ] ) ) );
+
+$caps_inv = array_column( AICOM_Base_Capabilities::build(), null, 'id' );
+ok( 'AICOMBase gets it as the Clautron capability\'s description', ( $caps_inv['clautron']['description'] ?? '' ) === $cl['adds'], wp_json_encode( $caps_inv['clautron']['description'] ?? null ) );
+
+// Not bridged (the same as Clautron not being there, as far as AICOM can tell): nothing is said about it.
+$saved_ns = get_option( AICOM_Module_Abilities::OPTION, null );
+update_option( AICOM_Module_Abilities::OPTION, [] );
+$rr = tool( 'aicom.recipes', [] );
+ok( 'without it, no extensions and no mention', AICOM_Module_Abilities::extensions() === [] && ! isset( $rr['extensions'] ) && strpos( wp_json_encode( $rr ), 'lautron' ) === false, wp_json_encode( array_diff_key( $rr, [ 'recipes' => 1 ] ) ) );
+null === $saved_ns ? delete_option( AICOM_Module_Abilities::OPTION ) : update_option( AICOM_Module_Abilities::OPTION, $saved_ns );
+
 // ── Clean up ──────────────────────────────────────────────────────────────
 foreach ( array_filter( $blueprints ) as $id ) {
     CLAUTRON_Blueprint_Store::update_status( $id, 'draft' );

@@ -626,13 +626,23 @@ class AICOM_Module_Skills extends AICOM_Module_Base {
             ? AICOM_Recipes::get_for_key( $task, $key_record )
             : AICOM_Recipes::all_for_key( $key_record );
 
+        // Plugins installed here that add more than AICOM's own tools (e.g. new site features), described by the
+        // plugins themselves — only when there are some, and only the tools this key can call.
+        $extensions = AICOM_Module_Abilities::extensions( $key_record );
+        $more       = $extensions ? [
+            'extensions'      => $extensions,
+            'extensions_hint' => 'These plugins extend this site beyond the recipes above. To see what they can do here, call their "explore" tools (read-only); their other tools act on what you find.',
+        ] : [];
+
         if ( empty( $recipes ) ) {
             return $this->ok( [
                 'recipes' => [],
-                'hint'    => 'No recipe matched your key\'s permissions. Try: create post, upload media, backup, alt text.',
-            ] );
+                'hint'    => $extensions
+                    ? 'No recipe matched your key\'s permissions — one of the extensions below may cover it.'
+                    : 'No recipe matched your key\'s permissions. Try: create post, upload media, backup, alt text.',
+            ] + $more );
         }
-        return $this->ok( [ 'recipes' => $recipes ] );
+        return $this->ok( [ 'recipes' => $recipes ] + $more );
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
