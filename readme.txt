@@ -181,12 +181,13 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 
 == Screenshots ==
 
-1. **Dashboard** — Real-time server status, MCP endpoint URL, lock state indicator, today's request count broken down by result, and list of active modules.
-2. **API Keys** — Generate keys with granular scopes (read, write, manage per module), optional IP allowlist, expiry date, and scope presets. View all keys with last-used date and status.
-3. **Audit Logs** — Full request history grouped into named sessions, with a per-day activity chart colour-coded by tool class. Filter by date, key, tool, or session. One-click session restore.
-4. **Safety Controls** — Soft Lock, Hard Lock, and Working Hours Schedule. Set which days and hours agents are allowed to operate; outside those hours the site locks automatically. Includes the full Lock Permission Matrix.
-5. **Modules** — Overview cards for all active modules (WordPress Core, Media, Users, Backup, Sessions, Accessibility, Skills, WooCommerce, Elementor, Polylang, WPML, Yoast, SEOPress, Clautron) with status and registered tools.
-6. **Backups** — Overview of all post, term, and Elementor page snapshots created automatically before AI agent edits: total count, storage used, activity by period, and auto-cleanup status. The Sessions with Snapshots panel lists every session with a one-click **Restore session** button; the Backup Snapshots tab lists every individual snapshot with its session, tool class, and a one-click restore button.
+1. **Dashboard** — Pick a role for your AI assistant (drafts content, polishes SEO, keeps the media library tidy, designs Elementor pages, manages your shop, or just watches) and AICOM creates a key with the right permissions. Below: today's activity, lock controls and active integrations.
+2. **Manage API Keys** — Start from a preset or choose individual permissions, each marked by risk. Optional IP allowlist, working hours, dry-run-only mode and expiry date.
+3. **Activity** — Every AI session with its key, time and result, a chart of activity by type of action, and each step inside a session. Sessions with snapshots can be undone with one click.
+4. **Safety** — Make the site read-only for AI (Soft Lock) or freeze it (Hard Lock) with one click, or lock it automatically outside your working hours.
+5. **Capabilities** — Everything your AI can do on this site, grouped by job. Integrations switch on automatically for the plugins you use.
+6. **Snapshots** — Content is backed up before your AI changes it. Undo a whole session with **Restore session**, or browse every snapshot.
+7. **Welcome wizard** — Two questions to get started: which AI you use (or AICOMBase), and what it should be allowed to do.
 
 == Changelog ==
 
