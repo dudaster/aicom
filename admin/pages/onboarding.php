@@ -12,12 +12,6 @@ $skip_form_url  = admin_url( 'admin-post.php' );
 // Client cards. The wizard saves the chosen one to localStorage so the
 // key-created modal pre-selects it at the end.
 $clients = [
-    // Not an MCP client: picking it skips the key step and goes to the AICOMBase connect page (pairing, no key to copy).
-    'aicombase' => [
-        'name' => __( 'AICOMBase', 'aicom' ),
-        'tag'  => __( 'Audits, one-click fixes and AI work for all your sites in one place — connect once, no key to copy', 'aicom' ),
-        'base' => true,
-    ],
     'general' => [
         'name'        => __( 'General', 'aicom' ),
         'tag'         => __( 'Works with any MCP-aware agent', 'aicom' ),
@@ -39,9 +33,12 @@ $clients = [
         'name' => __( 'ChatGPT (Custom GPT)', 'aicom' ),
         'tag'  => __( 'OpenAI Actions', 'aicom' ),
     ],
-    'generic' => [
-        'name' => __( 'Something else', 'aicom' ),
-        'tag'  => __( 'Any MCP-aware client', 'aicom' ),
+    // Last card, in place of a generic "Something else" (General already covers any MCP client). Not an MCP client:
+    // picking it skips the key step and goes to the AICOMBase connect page (pairing, no key to copy).
+    'aicombase' => [
+        'name' => __( 'AICOMBase', 'aicom' ),
+        'tag'  => __( 'All your sites in one place — no key to copy', 'aicom' ),
+        'base' => true,
     ],
 ];
 

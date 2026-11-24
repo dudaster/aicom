@@ -3102,9 +3102,8 @@ body.aicom-fullscreen {
 .aicom-onboarding-client.is-recommended {
     position: relative;
 }
-/* AICOMBase: its own row above the MCP clients — it connects by pairing, not with a key. */
+/* AICOMBase: tinted, since it connects by pairing, not with a key like the MCP clients next to it. */
 .aicom-onboarding-client.is-base {
-    grid-column: 1 / -1;
     background: var(--aicom-primary-lt);
     border-color: var(--aicom-primary-lt);
 }
