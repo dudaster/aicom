@@ -77,9 +77,9 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $this->register( 'media.set_featured', [
             'class'           => 'write',
             'required_scopes' => [ 'manage.media', 'write.wp.posts' ],
-            'description'     => 'Set a media item as the featured image for a post.',
+            'description'     => 'Set a media item as the featured image for a post, or remove the featured image with id 0. The previous featured image is kept in the session backup, so Restore session puts it back.',
             'input_schema'    => [
-                'id'      => [ 'type' => 'integer', 'required' => true ],
+                'id'      => [ 'type' => 'integer', 'required' => true, 'description' => 'Media item ID; 0 removes the featured image.' ],
                 'post_id' => [ 'type' => 'integer', 'required' => true ],
             ],
             'handler'         => [ $this, 'handle_set_featured' ],
@@ -304,15 +304,35 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $id      = $this->require_int( $args, 'id' );
         $post_id = $this->require_int( $args, 'post_id' );
 
-        if ( ! $id || ! $post_id ) {
-            return $this->err( 'MISSING_PARAM', 'Parameters id and post_id are required', 'validation_failed' );
+        // id 0 is a real value here: it removes the featured image.
+        if ( $id === null || $id < 0 || ! $post_id ) {
+            return $this->err( 'MISSING_PARAM', 'Parameters id and post_id are required (id 0 removes the featured image)', 'validation_failed' );
         }
+
+        $post = get_post( $post_id );
+        if ( ! $post ) {
+            return $this->err( 'NOT_FOUND', "Post $post_id not found", 'error', 404 );
+        }
+        // The router's snapshot of the post refuses a post type outside the key's allowlist, so the write does too.
+        if ( ! AICOM_Policy_Engine::check_post_type_allowlist( $key_record, $post->post_type ) ) {
+            return $this->err( 'DENIED_ALLOWLIST', "Post type not in allowlist: {$post->post_type}", 'denied_allowlist', 403 );
+        }
+
+        $previous_id = (int) get_post_thumbnail_id( $post_id );
 
         if ( $dry_run ) {
-            return $this->ok( [ 'dry_run' => true, 'would_set_featured' => [ 'media_id' => $id, 'post_id' => $post_id ] ] );
+            return $this->ok( [
+                'dry_run'            => true,
+                'would_set_featured' => [ 'media_id' => $id, 'post_id' => $post_id, 'previous_featured_image_id' => $previous_id ],
+                'undo'               => [ 'via' => 'restore_session', 'complete' => true ],
+            ] );
         }
 
-        $success = set_post_thumbnail( $post_id, $id );
+        if ( $id ) {
+            $success = set_post_thumbnail( $post_id, $id );
+        } else {
+            $success = $previous_id === 0 || delete_post_thumbnail( $post_id );
+        }
 
         // Read-after-write: confirm the featured image actually stuck rather
         // than trusting set_post_thumbnail's boolean alone.
@@ -320,19 +340,24 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $verified     = $persisted_id === $id;
 
         if ( ! $success && ! $verified ) {
-            return $this->err( 'WP_ERROR', 'Failed to set featured image', 'error', 500 );
+            return $this->err( 'WP_ERROR', $id ? 'Failed to set featured image' : 'Failed to remove featured image', 'error', 500 );
         }
 
         $data = [
-            'post_id'            => $post_id,
-            'featured_image_id'  => $id,
-            'updated'            => $verified,
-            'requested'          => [ 'featured_image_id' => $id ],
-            'persisted'          => [ 'featured_image_id' => $persisted_id ],
-            'verified'           => $verified,
+            'post_id'                    => $post_id,
+            'featured_image_id'          => $id,
+            'previous_featured_image_id' => $previous_id,
+            'updated'                    => $verified,
+            'requested'                  => [ 'featured_image_id' => $id ],
+            'persisted'                  => [ 'featured_image_id' => $persisted_id ],
+            'verified'                   => $verified,
         ];
         if ( ! $verified ) {
             $data['warning'] = "Featured image is $persisted_id after the write, not $id.";
+        }
+        // Only when the router really took the snapshot: that backup is what Restore session puts back.
+        if ( AICOM_Tool_Router::$auto_backup_id ) {
+            $data['undo'] = [ 'via' => 'restore_session', 'backup_id' => AICOM_Tool_Router::$auto_backup_id, 'complete' => true ];
         }
 
         return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );

@@ -28,6 +28,9 @@ class AICOM_Tool_Router {
     /** Session ID of the active session for the current request (0 = none). */
     public static int $current_session_id = 0;
 
+    /** The snapshot Step 9c took before this call (0 = none), so a handler can say its change can be undone. */
+    public static int $auto_backup_id = 0;
+
     /** Scopes of the currently-executing key, set just before the cap filter and cleared after. */
     private static array $current_key_scopes = [];
 
@@ -117,6 +120,8 @@ class AICOM_Tool_Router {
         // (otherwise undoing "set alt text" on an image that had none would leave the new alt in place).
         'a11y.set_image_alt' => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
         'media.update_meta'  => [ 'type' => 'post', 'id_arg' => 'id', 'track_meta' => [ '_wp_attachment_image_alt' ] ],
+        // The featured image is the post's _thumbnail_id: restore puts the previous one back, or removes it when there was none.
+        'media.set_featured' => [ 'type' => 'post', 'id_arg' => 'post_id', 'track_meta' => [ '_thumbnail_id' ] ],
 
         // A setting: the option's value before the change (or that it didn't exist), so Restore session puts it back.
         'wp.security.xmlrpc.set' => [ 'type' => 'option', 'option' => AICOM_Xmlrpc::OPTION ],
@@ -497,6 +502,7 @@ class AICOM_Tool_Router {
         // ── Step 9c: Auto-backup ──────────────────────────────────────────
         // Best-effort snapshot before a post/term gets overwritten or removed.
         // Failures here must never block the actual tool call.
+        self::$auto_backup_id = 0;
         if ( ! $is_dry_run ) {
             self::maybe_auto_backup( $tool_name, $arguments, $key_record );
         }
@@ -1182,7 +1188,8 @@ class AICOM_Tool_Router {
             $backup = new AICOM_Module_Backup();
 
             if ( $spec['type'] === 'post' ) {
-                $backup->handle_post_create( [ 'post_id' => $id, 'track_meta' => $spec['track_meta'] ?? [] ], $key_record, false );
+                $snap = $backup->handle_post_create( [ 'post_id' => $id, 'track_meta' => $spec['track_meta'] ?? [] ], $key_record, false );
+                self::$auto_backup_id = (int) ( $snap['backup_id'] ?? 0 );
             } elseif ( $spec['type'] === 'term' ) {
                 $backup->handle_term_create( [
                     'term_id'  => $id,
