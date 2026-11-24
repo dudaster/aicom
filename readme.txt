@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.24.3
+Stable tag: 3.24.4
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,12 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 7. **Welcome wizard** — Two questions to get started: which AI you use (or AICOMBase), and what it should be allowed to do.
 
 == Changelog ==
+
+= 3.24.4 =
+
+* Privacy: AICOM's admin pages no longer load fonts from Google Fonts. The fonts now ship with the plugin, so opening an AICOM page sends no request to a third party.
+* Improved: in the welcome wizard, AICOMBase is one of the choices, marked "No key needed", and the duplicate "Something else" option is gone — "General" already works with any MCP client.
+* Fixed: the AICOMBase page said no site content is ever sent. Content is sent only as the result of a task AICOMBase asks the site to run, and only what that task reads — the page now says so, as does the new External services section of this readme.
 
 = 3.24.3 =
 
@@ -604,6 +610,9 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.24.4 =
+AICOM's admin pages no longer load fonts from Google — nothing is requested from a third party when you open them.
 
 = 3.24.3 =
 Keys with "Edit Clautron blueprints" can now add custom CSS and JavaScript through Clautron. Review that permission on your keys.
