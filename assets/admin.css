@@ -3102,14 +3102,6 @@ body.aicom-fullscreen {
 .aicom-onboarding-client.is-recommended {
     position: relative;
 }
-/* AICOMBase: tinted, since it connects by pairing, not with a key like the MCP clients next to it. */
-.aicom-onboarding-client.is-base {
-    background: var(--aicom-primary-lt);
-    border-color: var(--aicom-primary-lt);
-}
-.aicom-onboarding-client.is-base.is-active {
-    border-color: var(--aicom-primary);
-}
 .aicom-onboarding-client-badge {
     position: absolute;
     top: 8px;

@@ -38,7 +38,6 @@ $clients = [
     'aicombase' => [
         'name' => __( 'AICOMBase', 'aicom' ),
         'tag'  => __( 'All your sites in one place — no key to copy', 'aicom' ),
-        'base' => true,
     ],
 ];
 
@@ -72,7 +71,7 @@ $gentle_presets = array_intersect_key(
 
         <div class="aicom-onboarding-clients" id="aicom-onboarding-clients">
             <?php foreach ( $clients as $key => $c ) : ?>
-                <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?><?php echo ! empty( $c['base'] ) ? ' is-base' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
+                <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
                     <?php if ( ! empty( $c['recommended'] ) ) : ?>
                         <span class="aicom-onboarding-client-badge"><?php esc_html_e( 'Recommended', 'aicom' ); ?></span>
                     <?php endif; ?>
