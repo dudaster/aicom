@@ -18,7 +18,7 @@ AICOM connects the AI assistant you already use to your WordPress site. Instead 
 
 No more copy-pasting between your AI and the dashboard. No extra subscription: AICOM itself is free and open source.
 
-**You decide what your AI can read, change and delete. Every action is logged, and content is backed up before your AI changes it, so you can always put it back.**
+**You decide what your AI can read, change and delete. Every action is logged, and your pages and posts are backed up before your AI changes them, so you can put them back.**
 
 = What can you ask your AI to do? =
 
@@ -38,7 +38,7 @@ These are just a few examples. Your AI works with WordPress and the plugins belo
 = Your website, your rules =
 
 * **You choose what each AI can do.** Every API key gets only the permissions you tick: read-only for one assistant, publishing for another. Built-in presets cover common roles in one click.
-* **Made a mistake? Put it back.** AICOM backs up a post, page, term, Elementor page or setting right before your AI changes it, even if the AI never asks for a backup. Restore one change, or undo a whole session from wp-admin in one click, including pages the session created.
+* **Made a mistake? Put it back.** AICOM backs up posts, pages, categories, Elementor designs and image details right before your AI changes them, even if the AI never asks for a backup. Restore one change, or undo a whole session from wp-admin in one click, including pages the session created.
 * **See the work behind the result.** Every action is logged and grouped by session: which AI, what it did, when, and with what result.
 * **Try before it runs.** A dry run shows what an action would change without changing anything, and destructive actions need explicit confirmation.
 * **Lock it when you want.** Make the site read-only for AI with one click, block AI work completely, or lock it automatically outside your working hours.
@@ -76,7 +76,7 @@ AICOM is free and open source under the GPL-2.0-or-later license. It needs no AI
 
 1. Install AICOM from **Plugins → Add New** by searching for "AICOM", or upload the `aicom` folder to `/wp-content/plugins/`
 2. Activate the plugin via **Plugins → Installed Plugins**
-3. Follow the welcome wizard, or go to **AICOM → API Keys** and click **Generate New Key**
+3. Follow the welcome wizard, or go to **AICOM → Manage API Keys** and click **Generate New Key**
 4. Give the key a label (e.g. "Claude Desktop") and choose what it may do — a preset or individual permissions
 5. Copy the key immediately — it will not be shown again
 6. Point your AI agent or MCP client to `https://yoursite.com/wp-json/aicom/v1/mcp`
@@ -108,7 +108,7 @@ No. AICOM works entirely on your own site with the AI assistant you choose. If y
 
 = Which permissions can I give an API key? =
 
-Dozens of granular scopes, grouped by area: `read.wp`, `write.wp.posts`, `delete.wp.posts`, `manage.taxonomies`, `manage.meta`, `manage.media`, `manage.files`, `manage.wordpress.settings`, `manage.plugins`, `manage.backups`, `manage.a11y`, `manage.users`, `manage.roles`, `manage.skills`, plus one `read.*`/`manage.*` pair per optional integration (WooCommerce, Elementor, Polylang, WPML, Yoast, SEOPress, Clautron). Built-in presets (Content Assistant, Translator, SEO Editor, Site Maintenance, Full Admin, and more) bundle the right scopes for a common role in one click — see the full list and descriptions on the **API Keys** page.
+Dozens of granular scopes, grouped by area: `read.wp`, `write.wp.posts`, `delete.wp.posts`, `manage.meta`, `manage.taxonomies`, `manage.menus`, `manage.media`, `manage.files`, `manage.a11y`, `read.users`, `manage.users`, `delete.users`, `manage.roles`, `read.skills`, `manage.skills`, `learn.skills`, `manage.wordpress.settings`, `manage.plugins`, `manage.backups`, `manage.security.hardening`, plus scopes for each optional integration (WooCommerce, Elementor, Polylang, WPML, Yoast, SEOPress, Clautron) that appear only when that plugin is active. Built-in presets (Read-only, Content Assistant, Elementor Editor, WooCommerce Catalog, Translator, SEO Editor, Site Maintenance, Full Admin) bundle the right scopes for a common role in one click — see the full list and descriptions on the **Manage API Keys** page.
 
 = Can I restrict an AI agent to read-only access? =
 
@@ -124,7 +124,7 @@ Yes. Send `"dry_run": true` in your request parameters. The operation will be va
 
 = Does my agent need to remember to back things up before making changes? =
 
-No. AICOM automatically snapshots a post, term, Elementor page or setting before your agent changes it — this happens at the plugin level regardless of what the agent does or forgets to do. You can restore any individual snapshot, or undo an entire session (everything it changed, including posts it created) in one click from the Backups page.
+No. AICOM automatically snapshots a post, page, term, Elementor page or image detail before your agent changes it — this happens at the plugin level regardless of what the agent does or forgets to do. You can restore any individual snapshot, or undo an entire session (everything it changed, including posts it created) in one click from the **Snapshots** page.
 
 = What happens if my AI agent sends the same write request twice? =
 
@@ -145,7 +145,7 @@ Yes. AICOM is built to stay usable for smaller, local or context-constrained mod
 
 = Is it compatible with WooCommerce, Elementor, Polylang, WPML, Yoast, and SEOPress? =
 
-Yes. Each plugin's tools are loaded automatically only if the corresponding plugin is active — and, for a key with the **Compact Tool List** setting on, only if the calling key actually has the scope to use them. If WooCommerce is not installed, no WooCommerce tools appear in the tool list or audit log. Polylang and WPML can't both be meaningfully active on the same install (they're alternative translation plugins), but AICOM detects whichever one you're running and exposes the matching tools automatically — same for Yoast vs. SEOPress.
+Yes. Each plugin's tools are loaded automatically only if the corresponding plugin is active, and an agent only sees the tools its key is allowed to use. If WooCommerce is not installed, no WooCommerce tools appear in the tool list or audit log. Polylang and WPML can't both be meaningfully active on the same install (they're alternative translation plugins), but AICOM detects whichever one you're running and exposes the matching tools automatically — same for Yoast vs. SEOPress.
 
 = Does it work without mod_rewrite or pretty permalinks? =
 
@@ -153,7 +153,7 @@ Yes. The fallback endpoint `/?aicom=1` works on any server configuration, with o
 
 = Does it log what AI agents do? =
 
-Yes. Every request is logged to the audit log with timestamp, remote IP, API key label, tool name, parameters, result summary, and response duration. The log is accessible from **AICOM → Audit Logs** and can be filtered by date, key, or tool name.
+Yes. Every request is logged with timestamp, remote IP, API key label, tool name, parameters, result summary, and response duration, grouped into sessions. The log is on the **AICOM → Activity** page and can be filtered by date, key, tool, result, IP address or session.
 
 = What is MCP (Model Context Protocol)? =
 
