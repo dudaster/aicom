@@ -3099,8 +3099,8 @@ body.aicom-fullscreen {
     font-size: 0.82em;
     color: var(--aicom-text-sm);
 }
-.aicom-onboarding-client.is-recommended {
-    position: relative;
+.aicom-onboarding-client {
+    position: relative; /* for .aicom-onboarding-client-badge */
 }
 .aicom-onboarding-client-badge {
     position: absolute;

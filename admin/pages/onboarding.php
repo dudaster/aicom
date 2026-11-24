@@ -37,7 +37,8 @@ $clients = [
     // picking it skips the key step and goes to the AICOMBase connect page (pairing, no key to copy).
     'aicombase' => [
         'name' => __( 'AICOMBase', 'aicom' ),
-        'tag'  => __( 'All your sites in one place — no key to copy', 'aicom' ),
+        'tag'   => __( 'Audits, fixes and AI work for all your sites', 'aicom' ),
+        'badge' => __( 'No key needed', 'aicom' ), // a fact, not a ranking: AICOMBase pairs with the site
     ],
 ];
 
@@ -74,6 +75,8 @@ $gentle_presets = array_intersect_key(
                 <button type="button" class="aicom-onboarding-client<?php echo ! empty( $c['recommended'] ) ? ' is-recommended' : ''; ?>" data-client="<?php echo esc_attr( $key ); ?>"<?php echo ! empty( $c['recommended'] ) ? ' data-recommended="1"' : ''; ?>>
                     <?php if ( ! empty( $c['recommended'] ) ) : ?>
                         <span class="aicom-onboarding-client-badge"><?php esc_html_e( 'Recommended', 'aicom' ); ?></span>
+                    <?php elseif ( ! empty( $c['badge'] ) ) : ?>
+                        <span class="aicom-onboarding-client-badge"><?php echo esc_html( $c['badge'] ); ?></span>
                     <?php endif; ?>
                     <span class="aicom-onboarding-client-name"><?php echo esc_html( $c['name'] ); ?></span>
                     <span class="aicom-onboarding-client-tag"><?php echo esc_html( $c['tag'] ); ?></span>
