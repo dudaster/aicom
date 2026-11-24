@@ -76,7 +76,7 @@ defined( 'ABSPATH' ) || exit;
             </p>
             <ul style="margin:0 0 16px 18px;list-style:disc;font-size:0.86em;color:var(--aicom-text-sm)">
                 <li><?php esc_html_e( 'Identifies this installation with a key pair — the private key never leaves this site.', 'aicom' ); ?></li>
-                <li><?php esc_html_e( 'Sends health, versions and AICOM activity (no site content, no passwords, no API keys).', 'aicom' ); ?></li>
+                <li><?php esc_html_e( 'Sends health, versions and AICOM activity — no passwords, no API keys. Site content is sent only as the result of a task AICOMBase asks this site to run, and only what that task reads.', 'aicom' ); ?></li>
                 <li><?php esc_html_e( 'AICOMBase can request work; every task is verified here against your local policy below, and locks always win.', 'aicom' ); ?></li>
             </ul>
             <button type="button" class="button button-primary button-hero" id="aicom-base-connect"><?php esc_html_e( 'Connect', 'aicom' ); ?></button>
