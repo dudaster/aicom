@@ -52,6 +52,19 @@ which stays open after the task. `close_session` / `restore_session` close it / 
 (`AICOM_Base_Heartbeat::cmd_restore_session`, reported as `session.restored`). Closing in WP admin, the 2 h stale rule and a
 restore all report back through the usual session events, so AICOMBase stops using the session.
 
+## Undo per call (change journal, unreleased)
+
+Every write tool call (not reads, sessions, cache purges, or bridged abilities, which return their own `undo`) runs inside
+`AICOM_Change_Journal`: it follows the call's SQL writes (`query` filter) and keeps how each row, meta key, option and
+term link was before the call and after it, as one `aicom_backups` row (`target_type = journal`). The call's result then
+carries `undo: {via: "restore_session", complete, changes, backup_id?, reasons?, outside?}` — `complete: false` with a
+reason when it wrote to a table Undo doesn't cover, sent an email, deleted a file, or touched a user it can't bring back;
+`outside` lists hosts it called (informational). `restore_session` replays journals newest first and skips the router's
+snapshots of the same call (`supersedes`); anything changed again after the AI is left as it is and listed in
+`session.restored` as `kept: [...]`. A dry run that writes anyway is put back at once and answered `DRY_RUN_UNSUPPORTED`.
+Tools listed reversible in `/site/capabilities` are `AICOM_Change_Journal::VERIFIED`, each proven by
+`tests/test-undo-journal.php` (run, restore, database identical).
+
 ## Wake ping (§11)
 
 `POST /wp-json/aicom/v1/wake` — the only inbound route AICOMBase calls (everything else is the site

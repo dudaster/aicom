@@ -17,7 +17,7 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
             'required_scopes' => [ $scope ],
             'description'     => 'List available backups with optional target_type filter.',
             'input_schema'    => [
-                'target_type' => [ 'type' => 'string', 'description' => 'Filter by type: post, term, elementor_page, option, ability_undo (the step that reverses a change a plugin made through its abilities).' ],
+                'target_type' => [ 'type' => 'string', 'description' => 'Filter by type: post, term, elementor_page, option, ability_undo (the step that reverses a change a plugin made through its abilities), journal (what one tool call changed).' ],
                 'target_id'   => [ 'type' => 'string' ],
                 'limit'       => [ 'type' => 'integer', 'default' => 20 ],
             ],
@@ -123,7 +123,7 @@ class AICOM_Module_Backup extends AICOM_Module_Base {
         }
 
         $where_sql = implode( ' AND ', $where );
-        $limit     = min( (int) ( $args['limit'] ?? 50 ), 200 );
+        $limit     = max( 1, min( (int) ( $args['limit'] ?? 50 ), 200 ) );
         $params[]  = $limit;
 
         // $table = $wpdb->prefix.'aicom_backups' (trusted); user filters use %s/%d placeholders.

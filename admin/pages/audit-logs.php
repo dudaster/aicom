@@ -155,6 +155,15 @@ $active_tab_norm = ( $active_tab === 'filters' ) ? 'logs' : $active_tab;
         ?>
     </p></div>
     <?php endif; ?>
+    <?php if ( ! empty( $_GET['kept'] ) ) : ?>
+    <?php $kept_count = absint( $_GET['kept'] ); ?>
+    <div class="notice notice-warning is-dismissible"><p>
+        <?php
+        /* translators: %d: number of changes left as they are */
+        printf( esc_html( _n( '%d change was left as it is: someone changed it after the AI did.', '%d changes were left as they are: someone changed them after the AI did.', $kept_count, 'aicom' ) ), $kept_count );
+        ?>
+    </p></div>
+    <?php endif; ?>
 
     <?php if ( isset( $_GET['restore_error'] ) ) : ?>
     <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not restore session — invalid session ID.', 'aicom' ); ?></p></div>

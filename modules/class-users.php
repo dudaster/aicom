@@ -166,7 +166,7 @@ class AICOM_Module_Users extends AICOM_Module_Base {
 
     public function handle_users_list( array $args, array $key_record, bool $dry_run ): array {
         $query_args = [
-            'number' => min( (int) ( $args['number'] ?? 20 ), 200 ),
+            'number' => max( 1, min( (int) ( $args['number'] ?? 20 ), 200 ) ), // 0 or -1 would be "all"
         ];
 
         if ( ! empty( $args['role'] ) ) {

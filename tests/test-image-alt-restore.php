@@ -46,8 +46,8 @@ ok( 'media.update_meta on image with alt', ! isset( $r['error'] ), json_encode( 
 ok( 'alt written (no alt before)', alt_of( $no_alt ) === 'Young players jumping for a header' );
 ok( 'alt written (had alt before)', alt_of( $has_alt ) === 'Team photo after the final' );
 
-$backups = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d", $sid ) );
-ok( 'a backup was taken for each change', $backups === 2, "got $backups" );
+$backups = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d AND target_type = 'journal'", $sid ) );
+ok( 'each change has its journal', $backups === 2, "got $backups" );
 $payload = json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT payload_json FROM {$wpdb->prefix}aicom_backups WHERE session_id = %d AND target_id = %s", $sid, (string) $no_alt ) ), true );
 ok( 'backup remembers the alt was absent', in_array( '_wp_attachment_image_alt', (array) ( $payload['absent_meta'] ?? [] ), true ), json_encode( $payload['absent_meta'] ?? null ) );
 tool( 'session.close', [] );

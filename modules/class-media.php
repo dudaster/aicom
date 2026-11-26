@@ -77,7 +77,7 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $this->register( 'media.set_featured', [
             'class'           => 'write',
             'required_scopes' => [ 'manage.media', 'write.wp.posts' ],
-            'description'     => 'Set a media item as the featured image for a post, or remove the featured image with id 0. The previous featured image is kept in the session backup, so Restore session puts it back.',
+            'description'     => 'Set a media item as the featured image for a post, or remove the featured image with id 0.',
             'input_schema'    => [
                 'id'      => [ 'type' => 'integer', 'required' => true, 'description' => 'Media item ID; 0 removes the featured image.' ],
                 'post_id' => [ 'type' => 'integer', 'required' => true ],
@@ -126,7 +126,7 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         $query = new WP_Query( [
             'post_type'      => 'attachment',
             'post_status'    => 'inherit',
-            'posts_per_page' => min( (int) ( $args['posts_per_page'] ?? 20 ), 100 ),
+            'posts_per_page' => max( 1, min( (int) ( $args['posts_per_page'] ?? 20 ), 100 ) ), // -1 would be "all"
             'paged'          => max( 1, (int) ( $args['paged'] ?? 1 ) ),
             's'              => sanitize_text_field( $args['search'] ?? '' ),
         ] );
@@ -324,7 +324,6 @@ class AICOM_Module_Media extends AICOM_Module_Base {
             return $this->ok( [
                 'dry_run'            => true,
                 'would_set_featured' => [ 'media_id' => $id, 'post_id' => $post_id, 'previous_featured_image_id' => $previous_id ],
-                'undo'               => [ 'via' => 'restore_session', 'complete' => true ],
             ] );
         }
 
@@ -354,10 +353,6 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         ];
         if ( ! $verified ) {
             $data['warning'] = "Featured image is $persisted_id after the write, not $id.";
-        }
-        // Only when the router really took the snapshot: that backup is what Restore session puts back.
-        if ( AICOM_Tool_Router::$auto_backup_id ) {
-            $data['undo'] = [ 'via' => 'restore_session', 'backup_id' => AICOM_Tool_Router::$auto_backup_id, 'complete' => true ];
         }
 
         return $this->ok( $data, [ 'target_type' => 'post', 'target_id' => $post_id ] );

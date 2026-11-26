@@ -231,6 +231,12 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
         if ( ! $ability ) {
             return $this->err( 'ABILITY_UNAVAILABLE', "$ability_name is no longer registered on this site.", 'error', 404 );
         }
+        // A dry run must change nothing. An ability that changes things and has no dry_run of its own would run
+        // for real, so it isn't run at all (AICOMBase brief, A1: a dry-run-only key could make real changes).
+        $props = (array) ( ( (array) $ability->get_input_schema() )['properties'] ?? [] );
+        if ( $dry_run && empty( $ability->get_meta()['annotations']['readonly'] ) && ! isset( $props['dry_run'] ) ) {
+            return $this->err( 'DRY_RUN_UNSUPPORTED', "$ability_name has no dry run, so it wasn't run. Run it without dry_run to make the change.", 'validation_failed', 400 );
+        }
         $input = self::ability_input( $ability, $args, $dry_run );
 
         $extra = $this->resolved_scopes( $ability, $input );

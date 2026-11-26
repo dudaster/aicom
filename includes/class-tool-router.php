@@ -28,9 +28,6 @@ class AICOM_Tool_Router {
     /** Session ID of the active session for the current request (0 = none). */
     public static int $current_session_id = 0;
 
-    /** The snapshot Step 9c took before this call (0 = none), so a handler can say its change can be undone. */
-    public static int $auto_backup_id = 0;
-
     /** Scopes of the currently-executing key, set just before the cap filter and cleared after. */
     private static array $current_key_scopes = [];
 
@@ -502,10 +499,7 @@ class AICOM_Tool_Router {
         // ── Step 9c: Auto-backup ──────────────────────────────────────────
         // Best-effort snapshot before a post/term gets overwritten or removed.
         // Failures here must never block the actual tool call.
-        self::$auto_backup_id = 0;
-        if ( ! $is_dry_run ) {
-            self::maybe_auto_backup( $tool_name, $arguments, $key_record );
-        }
+        $snapshot_id = $is_dry_run ? 0 : self::maybe_auto_backup( $tool_name, $arguments, $key_record );
 
         // ── Step 9d: Idempotency claim ─────────────────────────────────────
         // Opt-in: only applies when the caller passes idempotency_key on a
@@ -585,12 +579,23 @@ class AICOM_Tool_Router {
         self::$current_key_scopes = json_decode( $key_record['scopes_json'] ?? '[]', true ) ?: [];
         add_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
 
+        // What the handler changes is journaled, so Restore session can put exactly that back (dry runs too: one
+        // that changed something anyway is put back at once, below).
+        $journal   = null;
+        $journaled = AICOM_Change_Journal::covers( $tool_name, $tool_meta );
+        if ( $journaled ) {
+            AICOM_Change_Journal::start( $tool_name );
+        }
+
         $exec_exception = null;
         try {
             $result = call_user_func( $handler, $arguments, $key_record, $is_dry_run );
         } catch ( Throwable $e ) {
             $exec_exception = $e;
         } finally {
+            if ( $journaled ) {
+                $journal = AICOM_Change_Journal::stop();
+            }
             remove_filter( 'user_has_cap', [ 'AICOM_Tool_Router', 'grant_api_request_caps' ], 999 );
             self::$current_key_scopes = [];
         }
@@ -606,13 +611,43 @@ class AICOM_Tool_Router {
             ];
         }
 
+        $created_row = 0;
         if ( ! $is_dry_run && ! isset( $result['error'] ) && in_array( $tool_name, self::CREATES_POST, true ) ) {
             $created_id = (int) ( $result['_meta']['target_id'] ?? 0 );
             if ( $created_id ) {
                 try {
-                    AICOM_Module_Backup::record_created_post( $created_id, $tool_name, $key_record );
+                    $created_row = AICOM_Module_Backup::record_created_post( $created_id, $tool_name, $key_record );
                 } catch ( Throwable $e ) {
                     // Same rule as maybe_auto_backup(): the record is a safety net, the post is already made.
+                }
+            }
+        }
+
+        if ( $journal !== null ) {
+            if ( $is_dry_run ) {
+                // A dry run must change nothing. A handler that changed something anyway (it doesn't honour dry_run,
+                // or a dry-run-only key called it) has that put back now, and the call is refused.
+                if ( $journal['entries'] ) {
+                    AICOM_Change_Journal::restore( [ 'entries' => $journal['entries'] ], true );
+                    $result = [
+                        'error'       => [
+                            'code'        => 'DRY_RUN_UNSUPPORTED',
+                            'message'     => "$tool_name doesn't support a dry run: it changed the site, and that was put back. Run it without dry_run to make the change.",
+                            'status_code' => 'validation_failed',
+                        ],
+                        'http_status' => 400,
+                    ];
+                }
+            } else {
+                // Recorded even when the handler failed: what it changed before failing is put back too. The
+                // router's own snapshots of this call are superseded by it in Restore session.
+                try {
+                    $undo = AICOM_Change_Journal::record( $journal, $key_record, $request_id, [ $snapshot_id, $created_row ] );
+                    if ( ! isset( $result['error'] ) && ! array_key_exists( 'undo', $result ) ) {
+                        $result['undo'] = $undo;
+                    }
+                } catch ( Throwable $e ) {
+                    // The change is made; without its journal the snapshots above still undo it.
                 }
             }
         }
@@ -1159,46 +1194,48 @@ class AICOM_Tool_Router {
         return array_values( array_filter( array_column( self::AUTO_BACKUP_MAP, 'option' ) ) );
     }
 
-    private static function maybe_auto_backup( string $tool_name, array $arguments, array $key_record ): void {
+    /** @return int The snapshot's backup id, 0 when none was taken. */
+    private static function maybe_auto_backup( string $tool_name, array $arguments, array $key_record ): int {
         if ( ! isset( self::AUTO_BACKUP_MAP[ $tool_name ] ) ) {
-            return;
+            return 0;
         }
 
         $spec = self::AUTO_BACKUP_MAP[ $tool_name ];
         if ( $spec['type'] === 'option' ) {
             try {
-                AICOM_Module_Backup::snapshot_option( $spec['option'], $tool_name, $key_record );
+                return AICOM_Module_Backup::snapshot_option( $spec['option'], $tool_name, $key_record );
             } catch ( Throwable $e ) {
                 // Same rule as below: a failed safety snapshot must not block the real write.
             }
-            return;
+            return 0;
         }
         $id = (int) ( $arguments[ $spec['id_arg'] ] ?? 0 );
 
         if ( ! $id ) {
-            return;
+            return 0;
         }
 
         try {
             if ( $spec['type'] === 'elementor' ) {
-                ( new AICOM_Module_Elementor() )->handle_backup( [ 'post_id' => $id ], $key_record, false );
-                return;
+                $snap = ( new AICOM_Module_Elementor() )->handle_backup( [ 'post_id' => $id ], $key_record, false );
+                return (int) ( $snap['backup_id'] ?? 0 );
             }
 
             $backup = new AICOM_Module_Backup();
 
             if ( $spec['type'] === 'post' ) {
                 $snap = $backup->handle_post_create( [ 'post_id' => $id, 'track_meta' => $spec['track_meta'] ?? [] ], $key_record, false );
-                self::$auto_backup_id = (int) ( $snap['backup_id'] ?? 0 );
             } elseif ( $spec['type'] === 'term' ) {
-                $backup->handle_term_create( [
+                $snap = $backup->handle_term_create( [
                     'term_id'  => $id,
                     'taxonomy' => (string) ( $arguments[ $spec['taxonomy_arg'] ] ?? '' ),
                 ], $key_record, false );
             }
+            return (int) ( $snap['backup_id'] ?? 0 );
         } catch ( Throwable $e ) {
             // Swallow — a failed safety snapshot must not block the real write.
         }
+        return 0;
     }
 
     const RATE_LIMIT_PREFIX = 'aicom_rl_';

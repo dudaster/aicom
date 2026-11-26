@@ -1115,8 +1115,9 @@ class AICOM_Admin {
             wp_safe_redirect( admin_url( $back_to . '&restore_error=1' ) );
             exit;
         }
+        self::$restore_report = [ 'kept' => [], 'failed' => [] ];
         $restored = self::do_restore_session( $session_id );
-        wp_safe_redirect( admin_url( $back_to . '&restored=' . $restored ) );
+        wp_safe_redirect( admin_url( $back_to . '&restored=' . $restored . '&kept=' . count( self::$restore_report['kept'] ) ) );
         exit;
     }
 
@@ -1333,6 +1334,14 @@ class AICOM_Admin {
     }
 
     /**
+     * What the restores since the last reset left alone because someone changed it after the AI, and what failed
+     * (AICOM_Change_Journal::restore()). Callers reset it, restore, then read it.
+     *
+     * @var array{kept:string[], failed:string[]}
+     */
+    public static array $restore_report = [ 'kept' => [], 'failed' => [] ];
+
+    /**
      * Core restore logic — replays all backups for a session in reverse order.
      * Returns the number of objects restored.
      * Public so tests can call it directly without going through the POST handler.
@@ -1350,9 +1359,31 @@ class AICOM_Admin {
             ARRAY_A
         );
 
-        $restored = 0;
+        $restored   = 0;
+        $superseded = [];
 
         foreach ( $backups as $backup ) {
+            if ( isset( $superseded[ (int) $backup['id'] ] ) ) {
+                continue;
+            }
+            if ( $backup['target_type'] === 'journal' ) {
+                // What one call actually changed. It's newer than the router's snapshots of the same call, so it
+                // comes first; once it's restored they are skipped — they would overwrite what it kept on purpose.
+                $payload = json_decode( (string) $backup['payload_json'], true );
+                try {
+                    $r = AICOM_Change_Journal::restore( is_array( $payload ) ? $payload : [] );
+                } catch ( Throwable $e ) {
+                    self::$restore_report['failed'][] = 'journal ' . $backup['id'] . ': ' . substr( $e->getMessage(), 0, 200 );
+                    continue; // its snapshots, if any, still apply
+                }
+                $restored += $r['restored'];
+                array_push( self::$restore_report['kept'], ...$r['kept'] );
+                array_push( self::$restore_report['failed'], ...$r['failed'] );
+                foreach ( (array) ( $payload['supersedes'] ?? [] ) as $id ) {
+                    $superseded[ (int) $id ] = true;
+                }
+                continue;
+            }
             if ( $backup['target_type'] === 'elementor_page' ) {
                 $target_post_id = (int) $backup['target_id'];
                 if ( $target_post_id && get_post( $target_post_id ) && $backup['payload_json'] ) {

@@ -47,15 +47,16 @@ $sid = (int) ( $r['session_id'] ?? 0 );
 ok( 'session opened', $sid > 0, json_encode( $r ) );
 
 $r = tool( 'media.set_featured', [ 'id' => $img_b, 'post_id' => $no_img, 'dry_run' => true ] );
-ok( 'dry run says what it would do and that it can be undone', ( $r['would_set_featured']['previous_featured_image_id'] ?? null ) === 0 && ( $r['undo']['complete'] ?? null ) === true, json_encode( $r ) );
+ok( 'dry run says what it would do', ( $r['would_set_featured']['previous_featured_image_id'] ?? null ) === 0, json_encode( $r ) );
 ok( '... and changes nothing', thumb_of( $no_img ) === null );
 
 $r = tool( 'media.set_featured', [ 'id' => $img_b, 'post_id' => $no_img ] );
 ok( 'set on a post without one', ( $r['verified'] ?? false ) === true && thumb_of( $no_img ) === $img_b, json_encode( $r ) );
 ok( '... reports there was none before', ( $r['previous_featured_image_id'] ?? null ) === 0, json_encode( $r ) );
 ok( '... and undo.complete with its backup', ( $r['undo']['complete'] ?? null ) === true && ( $r['undo']['backup_id'] ?? 0 ) > 0, json_encode( $r['undo'] ?? null ) );
-$payload = json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT payload_json FROM {$wpdb->prefix}aicom_backups WHERE id = %d", (int) ( $r['undo']['backup_id'] ?? 0 ) ) ), true );
-ok( '... whose backup remembers the post had no featured image', in_array( '_thumbnail_id', (array) ( $payload['absent_meta'] ?? [] ), true ), json_encode( $payload['absent_meta'] ?? null ) );
+$payload = json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT payload_json FROM {$wpdb->prefix}aicom_backups WHERE id = %d AND target_type = 'journal'", (int) ( $r['undo']['backup_id'] ?? 0 ) ) ), true );
+$thumb   = array_values( array_filter( (array) ( $payload['entries'] ?? [] ), static fn( $e ) => ( $e['key'] ?? '' ) === '_thumbnail_id' ) );
+ok( '... whose journal remembers the post had no featured image', count( $thumb ) === 1 && $thumb[0]['b'] === null && $thumb[0]['a'] === [ (string) $img_b ], json_encode( $thumb ) );
 
 $r = tool( 'media.set_featured', [ 'id' => $img_b, 'post_id' => $has_img ] );
 ok( 'changed on a post that had one', thumb_of( $has_img ) === $img_b && ( $r['previous_featured_image_id'] ?? null ) === $img_a, json_encode( $r ) );
@@ -73,8 +74,8 @@ tool( 'session.close', [] );
 
 echo "\n══ Restore the session ══\n";
 $restored = AICOM_Admin::do_restore_session( $sid );
-// 4: the router also snapshots the post before the call without an id, which the tool then rejects — harmless.
-ok( 'restore replayed the backups', $restored === 4, "got $restored" );
+// 3 journals (one per change) + the router's snapshot before the call without an id, which changed nothing.
+ok( 'restore put back each change', $restored === 4, "got $restored" );
 ok( 'the post without a featured image has none again', thumb_of( $no_img ) === null, var_export( thumb_of( $no_img ), true ) );
 ok( 'the post with one has its original back', thumb_of( $has_img ) === $img_a, var_export( thumb_of( $has_img ), true ) );
 
@@ -82,7 +83,9 @@ echo "\n══ Single-backup restore (backup.post.restore) ══\n";
 tool( 'session.open', [ 'name' => 'Again', 'description' => 'Remove a featured image then restore one backup' ] );
 $r = tool( 'media.set_featured', [ 'id' => 0, 'post_id' => $has_img ] );
 ok( 'removed again', thumb_of( $has_img ) === null, json_encode( $r ) );
-$r = tool( 'backup.post.restore', [ 'backup_id' => (int) ( $r['undo']['backup_id'] ?? 0 ), 'confirm' => true ] );
+// The router's own snapshot of the post, still taken alongside the journal.
+$snap = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}aicom_backups WHERE target_type = 'post' AND target_id = %s ORDER BY id DESC LIMIT 1", (string) $has_img ) );
+$r = tool( 'backup.post.restore', [ 'backup_id' => $snap, 'confirm' => true ] );
 ok( 'backup.post.restore ok', ( $r['restored'] ?? false ) === true, json_encode( $r ) );
 ok( 'featured image back', thumb_of( $has_img ) === $img_a, var_export( thumb_of( $has_img ), true ) );
 tool( 'session.close', [] );

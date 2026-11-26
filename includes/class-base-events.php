@@ -75,10 +75,14 @@ class AICOM_Base_Events {
     }
 
     /** Result of a `restore_session` command. */
-    public static function session_restored( string $base_session_id, int $restored, string $error = '' ): void {
+    /** @param string[] $kept Changes left as they are because someone changed them after the AI. */
+    public static function session_restored( string $base_session_id, int $restored, string $error = '', array $kept = [] ): void {
         $e = [ 'session_id' => $base_session_id, 'restored' => $restored, 'at' => gmdate( 'Y-m-d\TH:i:s\Z' ) ];
         if ( $error !== '' ) {
             $e['error'] = substr( $error, 0, 500 );
+        }
+        if ( $kept ) {
+            $e['kept'] = array_slice( array_map( static fn( $k ) => substr( (string) $k, 0, 200 ), $kept ), 0, 50 );
         }
         self::enqueue( 'session.restored', $e );
     }

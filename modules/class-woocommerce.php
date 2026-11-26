@@ -231,7 +231,8 @@ class AICOM_Module_WooCommerce extends AICOM_Module_Base {
         $query = new WP_Query( [
             'post_type'      => 'product',
             'post_status'    => sanitize_key( $args['status'] ?? 'publish' ),
-            'posts_per_page' => min( (int) ( $args['posts_per_page'] ?? 20 ), 100 ),
+            // per_page is what the schema says; posts_per_page is what this read before (kept working).
+            'posts_per_page' => max( 1, min( (int) ( $args['per_page'] ?? $args['posts_per_page'] ?? 20 ), 100 ) ),
             'paged'          => max( 1, (int) ( $args['paged'] ?? 1 ) ),
             's'              => sanitize_text_field( $args['search'] ?? '' ),
         ] );

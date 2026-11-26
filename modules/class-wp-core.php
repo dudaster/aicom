@@ -557,7 +557,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         $query_args = [
             'post_type'      => $post_type,
             'post_status'    => sanitize_text_field( $args['status'] ?? 'any' ),
-            'posts_per_page' => min( (int) ( $args['posts_per_page'] ?? 20 ), 100 ),
+            'posts_per_page' => max( 1, min( (int) ( $args['posts_per_page'] ?? 20 ), 100 ) ), // -1 would be "all"
             'paged'          => max( 1, (int) ( $args['paged'] ?? 1 ) ),
         ];
 

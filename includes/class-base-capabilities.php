@@ -124,7 +124,8 @@ class AICOM_Base_Capabilities {
 
             $is_read     = in_array( $meta['class'], AICOM_Tool_Registry::READ_ONLY_CLASSES, true );
             // Or bridged from an ability whose undo step is always complete (AICOM_Module_Abilities).
-            $reversible  = $is_read || in_array( $name, self::snapshot_tools(), true ) || ! empty( $meta['reversible'] );
+            // Or journaled and proven by tests/test-undo-journal.php (AICOM_Change_Journal::VERIFIED).
+            $reversible  = $is_read || in_array( $name, self::snapshot_tools(), true ) || in_array( $name, AICOM_Change_Journal::VERIFIED, true ) || ! empty( $meta['reversible'] );
             $verification = $is_read ? 'none' : 'readback';
             $risk        = self::risk( $meta );
 
