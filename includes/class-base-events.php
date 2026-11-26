@@ -17,6 +17,20 @@ class AICOM_Base_Events {
     const QUEUE_CAP    = 5000;
     const MAX_ATTEMPTS = 40;
 
+    /** Plugin folder → [tool dependency, name]: deactivating it takes that module's tools away. */
+    private const DEPENDENCY_PLUGINS = [
+        'woocommerce'                => [ 'woocommerce', 'WooCommerce' ],
+        'elementor'                  => [ 'elementor', 'Elementor' ],
+        'polylang'                   => [ 'polylang', 'Polylang' ],
+        'polylang-pro'               => [ 'polylang', 'Polylang Pro' ],
+        'ele-custom-skin'            => [ 'ecs', 'Ele Custom Skin' ],
+        'ele-custom-skin-pro'        => [ 'ecs_pro', 'Ele Custom Skin Pro' ],
+        'clautron'                   => [ 'clautron', 'Clautron' ],
+        'wordpress-seo'              => [ 'yoast', 'Yoast SEO' ],
+        'wp-seopress'                => [ 'seopress', 'SEOPress' ],
+        'sitepress-multilingual-cms' => [ 'wpml', 'WPML' ],
+    ];
+
     /** @var array<int,array{session_id:string,task_target_id:string}> local session id → remote context */
     private static array $remote_sessions = [];
 
@@ -26,6 +40,7 @@ class AICOM_Base_Events {
         add_action( 'aicom_audit_logged',        [ __CLASS__, 'on_audit_logged' ], 10, 2 );
         add_action( 'aicom_session_opened',      [ __CLASS__, 'on_session_opened' ], 10, 1 );
         add_action( 'aicom_session_closed',      [ __CLASS__, 'on_session_closed' ], 10, 2 );
+        add_action( 'aicom_sessions_closed_stale', [ __CLASS__, 'on_sessions_closed_stale' ], 10, 2 );
         add_action( 'aicom_lock_changed',        [ __CLASS__, 'on_lock_changed' ], 10, 0 );
         add_action( 'activated_plugin',          [ __CLASS__, 'on_plugin_activated' ], 10, 1 );
         add_action( 'deactivated_plugin',        [ __CLASS__, 'on_plugin_deactivated' ], 10, 1 );
@@ -74,9 +89,13 @@ class AICOM_Base_Events {
         ] );
     }
 
-    /** Result of a `restore_session` command. */
-    /** @param string[] $kept Changes left as they are because someone changed them after the AI. */
-    public static function session_restored( string $base_session_id, int $restored, string $error = '', array $kept = [] ): void {
+    /**
+     * Result of a `restore_session` command.
+     *
+     * @param string[] $kept   Changes left as they are because someone changed them after the AI.
+     * @param string[] $failed Changes Undo could not put back (a notice, for an AICOMBase that reads them).
+     */
+    public static function session_restored( string $base_session_id, int $restored, string $error = '', array $kept = [], array $failed = [] ): void {
         $e = [ 'session_id' => $base_session_id, 'restored' => $restored, 'at' => gmdate( 'Y-m-d\TH:i:s\Z' ) ];
         if ( $error !== '' ) {
             $e['error'] = substr( $error, 0, 500 );
@@ -84,7 +103,44 @@ class AICOM_Base_Events {
         if ( $kept ) {
             $e['kept'] = array_slice( array_map( static fn( $k ) => substr( (string) $k, 0, 200 ), $kept ), 0, 50 );
         }
+        if ( $failed ) {
+            /* translators: %d: number of changes */
+            $e['notices'] = [ AICOM_Notices::make( 'error', 'restore.failed', sprintf( _n( 'Undo could not put back %d change.', 'Undo could not put back %d changes.', count( $failed ), 'aicom' ), count( $failed ) ), $failed ) ];
+        }
         self::enqueue( 'session.restored', $e );
+    }
+
+    /**
+     * Something the owner should hear about that isn't tied to one call (PROTOCOL §12 `site.notice`): AICOMBase shows
+     * it in Activity and sends it as a notification. Only to an AICOMBase that lists the feature, and each code at most
+     * once an hour (AICOMBase's own rule), so a stable code per kind is what keeps it from repeating.
+     *
+     * @param array{title?:string,items?:string[],category?:string,session_id?:string} $extra session_id: AICOMBase's.
+     */
+    public static function site_notice( string $level, string $code, string $text, array $extra = [] ): void {
+        if ( ! AICOM_Base_State::is_connected() || ! AICOM_Base_State::base_supports( 'site.notice' ) ) {
+            return;
+        }
+        $n = AICOM_Notices::clean_one( [ 'level' => $level, 'code' => $code, 'text' => $text, 'items' => $extra['items'] ?? [] ] );
+        if ( ! $n || ! isset( $n['code'] ) ) {
+            return;
+        }
+        $key = 'aicom_base_notice_' . md5( $code );
+        if ( get_transient( $key ) ) {
+            return;
+        }
+        set_transient( $key, 1, HOUR_IN_SECONDS );
+        $title = AICOM_Notices::plain( $extra['title'] ?? '', 140 );
+        if ( $title !== '' ) {
+            $n['title'] = $title;
+        }
+        if ( in_array( $extra['category'] ?? '', [ 'tasks', 'security', 'connections', 'monitoring' ], true ) ) {
+            $n['category'] = $extra['category'];
+        }
+        if ( ! empty( $extra['session_id'] ) ) {
+            $n['session_id'] = (string) $extra['session_id'];
+        }
+        self::enqueue( 'site.notice', $n );
     }
 
     // ── queue primitives ──────────────────────────────────────────────────
@@ -97,6 +153,14 @@ class AICOM_Base_Events {
         global $wpdb;
         // AICOMBase validates strictly: optional fields must be absent, never null; `data` must be an object.
         $fields = array_filter( $fields, static fn( $v ) => $v !== null );
+        // Any event may carry notices (PROTOCOL §12) — only to an AICOMBase that reads them.
+        if ( array_key_exists( 'notices', $fields ) ) {
+            $notices = AICOM_Base_State::base_supports( 'notices' ) ? AICOM_Notices::clean( $fields['notices'] ) : [];
+            unset( $fields['notices'] );
+            if ( $notices ) {
+                $fields['notices'] = $notices;
+            }
+        }
         if ( isset( $fields['data'] ) && is_array( $fields['data'] ) && ! $fields['data'] ) {
             $fields['data'] = new stdClass();
         }
@@ -273,6 +337,31 @@ class AICOM_Base_Events {
         self::enqueue( 'session.ended', $e );
     }
 
+    /**
+     * The 2 h rule closed sessions (AICOM_Sessions::close_stale): tell the owner about the AICOMBase ones, which
+     * AICOMBase would otherwise only see end as cancelled.
+     *
+     * @param array[] $rows The closed sessions.
+     */
+    public static function on_sessions_closed_stale( array $rows, int $hours ): void {
+        $base = array_values( array_filter( $rows, static fn( $s ) => ( $s['source'] ?? '' ) === 'aicombase' ) );
+        if ( ! $base ) {
+            return;
+        }
+        self::site_notice(
+            'info',
+            'session.closed_stale',
+            /* translators: %d: hours */
+            sprintf( _n( 'AICOM closed this AICOMBase work because its session was open for more than %d hour. Nothing more runs in it; what it changed stays and can still be undone.', 'AICOM closed this AICOMBase work because its session was open for more than %d hours. Nothing more runs in it; what it changed stays and can still be undone.', $hours, 'aicom' ), $hours ),
+            [
+                'title'      => __( 'Session closed after its time limit', 'aicom' ),
+                'items'      => array_values( array_unique( array_map( static fn( $s ) => (string) ( $s['name'] ?? '' ), $base ) ) ),
+                'category'   => 'tasks',
+                'session_id' => count( $base ) === 1 ? (string) ( $base[0]['base_session_id'] ?? '' ) : '',
+            ]
+        );
+    }
+
     public static function on_lock_changed(): void {
         $now  = AICOM_Lock_Manager::get_effective_lock();
         $map  = [ 'unlocked' => 'none', 'soft_locked' => 'soft', 'hard_locked' => 'hard' ];
@@ -292,7 +381,22 @@ class AICOM_Base_Events {
     }
 
     public static function on_plugin_deactivated( $plugin ): void {
-        self::security( 'plugin_theme_change', 'info', [ 'change' => 'plugin_deactivated', 'plugin' => dirname( (string) $plugin ) ?: (string) $plugin ] );
+        $dir = dirname( (string) $plugin ) ?: (string) $plugin;
+        self::security( 'plugin_theme_change', 'info', [ 'change' => 'plugin_deactivated', 'plugin' => $dir ] );
+
+        // A plugin AICOM's tools depend on: its tools are gone until it comes back.
+        [ $dependency, $name ] = self::DEPENDENCY_PLUGINS[ $dir ] ?? [ '', '' ];
+        $tools = $dependency === '' ? 0 : count( array_filter( AICOM_Tool_Registry::get_all(), static fn( $t ) => ( $t['dependency'] ?? null ) === $dependency ) );
+        if ( $tools ) {
+            self::site_notice(
+                'warn',
+                'dependency.deactivated.' . $dependency,
+                /* translators: 1: plugin name, 2: number of tools */
+                sprintf( _n( '%1$s was deactivated, so its %2$d AICOM tool is no longer available to AI agents. It comes back when %1$s is activated again.', '%1$s was deactivated, so its %2$d AICOM tools are no longer available to AI agents. They come back when %1$s is activated again.', $tools, 'aicom' ), $name, $tools ),
+                /* translators: %s: plugin name */
+                [ 'title' => sprintf( __( '%s deactivated', 'aicom' ), $name ), 'category' => 'monitoring' ]
+            );
+        }
     }
 
     public static function on_switch_theme( $new_name ): void {

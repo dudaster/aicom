@@ -171,7 +171,9 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'class'            => 'write',
             'required_scopes'  => [ 'write.wp.posts' ],
             'supports_dry_run' => true,
-            'description'      => 'Update an existing post.',
+            'description'      => 'Update an existing post.' . ( AICOM_Module_Detector::is_elementor_active()
+                ? ' On a page built with Elementor, visitors see Elementor\'s content, not post_content: change its texts with elementor.page.get_texts / elementor.page.bulk_update_texts instead.'
+                : '' ),
             'input_schema'     => [
                 'id'           => [ 'type' => 'integer', 'required' => true ],
                 'post_title'   => [ 'type' => 'string' ],
@@ -751,8 +753,9 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             return $this->err( 'DENIED_ALLOWLIST', 'Post type not in allowlist', 'denied_allowlist', 403 );
         }
 
+        $notices = $this->builder_notices( $id, $args );
         if ( $dry_run ) {
-            return $this->ok( [ 'dry_run' => true, 'would_update_id' => $id ] );
+            return $this->ok( [ 'dry_run' => true, 'would_update_id' => $id ] + ( $notices ? [ 'notices' => $notices ] : [] ) );
         }
 
         $data = [ 'ID' => $id ];
@@ -823,11 +826,22 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         if ( ! $verified ) {
             $response['warning'] = 'Field(s) ' . implode( ', ', $mismatched ) . ' were not stored exactly as requested — check for a duplicate slug suffix, a post-type field restriction, or sanitization.';
         }
+        if ( $notices ) {
+            $response['notices'] = $notices;
+        }
 
         return $this->ok(
             $response,
             [ 'target_type' => 'post', 'target_id' => $id, 'summary' => $changed_fields ]
         );
+    }
+
+    /** A page built with Elementor shows visitors its Elementor data, not post_content: say so when post_content is changed. */
+    private function builder_notices( int $id, array $args ): array {
+        if ( ! isset( $args['post_content'] ) || ! AICOM_Module_Detector::is_elementor_active() || get_post_meta( $id, '_elementor_edit_mode', true ) !== 'builder' ) {
+            return [];
+        }
+        return [ AICOM_Notices::make( 'warn', 'builder.elementor', 'This page is built with Elementor; visitors see Elementor\'s content, not post_content — use elementor.page.get_texts / elementor.page.bulk_update_texts.' ) ];
     }
 
     public function handle_posts_preview_url( array $args, array $key_record, bool $dry_run ): array {

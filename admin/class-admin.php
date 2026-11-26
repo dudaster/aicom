@@ -1535,9 +1535,11 @@ class AICOM_Admin {
 
         $max_age = (int) get_option( 'aicom_backup_max_age_days', 0 );
         $max_mb  = (int) get_option( 'aicom_backup_max_size_mb',  0 );
+        $by_age  = 0;
+        $by_size = 0;
 
         if ( $max_age > 0 ) {
-            $wpdb->query(
+            $by_age = (int) $wpdb->query(
                 $wpdb->prepare(
                     "DELETE FROM {$wpdb->prefix}aicom_backups WHERE created_at < DATE_SUB(%s, INTERVAL %d DAY)",
                     current_time( 'mysql', true ),
@@ -1557,8 +1559,28 @@ class AICOM_Admin {
                 if ( ! $oldest ) {
                     break;
                 }
-                $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'id' => $oldest ] );
+                $by_size += (int) $wpdb->delete( $wpdb->prefix . 'aicom_backups', [ 'id' => $oldest ] );
             }
+        }
+
+        // What these covered can no longer be undone — the owner hears about it (AICOMBase site.notice).
+        if ( $by_age ) {
+            AICOM_Base_Events::site_notice(
+                'info',
+                'backups.retention',
+                /* translators: 1: number of snapshots, 2: days */
+                sprintf( _n( 'The daily cleanup deleted %1$d snapshot older than %2$d days. The change it covered can no longer be undone.', 'The daily cleanup deleted %1$d snapshots older than %2$d days. The changes they covered can no longer be undone.', $by_age, 'aicom' ), $by_age, $max_age ),
+                [ 'title' => __( 'Old snapshots deleted', 'aicom' ), 'category' => 'monitoring' ]
+            );
+        }
+        if ( $by_size ) {
+            AICOM_Base_Events::site_notice(
+                'warn',
+                'backups.size_limit',
+                /* translators: 1: size limit in MB, 2: number of snapshots */
+                sprintf( _n( 'Snapshots reached their %1$d MB limit, so the oldest %2$d was deleted and the change it covered can no longer be undone. Raise the limit in AICOM → Snapshots to keep more.', 'Snapshots reached their %1$d MB limit, so the oldest %2$d were deleted and the changes they covered can no longer be undone. Raise the limit in AICOM → Snapshots to keep more.', $by_size, 'aicom' ), $max_mb, $by_size ),
+                [ 'title' => __( 'Snapshot size limit reached', 'aicom' ), 'category' => 'monitoring' ]
+            );
         }
     }
 

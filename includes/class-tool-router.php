@@ -647,7 +647,18 @@ class AICOM_Tool_Router {
                         $result['undo'] = $undo;
                     }
                 } catch ( Throwable $e ) {
-                    // The change is made; without its journal the snapshots above still undo it.
+                    // The change is made; without its journal the snapshots above still undo it, maybe not all of it.
+                    AICOM_Base_Events::site_notice(
+                        'warn',
+                        'undo.journal_failed',
+                        /* translators: %s: tool name */
+                        sprintf( __( 'AICOM could not save what a call to %s changed, so Undo can put back only what its older snapshots cover.', 'aicom' ), $tool_name ),
+                        [
+                            'title'      => __( 'A change could not be recorded for Undo', 'aicom' ),
+                            'category'   => 'tasks',
+                            'session_id' => self::$current_session_id ? AICOM_Sessions::base_id_of( (int) self::$current_session_id ) : '',
+                        ]
+                    );
                 }
             }
         }
@@ -692,6 +703,14 @@ class AICOM_Tool_Router {
         // Strip internal keys before returning
         unset( $result['_meta'], $result['http_status'] );
         $result['request_id'] = $request_id;
+
+        // Notices a handler raised for whoever reads the result (PROTOCOL §12), kept to the protocol's shape.
+        if ( array_key_exists( 'notices', $result ) ) {
+            $result['notices'] = AICOM_Notices::clean( $result['notices'] );
+            if ( ! $result['notices'] ) {
+                unset( $result['notices'] );
+            }
+        }
 
         // Surface unknown parameter warnings in the result
         if ( isset( $arguments['_param_warnings'] ) ) {
@@ -881,7 +900,12 @@ class AICOM_Tool_Router {
         // Taken before the MCP content block replaces the flat `content`: a tool's own `content` field (wp.posts.get's
         // post text) must survive in structuredContent — it was lost there until 2026-11-05.
         $structured        = $result;
-        $result['content'] = [ [ 'type' => 'text', 'text' => self::summarize_result( $result, $meta ) ] ];
+        $text              = self::summarize_result( $result, $meta );
+        // A client that reads only the text still gets the notices (the summary alone can be just "post_content").
+        if ( ! empty( $result['notices'] ) ) {
+            $text .= "\n\n" . AICOM_Notices::as_text( $result['notices'] );
+        }
+        $result['content'] = [ [ 'type' => 'text', 'text' => $text ] ];
 
         if ( self::protocol_supports( $protocol_version, 'structured_content' ) ) {
             $result['structuredContent'] = $structured;
@@ -915,7 +939,7 @@ class AICOM_Tool_Router {
         }
 
         $visible = $result;
-        unset( $visible['request_id'], $visible['_warnings'] );
+        unset( $visible['request_id'], $visible['_warnings'], $visible['notices'] );
         if ( empty( $visible ) ) {
             return 'OK';
         }

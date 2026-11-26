@@ -432,6 +432,187 @@ $r = wake_request( issue_wake_token() );
 ok( 'not connected → 409', $r['status'] === 409 && ( $r['data']['error'] ?? '' ) === 'not_connected' );
 fake_connect();
 
+// ═══ 8. Extension points (PROTOCOL §12): features, notices, site.notice ═══════
+section( 'Features, notices, site.notice' );
+fake_connect();
+function notices_of( string $type ): array {
+    return array_values( array_filter( queued(), static fn( $e ) => $e['type'] === $type ) );
+}
+function forget_notice_codes(): void {
+    global $wpdb;
+    $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_aicom\\_base\\_notice\\_%' OR option_name LIKE '\\_transient\\_timeout\\_aicom\\_base\\_notice\\_%'" );
+    wp_cache_flush();
+}
+
+// features: what this AICOM says it does, and what it reads back.
+$hb = AICOM_Base_Heartbeat::body( [] );
+ok( 'heartbeat lists its features', ( $hb['features'] ?? null ) === AICOM_Base_Heartbeat::FEATURES
+    && ! array_diff( [ 'undo.journal', 'dry_run.refuses_unsupported', 'session.restored.kept', 'lists.page_cap', 'notices', 'site.notice' ], $hb['features'] ) );
+ok( '... each a valid name, at most 50', count( AICOM_Base_State::clean_features( $hb['features'] ) ) === count( $hb['features'] ) && count( $hb['features'] ) <= 50 );
+ok( 'malformed feature names are dropped, the rest kept', AICOM_Base_State::clean_features( [ 'notices', 'Bad Name', str_repeat( 'a', 61 ), 7, 'notices', 'site.notice' ] ) === [ 'notices', 'site.notice' ] );
+ok( 'features that are not a list mean none', AICOM_Base_State::clean_features( 'notices' ) === [] && AICOM_Base_State::clean_features( null ) === [] );
+ok( 'a fresh connection supports nothing extra', ! AICOM_Base_State::base_supports( 'notices' ) && ! AICOM_Base_State::base_supports( 'site.notice' ) );
+
+$hb_sent   = null;
+$hb_answer = [ 'ok' => true, 'server_time' => time(), 'commands' => [], 'capabilities_needed' => false, 'features' => [ 'notices', 'site.notice', 'per_site_reversible', 'NOT OK' ] ];
+$fake_base = static function ( $pre, $args, $url ) use ( &$hb_sent, &$hb_answer ) {
+    if ( strpos( $url, '/api/v1/site/heartbeat' ) !== false ) {
+        $hb_sent = json_decode( (string) $args['body'], true );
+        return [ 'headers' => [], 'body' => wp_json_encode( $hb_answer ), 'response' => [ 'code' => 200, 'message' => 'OK' ], 'cookies' => [], 'filename' => null ];
+    }
+    return [ 'headers' => [], 'body' => '{"ok":true}', 'response' => [ 'code' => 200, 'message' => 'OK' ], 'cookies' => [], 'filename' => null ];
+};
+add_filter( 'pre_http_request', $fake_base, 10, 3 );
+AICOM_Base_Identity::ensure();
+$r = AICOM_Base_Heartbeat::run( 'manual' );
+ok( 'the heartbeat sent its features', $r['ok'] === true && ( $hb_sent['features'] ?? null ) === AICOM_Base_Heartbeat::FEATURES, wp_json_encode( $r ) );
+ok( "AICOMBase's features kept from its answer (malformed dropped)", AICOM_Base_State::get( 'base_features' ) === [ 'notices', 'site.notice', 'per_site_reversible' ] );
+unset( $hb_answer['features'] );
+AICOM_Base_Heartbeat::run( 'manual' );
+ok( 'an answer without features means none again', AICOM_Base_State::get( 'base_features' ) === [] && ! AICOM_Base_State::base_supports( 'notices' ) );
+remove_filter( 'pre_http_request', $fake_base, 10 );
+fake_connect();
+
+// notices on a result: wp.posts.update changing post_content of a page built with Elementor.
+$el_page = wp_insert_post( [ 'post_type' => 'page', 'post_title' => 'AICOM Elementor notice test', 'post_content' => 'old', 'post_status' => 'draft' ] );
+update_post_meta( $el_page, '_elementor_edit_mode', 'builder' );
+update_post_meta( $el_page, '_elementor_data', '[]' );
+$plain_page = wp_insert_post( [ 'post_type' => 'page', 'post_title' => 'AICOM plain page test', 'post_content' => 'old', 'post_status' => 'draft' ] );
+$nsess = wp_generate_uuid4();
+AICOM_Sessions::open_remote( $nsess, 'Edit pages', 'Notice test' );
+$update = static function ( int $id, array $args ) use ( $nsess ): array {
+    $tt = wp_generate_uuid4();
+    AICOM_Base_Executor::execute( [ 'id' => wp_generate_uuid4(), 'type' => 'execute', 'task_target_id' => $tt, 'tool_id' => 'wp.posts.update',
+        'params' => [ 'arguments' => [ 'id' => $id ] + $args, 'tool_id' => 'wp.posts.update' ],
+        'authorization' => issue_token( [ 'task_target_id' => $tt, 'session_id' => $nsess, 'allowed_scopes' => [ 'read.wp', 'write.wp.posts' ] ] ) ] );
+    return AICOM_Base_State::get( 'pending_results', [] )[ $tt ] ?? [];
+};
+$res = $update( $el_page, [ 'post_content' => 'new text' ] );
+ok( 'an AICOMBase that does not list notices gets none in the body; the notice stays in the result', $res['status'] === 'completed' && ! isset( $res['notices'] )
+    && ( $res['result']['notices'][0]['code'] ?? '' ) === 'builder.elementor', wp_json_encode( $res ) );
+AICOM_Base_State::update( [ 'base_features' => [ 'notices', 'site.notice' ] ] );
+$res = $update( $el_page, [ 'post_content' => 'newer text' ] );
+ok( 'an AICOMBase that lists notices gets the Elementor warning as the result notice', ( $res['notices'][0] ?? null ) === [ 'level' => 'warn', 'text' => "This page is built with Elementor; visitors see Elementor's content, not post_content — use elementor.page.get_texts / elementor.page.bulk_update_texts.", 'code' => 'builder.elementor' ], wp_json_encode( $res ) );
+ok( '... and not twice (moved out of the result)', ! isset( $res['result']['notices'] ) && ( $res['result']['updated'] ?? false ) === true );
+$res = $update( $el_page, [ 'post_title' => 'AICOM Elementor notice test 2' ] );
+ok( 'no warning when post_content is not changed', $res['status'] === 'completed' && ! isset( $res['notices'] ) );
+$res = $update( $plain_page, [ 'post_content' => 'new text' ] );
+ok( 'no warning on a page not built with Elementor', $res['status'] === 'completed' && ! isset( $res['notices'] ) );
+AICOM_Sessions::close_remote( $nsess, 'completed' );
+
+// Any MCP client reads the notice in the text content too, and on a dry run before making the change.
+$nkey = AICOM_Auth::create_key( 'Notice test', [ 'read.wp', 'write.wp.posts' ] );
+$saved_auth = $_SERVER['HTTP_AUTHORIZATION'] ?? null;
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $nkey['plain_key'];
+$call = static function ( string $name, array $args ): array {
+    $r = AICOM_Tool_Router::dispatch( (string) wp_json_encode( [ 'jsonrpc' => '2.0', 'method' => 'tools/call', 'params' => [ 'name' => $name, 'arguments' => $args ], 'id' => 7 ] ), '2025-06-18' );
+    return $r['result'] ?? $r;
+};
+$call( 'session.open', [ 'name' => 'Notice test', 'description' => 'Direct MCP client' ] );
+$r = $call( 'wp.posts.update', [ 'id' => $el_page, 'content' => 'direct', 'dry_run' => true ] );
+ok( 'dry run already warns (content alias resolved to post_content)', ( $r['structuredContent']['notices'][0]['code'] ?? '' ) === 'builder.elementor', wp_json_encode( $r ) );
+$r = $call( 'wp.posts.update', [ 'id' => $el_page, 'post_content' => 'direct' ] );
+ok( 'the MCP text content carries the warning', strpos( (string) ( $r['content'][0]['text'] ?? '' ), "WARN: This page is built with Elementor" ) !== false, (string) ( $r['content'][0]['text'] ?? '' ) );
+ok( '... and structuredContent has it as a notice', ( $r['structuredContent']['notices'][0]['level'] ?? '' ) === 'warn' );
+$call( 'session.close', [] );
+if ( $saved_auth === null ) { unset( $_SERVER['HTTP_AUTHORIZATION'] ); } else { $_SERVER['HTTP_AUTHORIZATION'] = $saved_auth; }
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}aicom_backups WHERE api_key_id = %d", $nkey['id'] ) );
+$wpdb->delete( $wpdb->prefix . 'aicom_sessions', [ 'api_key_id' => $nkey['id'] ] );
+AICOM_Auth::revoke_key( $nkey['id'] );
+$desc = AICOM_Tool_Registry::get( 'wp.posts.update' )['description'] ?? '';
+ok( 'wp.posts.update tells agents about Elementor pages in its description', strpos( $desc, 'elementor.page.bulk_update_texts' ) !== false );
+wp_delete_post( $el_page, true );
+wp_delete_post( $plain_page, true );
+
+// Notices on events: cleaned, and only to an AICOMBase that reads them.
+AICOM_Base_Events::purge();
+$raw_notices = [ [ 'level' => 'info', 'text' => 'Fine', 'code' => 'x.y' ], [ 'level' => 'loud', 'text' => 'dropped' ], [ 'level' => 'warn', 'text' => '<b>Bold</b> ' . str_repeat( 'a', 600 ), 'items' => [ 'one', [ 'nested' ], str_repeat( 'b', 300 ) ], 'code' => 'bad code' ] ];
+AICOM_Base_Events::enqueue( 'action', [ 'session_id' => 's', 'summary' => 'x', 'notices' => $raw_notices ] );
+$n = queued()[0]['notices'] ?? [];
+ok( 'event notices: malformed one dropped, tags stripped, text and items capped, bad code left out', count( $n ) === 2 && $n[0] === [ 'level' => 'info', 'text' => 'Fine', 'code' => 'x.y' ]
+    && strpos( $n[1]['text'], 'Bold a' ) === 0 && mb_strlen( $n[1]['text'] ) === 500 && $n[1]['items'] === [ 'one', str_repeat( 'b', 200 ) ] && ! isset( $n[1]['code'] ), wp_json_encode( $n ) );
+ok( 'at most 10 notices', count( AICOM_Notices::clean( array_fill( 0, 15, [ 'level' => 'info', 'text' => 't' ] ) ) ) === 10 );
+AICOM_Base_State::update( [ 'base_features' => [] ] );
+AICOM_Base_Events::purge();
+AICOM_Base_Events::enqueue( 'action', [ 'session_id' => 's', 'summary' => 'x', 'notices' => $raw_notices ] );
+ok( 'no notices to an AICOMBase that does not list them', ! array_key_exists( 'notices', queued()[0] ) );
+AICOM_Base_State::update( [ 'base_features' => [ 'notices' ] ] );
+AICOM_Base_Events::purge();
+AICOM_Base_Events::session_restored( 'sess-x', 3, '', [ 'post 5: title' ], [ 'term 9: A term with the name provided already exists' ] );
+$sr = queued()[0];
+ok( 'session.restored: what Undo could not put back is an error notice', ( $sr['notices'][0]['code'] ?? '' ) === 'restore.failed' && $sr['notices'][0]['level'] === 'error' && $sr['notices'][0]['items'] === [ 'term 9: A term with the name provided already exists' ] && $sr['kept'] === [ 'post 5: title' ] );
+
+// site.notice: only to an AICOMBase that lists it, each code once an hour.
+forget_notice_codes();
+AICOM_Base_Events::purge();
+AICOM_Base_State::update( [ 'base_features' => [ 'notices' ] ] );
+AICOM_Base_Events::site_notice( 'warn', 'test.notice', 'Something happened.', [ 'title' => 'Test' ] );
+ok( 'no site.notice to an AICOMBase that does not list it', ! notices_of( 'site.notice' ) );
+AICOM_Base_State::update( [ 'base_features' => [ 'notices', 'site.notice' ] ] );
+AICOM_Base_Events::site_notice( 'warn', 'test.notice', 'Something happened.', [ 'title' => 'Test', 'category' => 'monitoring', 'items' => [ 'a' ], 'session_id' => '' ] );
+AICOM_Base_Events::site_notice( 'warn', 'test.notice', 'Something happened again.' );
+AICOM_Base_Events::site_notice( 'info', 'test.other', 'Another kind.', [ 'category' => 'nonsense' ] );
+$sn = notices_of( 'site.notice' );
+ok( 'site.notice queued with its shape, no empty fields', count( $sn ) === 2 && $sn[0]['level'] === 'warn' && $sn[0]['code'] === 'test.notice' && $sn[0]['text'] === 'Something happened.'
+    && $sn[0]['title'] === 'Test' && $sn[0]['category'] === 'monitoring' && $sn[0]['items'] === [ 'a' ] && ! array_key_exists( 'session_id', $sn[0] ) && ! empty( $sn[0]['at'] ), wp_json_encode( $sn ) );
+ok( 'the same code is not repeated within the hour; an unknown category is left out', $sn[1]['code'] === 'test.other' && ! array_key_exists( 'category', $sn[1] ) );
+
+// Producers.
+forget_notice_codes();
+AICOM_Base_Events::purge();
+AICOM_Base_Events::on_plugin_deactivated( 'elementor/elementor.php' );
+AICOM_Base_Events::on_plugin_deactivated( 'akismet/akismet.php' );
+$el_tools = count( array_filter( AICOM_Tool_Registry::get_all(), static fn( $t ) => ( $t['dependency'] ?? null ) === 'elementor' ) );
+$sn = notices_of( 'site.notice' );
+ok( 'deactivating Elementor: a warning that its tools are gone, with how many', count( $sn ) === 1 && $sn[0]['code'] === 'dependency.deactivated.elementor' && $sn[0]['level'] === 'warn'
+    && strpos( $sn[0]['text'], "its $el_tools AICOM tools" ) !== false && $sn[0]['category'] === 'monitoring', wp_json_encode( $sn ) );
+ok( '... and a plugin no tool depends on raises none (only the security event)', count( array_filter( queued(), static fn( $e ) => $e['type'] === 'security' ) ) === 2 );
+
+forget_notice_codes();
+AICOM_Sessions::close_stale( 2 ); // sessions earlier runs left open
+forget_notice_codes();
+$ssess = wp_generate_uuid4();
+$sl    = AICOM_Sessions::open_remote( $ssess, 'Long running work', 'Stale test' );
+$wpdb->update( $wpdb->prefix . 'aicom_sessions', [ 'opened_at' => gmdate( 'Y-m-d H:i:s', time() - 3 * HOUR_IN_SECONDS ) ], [ 'id' => (int) $sl['id'] ] );
+AICOM_Base_Events::purge();
+AICOM_Sessions::close_stale( 2 );
+$sn = notices_of( 'site.notice' );
+ok( 'the 2 h rule closing an AICOMBase session tells the owner, linked to that session', count( $sn ) === 1 && $sn[0]['code'] === 'session.closed_stale' && ( $sn[0]['session_id'] ?? '' ) === $ssess
+    && ( $sn[0]['items'] ?? [] ) === [ 'Long running work' ] && AICOM_Sessions::find_open_remote( $ssess ) === null, wp_json_encode( $sn ) );
+
+forget_notice_codes();
+$opt_age = get_option( 'aicom_backup_max_age_days', null );
+$opt_mb  = get_option( 'aicom_backup_max_size_mb', null );
+$t_bk    = $wpdb->prefix . 'aicom_backups';
+$old_row = static function ( int $bytes ) use ( $wpdb, $t_bk ): int {
+    $wpdb->insert( $t_bk, [ 'created_at' => '1901-01-02 00:00:00', 'tool_name' => 'aicom.notice.test', 'target_type' => 'post', 'target_id' => '0', 'payload_json' => str_repeat( 'x', $bytes ) ] );
+    return (int) $wpdb->insert_id;
+};
+// Only rows older than 100 years go: just the test's own.
+$bk = $old_row( 10 );
+update_option( 'aicom_backup_max_age_days', 36500 );
+update_option( 'aicom_backup_max_size_mb', 0 );
+AICOM_Base_Events::purge();
+AICOM_Admin::run_backup_cleanup();
+$sn = notices_of( 'site.notice' );
+ok( 'retention deleting snapshots tells the owner', ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t_bk WHERE id = %d", $bk ) ) && count( $sn ) === 1 && $sn[0]['code'] === 'backups.retention' && $sn[0]['level'] === 'info', wp_json_encode( $sn ) );
+// A limit just under the current total plus the test's (oldest) row: only that row goes.
+$total = (int) $wpdb->get_var( "SELECT SUM(LENGTH(payload_json)) FROM $t_bk" );
+$mb    = (int) ceil( ( $total + 1 ) / MB_IN_BYTES );
+$bk    = $old_row( $mb * MB_IN_BYTES - $total + 1000 );
+update_option( 'aicom_backup_max_age_days', 0 );
+update_option( 'aicom_backup_max_size_mb', $mb );
+AICOM_Base_Events::purge();
+AICOM_Admin::run_backup_cleanup();
+$sn = notices_of( 'site.notice' );
+ok( 'the size limit deleting snapshots warns the owner', ! $wpdb->get_var( $wpdb->prepare( "SELECT id FROM $t_bk WHERE id = %d", $bk ) ) && (int) $wpdb->get_var( "SELECT SUM(LENGTH(payload_json)) FROM $t_bk" ) === $total
+    && count( $sn ) === 1 && $sn[0]['code'] === 'backups.size_limit' && $sn[0]['level'] === 'warn' && strpos( $sn[0]['text'], "$mb MB" ) !== false, wp_json_encode( $sn ) );
+foreach ( [ 'aicom_backup_max_age_days' => $opt_age, 'aicom_backup_max_size_mb' => $opt_mb ] as $o => $v ) {
+    if ( $v === null ) { delete_option( $o ); } else { update_option( $o, $v ); }
+}
+forget_notice_codes();
+AICOM_Sessions::close_remote( $sess, 'completed' ); // reopened above for the token tests
+
 // ═══ Summary ═════════════════════════════════════════════════════════════════
 restore_state();
 echo "\n" . ( $fail ? "FAILED" : "OK" ) . ": $pass passed, $fail failed\n";

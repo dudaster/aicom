@@ -73,6 +73,20 @@ class AICOM_Base_State {
         return in_array( $l, [ 'soft', 'hard' ], true ) ? $l : 'none';
     }
 
+    /**
+     * Whether AICOMBase listed $feature in its last heartbeat answer (PROTOCOL §12). An answer without `features` (an
+     * AICOMBase that doesn't say) means none: send nothing it didn't ask for.
+     */
+    public static function base_supports( string $feature ): bool {
+        return in_array( $feature, (array) self::get( 'base_features', [] ), true );
+    }
+
+    /** The well-formed names of a `features` list: at most 50, each [a-z0-9_.:-]{1,60}. */
+    public static function clean_features( $raw ): array {
+        $names = array_filter( is_array( $raw ) ? $raw : [], static fn( $f ) => is_string( $f ) && preg_match( '/^[a-z0-9_.:-]{1,60}$/', $f ) );
+        return array_slice( array_values( array_unique( $names ) ), 0, 50 );
+    }
+
     // ── base URL ──────────────────────────────────────────────────────────
 
     /** AICOM_BASE_URL constant > filter > option > default. */

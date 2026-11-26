@@ -18,6 +18,19 @@ class AICOM_Base_Heartbeat {
     const LOCK_OPT = 'aicom_base_hb_lock';
     const LOCK_TTL = 150;
 
+    /**
+     * What this AICOM does that AICOMBase may rely on (PROTOCOL §12 `features`). Add a name for each new capability;
+     * never remove one this version still supports.
+     */
+    const FEATURES = [
+        'undo.journal',                // every write result has undo{complete, changes, reasons, outside}
+        'dry_run.refuses_unsupported', // a dry run that would change the site is put back and answered DRY_RUN_UNSUPPORTED
+        'session.restored.kept',       // session.restored lists the changes Undo left as someone edited them
+        'lists.page_cap',              // list tools clamp their page size to 1..cap
+        'notices',                     // notices on task results and events
+        'site.notice',                 // site.notice events
+    ];
+
     // ── lock state ────────────────────────────────────────────────────────
 
     /** Strictest of the local Lock Manager and the lock imposed by AICOMBase: none|soft|hard. */
@@ -68,6 +81,8 @@ class AICOM_Base_Heartbeat {
                 'caps_needed' => ! empty( $d['capabilities_needed'] ) || (bool) AICOM_Base_State::get( 'caps_needed', false ),
                 'clock_skew'  => isset( $d['server_time'] ) ? ( is_numeric( $d['server_time'] ) ? (int) $d['server_time'] : (int) strtotime( (string) $d['server_time'] ) ) - time() : 0,
                 'health'      => self::health(),
+                // What AICOMBase understands, from every answer: notices and site.notice go only to one that lists them.
+                'base_features' => AICOM_Base_State::clean_features( $d['features'] ?? null ),
             ] );
 
             // Commands first (they may take a while), then uploads.
@@ -124,6 +139,7 @@ class AICOM_Base_Heartbeat {
             // Local cap for AICOMBase-issued work (AICOM_Base_Policy) — lets AICOMBase grey out
             // scopes this site won't accept instead of only finding out at execution time.
             'local_allowed_scopes' => AICOM_Base_Policy::allowed_scopes(),
+            'features'           => self::FEATURES,
         ];
     }
 
@@ -145,7 +161,7 @@ class AICOM_Base_Heartbeat {
                 $restored += AICOM_Admin::do_restore_session( (int) $id );
             }
             $kept = AICOM_Admin::$restore_report['kept'];
-            AICOM_Base_Events::session_restored( $base_id, $restored, '', $kept );
+            AICOM_Base_Events::session_restored( $base_id, $restored, '', $kept, AICOM_Admin::$restore_report['failed'] );
             AICOM_Base_Connection::audit( 'base.session_restored', 'success', [ 'session_id' => $base_id, 'restored' => $restored, 'kept' => count( $kept ) ] );
         } catch ( \Throwable $e ) {
             AICOM_Base_Events::session_restored( $base_id, $restored, $e->getMessage() );

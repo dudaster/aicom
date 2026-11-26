@@ -190,11 +190,16 @@ class AICOM_Sessions {
                 $hours
             )
         );
+        $closed = [];
         foreach ( (array) $stale_ids as $sid ) {
             $row = self::get( (int) $sid );
             if ( $row ) {
                 do_action( 'aicom_session_closed', $row, 'cancelled' );
+                $closed[] = $row;
             }
+        }
+        if ( $closed ) {
+            do_action( 'aicom_sessions_closed_stale', $closed, $hours );
         }
     }
 

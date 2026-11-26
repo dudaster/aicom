@@ -65,6 +65,35 @@ snapshots of the same call (`supersedes`); anything changed again after the AI i
 Tools listed reversible in `/site/capabilities` are `AICOM_Change_Journal::VERIFIED`, each proven by
 `tests/test-undo-journal.php` (run, restore, database identical).
 
+## Extension points (§12, unreleased)
+
+All optional, both ways: an AICOMBase that says nothing gets exactly what it got before.
+- **`features`.** Every heartbeat sends `AICOM_Base_Heartbeat::FEATURES` (`undo.journal`,
+  `dry_run.refuses_unsupported`, `session.restored.kept`, `lists.page_cap`, `notices`, `site.notice`). Add a name
+  for each new capability and never remove one a version still supports. Every answer's `features` is kept as
+  `base_features` (malformed names dropped, at most 50). `AICOM_Base_State::base_supports()` reads it, and an answer
+  without `features` means none.
+- **`notices`** (`AICOM_Notices`). A handler may return `notices: [{level, text, items?, code?}]`. The router cleans
+  them to the protocol caps (≤ 10; text ≤ 500; items ≤ 50 × ≤ 200; code ≤ 60; no tags) and appends them to the MCP
+  text content, so every AI client reads them. When AICOMBase lists `notices`, the executor moves them from the
+  result to the result body's `notices`; otherwise they stay in the result like any other field. Events carry them
+  the same way, and only when AICOMBase lists `notices`. Today:
+  - `builder.elementor` (warn): `wp.posts.update` changes `post_content` of a page built with Elementor, also on a
+    dry run. The tool's description tells agents the same.
+  - `restore.failed` (error) on `session.restored`: what Undo could not put back.
+- **`site.notice`** (`AICOM_Base_Events::site_notice()`). Sent only when AICOMBase lists `site.notice`, and each
+  `code` at most once an hour, AICOMBase's own rule. Texts are translated with the site's language. Today:
+
+  | Code | Level | When |
+  |---|---|---|
+  | `dependency.deactivated.<module>` | warn | a plugin AICOM's tools depend on is deactivated: how many tools went |
+  | `session.closed_stale` | info | the 2 h rule closed AICOMBase sessions (linked to the session when there is one) |
+  | `backups.retention` | info | the daily cleanup deleted snapshots by age |
+  | `backups.size_limit` | warn | it deleted snapshots to stay under the size limit |
+  | `undo.journal_failed` | warn | a call's change journal couldn't be saved |
+
+  No WordPress content goes into these texts, only names, counts and tool names.
+
 ## Wake ping (§11)
 
 `POST /wp-json/aicom/v1/wake` — the only inbound route AICOMBase calls (everything else is the site

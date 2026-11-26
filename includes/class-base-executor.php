@@ -127,6 +127,15 @@ class AICOM_Base_Executor {
                 ? sprintf( '%s completed in %d ms', $tool, $ms )
                 : sprintf( '%s failed: %s', $tool, (string) ( $result['error']['message'] ?? 'error' ) ),
         ];
+        // The tool's notices go where AICOMBase shows them (under the result, and to the AI) when it lists the
+        // feature; to any other AICOMBase they stay part of the result, as they are for every MCP client.
+        if ( isset( $result['result']['notices'] ) && AICOM_Base_State::base_supports( 'notices' ) ) {
+            $notices = AICOM_Notices::clean( $result['result']['notices'] );
+            unset( $result['result']['notices'] );
+            if ( $notices ) {
+                $body['notices'] = $notices;
+            }
+        }
         if ( isset( $result['result'] ) ) {
             $body['result'] = $result['result'] ?: new stdClass();
         }
