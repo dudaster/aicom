@@ -1463,18 +1463,35 @@ class AICOM_Admin {
                 $restored++;
 
             } elseif ( $backup['target_type'] === 'term' && ! empty( $payload['term']['term_id'] ) ) {
-                $t = $payload['term'];
-                wp_update_term( (int) $t['term_id'], $t['taxonomy'] ?? '', [
+                $t      = $payload['term'];
+                $tax    = (string) ( $t['taxonomy'] ?? '' );
+                $id     = (int) $t['term_id'];
+                $fields = [
                     'name'        => $t['name']        ?? '',
                     'slug'        => $t['slug']        ?? '',
                     'description' => $t['description'] ?? '',
                     'parent'      => $t['parent']      ?? 0,
-                ] );
+                ];
+                if ( term_exists( $id, $tax ) ) {
+                    $r = wp_update_term( $id, $tax, $fields );
+                } else {
+                    // Deleted since the snapshot: made again, under a new id (the snapshot has no posts to link back).
+                    $r  = wp_insert_term( (string) $fields['name'], $tax, $fields );
+                    $id = is_wp_error( $r ) ? 0 : (int) $r['term_id'];
+                }
+                if ( is_wp_error( $r ) || ! $id ) {
+                    // Counted only when it worked (AICOMBase brief, A4: a failed term restore used to count as done).
+                    self::$restore_report['failed'][] = "term {$t['term_id']}: " . ( is_wp_error( $r ) ? $r->get_error_message() : 'not restored' );
+                    continue;
+                }
 
                 foreach ( $payload['meta'] ?? [] as $key => $values ) {
-                    delete_term_meta( (int) $t['term_id'], $key );
+                    delete_term_meta( $id, $key );
                     foreach ( (array) $values as $val ) {
-                        add_term_meta( (int) $t['term_id'], $key, maybe_unserialize( $val ) );
+                        if ( is_string( $val ) && preg_match( '/^[OC]:\d+:/', $val ) ) { // same guard as the post branch
+                            continue;
+                        }
+                        add_term_meta( $id, $key, maybe_unserialize( $val ) );
                     }
                 }
                 $restored++;

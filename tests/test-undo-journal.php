@@ -395,6 +395,27 @@ ok( 'the content only the AI changed goes back', get_post( $p )->post_content ==
 ok( "the person's meta value stays", get_post_meta( $p, 'undo_conflict', true ) === 'Person value' );
 ok( 'both are reported as kept', count( AICOM_Admin::$restore_report['kept'] ) === 2, wp_json_encode( AICOM_Admin::$restore_report ) );
 
+echo "\n══ A term snapshot whose term is gone (brief A4) ══\n";
+$t   = mkterm( 'category' );
+$nm  = get_term( $t )->name;
+$sid = (int) ( tool( 'session.open', [ 'name' => 'Old snapshot', 'description' => 'Snapshot a term, then it is deleted outside AICOM' ] )['session_id'] ?? 0 );
+tool( 'backup.term.create', [ 'term_id' => $t, 'taxonomy' => 'category' ] );
+tool( 'session.close', [] );
+wp_delete_term( $t, 'category' );
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [] ];
+$n     = AICOM_Admin::do_restore_session( $sid );
+$again = get_term_by( 'name', $nm, 'category' );
+ok( 'the term is made again and counted', $again && $n === 1, "restored=$n " . wp_json_encode( AICOM_Admin::$restore_report ) );
+if ( $again ) {
+    $made['term'][] = [ (int) $again->term_id, 'category' ];
+}
+$sid = (int) ( tool( 'session.open', [ 'name' => 'Broken snapshot', 'description' => 'A term snapshot of a taxonomy that is gone' ] )['session_id'] ?? 0 );
+tool( 'session.close', [] );
+$wpdb->insert( $wpdb->prefix . 'aicom_backups', [ 'created_at' => current_time( 'mysql', true ), 'session_id' => $sid, 'api_key_id' => $key['id'], 'tool_name' => 'backup.term.create', 'target_type' => 'term', 'target_id' => '999999', 'payload_json' => wp_json_encode( [ 'term' => [ 'term_id' => 999999, 'taxonomy' => 'no_such_taxonomy', 'name' => 'X', 'slug' => 'x' ], 'meta' => [] ] ) ] );
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [] ];
+$n = AICOM_Admin::do_restore_session( $sid );
+ok( 'one that fails is not counted, and is reported', $n === 0 && count( AICOM_Admin::$restore_report['failed'] ) === 1, "restored=$n " . wp_json_encode( AICOM_Admin::$restore_report ) );
+
 echo "\n══ A dry run that writes anyway is put back and refused ══\n";
 AICOM_Tool_Registry::register( 'test.journal.ignores_dry_run', [
     'module' => 'test', 'class' => 'write', 'required_scopes' => [], 'supports_dry_run' => true, 'description' => 'Test tool',
