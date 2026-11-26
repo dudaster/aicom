@@ -198,11 +198,13 @@ class AICOM_Base_Capabilities {
         $active = (array) get_option( 'active_plugins', [] );
         sort( $active );
         $tools = array_map(
-            static fn( array $m ): array => [ $m['class'], $m['required_scopes'], $m['description'], $m['input_schema'] ],
+            static fn( array $m ): array => [ $m['class'], $m['required_scopes'], $m['description'], $m['input_schema'], ! empty( $m['reversible'] ) ],
             AICOM_Tool_Registry::get_all()
         );
         ksort( $tools );
-        return md5( AICOM_VERSION . '|' . implode( ',', $active ) . '|' . md5( (string) wp_json_encode( $tools ) ) . '|' . get_locale() );
+        // What makes a tool reversible is part of it: a tool proven undoable must reach AICOMBase without a version bump.
+        $undo = md5( implode( ',', AICOM_Change_Journal::VERIFIED ) . '|' . implode( ',', self::snapshot_tools() ) );
+        return md5( AICOM_VERSION . '|' . implode( ',', $active ) . '|' . md5( (string) wp_json_encode( $tools ) ) . '|' . get_locale() . '|' . $undo );
     }
 
     /**

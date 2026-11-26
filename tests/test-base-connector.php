@@ -370,6 +370,13 @@ ok( 'every tool has id, risk in low|med|high, scopes array, schema object', ! ar
 $posts_create = current( array_filter( $tools, static fn( $t ) => $t['id'] === 'wp.posts.create' ) );
 ok( 'wp.posts.create: write.wp.posts scope, med risk', $posts_create && $posts_create['required_scopes'] === [ 'write.wp.posts' ] && $posts_create['risk'] === 'med' );
 ok( 'hash is stable across builds', AICOM_Base_Capabilities::hash_of( $caps ) === AICOM_Base_Capabilities::hash_of( AICOM_Base_Capabilities::build() ) );
+// A tool becoming undoable changes the hash AICOMBase is sent, so the inventory is uploaded again without a version bump
+// (2026-11-26: tools newly proven undoable stayed non-reversible in AICOMBase on staging).
+$probe = [ 'module' => 'test', 'class' => 'write', 'required_scopes' => [], 'description' => 'Probe', 'input_schema' => [], 'handler' => '__return_empty_array' ];
+AICOM_Tool_Registry::register( 'test.caps.probe', $probe + [ 'reversible' => false ] );
+$h1 = AICOM_Base_Capabilities::current_hash();
+AICOM_Tool_Registry::register( 'test.caps.probe', $probe + [ 'reversible' => true ] );
+ok( 'the cached hash changes when a tool becomes reversible', AICOM_Base_Capabilities::current_hash() !== $h1 );
 foreach ( [ 'privacy', 'security', 'technical', 'accessibility' ] as $kind ) {
     $e = AICOM_Base_Inspector::collect( $kind );
     ok( "inspect $kind returns evidence", is_array( $e ) && $e );
