@@ -1144,9 +1144,17 @@ class AICOM_Admin {
             ],
             'content-assistant' => [
                 'name'   => __( 'Content Assistant', 'aicom' ),
-                'scopes' => [ 'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'read.skills', 'manage.skills' ],
+                // The same scopes as AICOMBase's Content Assistant (the owner asked for parity, 2026-11-26): the content
+                // side of every plugin AICOM works with, up to medium risk. Settings, files, users, backups and plugins
+                // stay out. A scope for a plugin the site doesn't have simply has no tools.
+                'scopes' => [
+                    'read.wp', 'write.wp.posts', 'manage.meta', 'manage.taxonomies', 'read.skills', 'manage.skills',
+                    'manage.media', 'manage.a11y', 'read.elementor', 'manage.elementor', 'read.woocommerce',
+                    'manage.woocommerce.products', 'read.polylang', 'manage.polylang', 'read.wpml', 'manage.yoast',
+                    'manage.seopress', 'manage.clautron',
+                ],
                 'risk'   => 'med',
-                'desc'   => __( 'Write & publish content', 'aicom' ),
+                'desc'   => __( 'Write & publish content — also with the site\'s page builder, shop, SEO and translation plugins', 'aicom' ),
             ],
             'elementor-editor' => [
                 'name'   => __( 'Elementor Editor', 'aicom' ),

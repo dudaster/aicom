@@ -253,7 +253,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         $this->register( 'wp.meta.set', [
             'class'           => 'write',
             'required_scopes' => [ 'manage.meta' ],
-            'description'     => 'Set post meta value (allowlist enforced).',
+            'description'     => 'Set post meta value (allowlist enforced).' . self::elementor_meta_hint(),
             'input_schema'    => [
                 'post_id'    => [ 'type' => 'integer', 'required' => true ],
                 'meta_key'   => [ 'type' => 'string',  'required' => true ],
@@ -265,7 +265,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         $this->register( 'wp.meta.set_many', [
             'class'           => 'write',
             'required_scopes' => [ 'manage.meta' ],
-            'description'     => 'Set multiple post meta values in one call (allowlist enforced per key).',
+            'description'     => 'Set multiple post meta values in one call (allowlist enforced per key).' . self::elementor_meta_hint(),
             'input_schema'    => [
                 'post_id' => [ 'type' => 'integer', 'required' => true ],
                 'meta'    => [ 'required' => true, 'description' => 'Object of meta_key → meta_value pairs. E.g. {"_yoast_title": "...", "_acf_field": "..."}' ],
@@ -586,7 +586,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
                 'post_type'    => $post->post_type,
                 'author'       => (int) $post->post_author,
                 'comment_count'=> (int) $post->comment_count,
-            ];
+            ] + $this->built_with( $post->ID );
         }
 
         return $this->ok( [
@@ -624,6 +624,11 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             }
         }
 
+        $built = $this->built_with( $post->ID );
+        if ( $built ) {
+            $built['notices'] = [ AICOM_Notices::make( 'info', 'builder.elementor', 'This page is built with Elementor: content is only its fallback copy. Read the texts visitors see with elementor.page.get_texts and change them with elementor.page.bulk_update_texts.' ) ];
+        }
+
         return $this->ok( [
             'id'             => $post->ID,
             'title'          => $post->post_title,
@@ -641,7 +646,7 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
             'terms'          => AICOM_Json::obj( $terms_map ),
             'edit_url'       => get_edit_post_link( $post->ID, 'raw' ),
             'view_url'       => get_permalink( $post->ID ),
-        ], [ 'target_type' => 'post', 'target_id' => $id ] );
+        ] + $built, [ 'target_type' => 'post', 'target_id' => $id ] );
     }
 
     public function handle_posts_create( array $args, array $key_record, bool $dry_run ): array {
@@ -828,6 +833,10 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
         if ( $notices ) {
             $response['notices'] = $notices;
+            // Only post_content changed, and visitors of an Elementor page don't see it.
+            if ( $changed_fields === [ 'post_content' ] ) {
+                $response['visible_change'] = false;
+            }
         }
 
         return $this->ok(
@@ -836,9 +845,16 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         );
     }
 
+    /** ['built_with' => 'elementor'] for a page Elementor shows to visitors (its data, not post_content), else []. */
+    private function built_with( int $id ): array {
+        return AICOM_Module_Detector::is_elementor_active() && get_post_meta( $id, '_elementor_edit_mode', true ) === 'builder'
+            ? [ 'built_with' => 'elementor' ]
+            : [];
+    }
+
     /** A page built with Elementor shows visitors its Elementor data, not post_content: say so when post_content is changed. */
     private function builder_notices( int $id, array $args ): array {
-        if ( ! isset( $args['post_content'] ) || ! AICOM_Module_Detector::is_elementor_active() || get_post_meta( $id, '_elementor_edit_mode', true ) !== 'builder' ) {
+        if ( ! isset( $args['post_content'] ) || ! $this->built_with( $id ) ) {
             return [];
         }
         return [ AICOM_Notices::make( 'warn', 'builder.elementor', 'This page is built with Elementor; visitors see Elementor\'s content, not post_content — use elementor.page.get_texts / elementor.page.bulk_update_texts.' ) ];
@@ -1271,7 +1287,8 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         // (it returns false both on failure AND when the new value equals the old
         // one) — read the value straight back instead of trusting the boolean.
         $persisted_value = get_post_meta( $post_id, $meta_key, true );
-        $verified        = $persisted_value === $meta_value;
+        $verified        = self::same_meta( $meta_value, $persisted_value );
+        self::after_elementor_data( $post_id, [ $meta_key ] );
 
         $response = [
             'post_id'   => $post_id,
@@ -1329,11 +1346,12 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         $mismatched = [];
         foreach ( $meta as $key => $value ) {
             $persisted[ $key ] = get_post_meta( $post_id, $key, true );
-            if ( $persisted[ $key ] !== $value ) {
+            if ( ! self::same_meta( $value, $persisted[ $key ] ) ) {
                 $mismatched[] = $key;
             }
         }
         $verified = empty( $mismatched );
+        self::after_elementor_data( $post_id, array_keys( $meta ) );
 
         $response = [
             'post_id'   => $post_id,
@@ -1347,6 +1365,48 @@ class AICOM_Module_WP_Core extends AICOM_Module_Base {
         }
 
         return $this->ok( $response, [ 'target_type' => 'post_meta', 'target_id' => $post_id ] );
+    }
+
+    /**
+     * Whether the stored meta value is what was asked for. WordPress stores scalars as strings (5 → "5", true → "1"),
+     * and some sites store & as &amp; / &#038; (another plugin's filter: AICOM doesn't kses meta) — the same text,
+     * which was reported as a failed write (puzzleeducenter.ro, 2026-11-26).
+     */
+    private static function same_meta( $requested, $persisted ): bool {
+        if ( $requested === $persisted ) {
+            return true;
+        }
+        if ( is_array( $requested ) || is_array( $persisted ) ) {
+            if ( ! is_array( $requested ) || ! is_array( $persisted ) || array_keys( $requested ) != array_keys( $persisted ) ) {
+                return false;
+            }
+            foreach ( $requested as $k => $v ) {
+                if ( ! self::same_meta( $v, $persisted[ $k ] ) ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if ( is_object( $requested ) || is_object( $persisted ) ) {
+            return false;
+        }
+        $text = static fn( $v ) => str_replace( [ '&#038;', '&amp;' ], '&', (string) $v );
+        return $text( $requested ) === $text( $persisted );
+    }
+
+    /** A new _elementor_data: drop the post's Elementor caches so visitors get it, as elementor.page.regenerate_assets does. */
+    private static function after_elementor_data( int $post_id, array $keys ): void {
+        if ( in_array( '_elementor_data', $keys, true ) ) {
+            delete_post_meta( $post_id, '_elementor_css' );
+            delete_post_meta( $post_id, '_elementor_element_cache' );
+            delete_post_meta( $post_id, '_elementor_page_assets' );
+        }
+    }
+
+    private static function elementor_meta_hint(): string {
+        return AICOM_Module_Detector::is_elementor_active()
+            ? ' For the texts of an Elementor page use elementor.page.bulk_update_texts or elementor.widget.update_field: writing _elementor_data replaces the whole layout.'
+            : '';
     }
 
     public function handle_meta_delete( array $args, array $key_record, bool $dry_run ): array {
