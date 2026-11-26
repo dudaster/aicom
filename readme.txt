@@ -3,7 +3,7 @@ Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 3.24.4
+Stable tag: 3.25.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,14 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 7. **Welcome wizard** — Two questions to get started: which AI you use (or AICOMBase), and what it should be allowed to do.
 
 == Changelog ==
+
+= 3.25.0 =
+
+* New: almost everything an AI changes through AICOM can now be undone exactly. Each change is recorded as it is made, and Restore session puts back just that: posts, pages, products, menus, users, settings, SEO fields, Polylang and WPML translations, Elementor, Skills and files. 101 of 119 tools can be undone in full, and when one can't (an email was sent, a file is too large to keep), its result says why.
+* New: Undo never overwrites a person's work. Anything someone changed after the AI is left as it is and listed when the session is restored.
+* New: AI agents are told when a page is built with Elementor, and warned when they change text visitors won't see there, with the tools to use instead.
+* Improved: the Content Assistant key preset also covers the content side of the page builder, shop, SEO and translation plugins AICOM works with. Sites connected to AICOMBase tell it what they support, show notes under task results, and notify the owner about things like a deactivated plugin or snapshots deleted by the cleanup.
+* Fixed: a dry run that would have changed something anyway is put back at once and refused; list tools no longer accept -1 to return everything; and smaller fixes.
 
 = 3.24.4 =
 
@@ -610,6 +618,9 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.25.0 =
+Most AI changes can now be undone exactly, without overwriting edits people made afterwards.
 
 = 3.24.4 =
 AICOM's admin pages no longer load fonts from Google — nothing is requested from a third party when you open them.
