@@ -74,6 +74,22 @@ function fingerprint(): array {
     foreach ( $wpdb->get_results( "SELECT * FROM {$wpdb->comments}", ARRAY_A ) as $r ) {
         $f[ "comment {$r['comment_ID']}" ] = h( $r );
     }
+    global $files_dir;
+    $month = wp_upload_dir()['path']; // where media.upload puts what it adds
+    foreach ( [ $files_dir, $month ] as $dir ) {
+        foreach ( is_dir( $dir ) ? (array) glob( "$dir/*" ) : [] as $file ) {
+            if ( is_file( $file ) ) {
+                $f[ 'file ' . wp_normalize_path( $file ) ] = filesize( $file ) . ':' . ( filesize( $file ) < 1048576 ? md5_file( $file ) : '' );
+            }
+        }
+    }
+    foreach ( AICOM_Change_Journal::ROW_TABLES as $t => [ $pk ] ) { // plugin tables put back row by row
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . $t ) ) ) {
+            foreach ( $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}$t", ARRAY_A ) as $r ) {
+                $f[ "$t {$r[ $pk ]}" ] = h( $r );
+            }
+        }
+    }
     return $f;
 }
 
@@ -157,6 +173,13 @@ function elementor_page(): int {
     update_post_meta( $id, '_elementor_edit_mode', 'builder' );
     return $id;
 }
+/** A tool call that sets up the next case, in a session of its own. */
+function fixture( string $tool, array $args ): array {
+    tool( 'session.open', [ 'name' => 'Fixture', 'description' => 'Something for the next case' ] );
+    $r = tool( $tool, $args );
+    tool( 'session.close', [] );
+    return $r;
+}
 function ecs_id( string $tool, string $name ): string {
     tool( 'session.open', [ 'name' => 'Fixture', 'description' => 'Something for the next case to delete' ] );
     $r = tool( $tool, [ 'name' => $name, 'label' => $name, 'colors' => [ [ 'id' => 'c1', 'value' => '#112233', 'type' => 'custom' ] ], 'fonts' => [ [ 'id' => 'f1', 'type' => 'custom', 'family' => 'Inter' ] ], 'css' => 'body{color:red}' ] );
@@ -165,7 +188,11 @@ function ecs_id( string $tool, string $name ): string {
 }
 
 $first_new_term = 1 + (int) $wpdb->get_var( "SELECT MAX(term_id) FROM {$wpdb->terms}" );
-$key = AICOM_Auth::create_key( 'Undo Journal Test', array_values( array_diff( AICOM_Auth::scope_slugs(), [] ) ) );
+$first_new_post = 1 + (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->posts}" );
+$first_new_tt   = 1 + (int) $wpdb->get_var( "SELECT MAX(term_taxonomy_id) FROM {$wpdb->term_taxonomy}" );
+$files_dir      = wp_normalize_path( wp_upload_dir()['basedir'] . '/aicom-undo-test' );
+wp_mkdir_p( $files_dir );
+$key = AICOM_Auth::create_key( 'Undo Journal Test', array_values( array_diff( AICOM_Auth::scope_slugs(), [] ) ), [ 'file_paths' => [ $files_dir ] ] );
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key'];
 
 // ── each tool: run, restore, compare ──────────────────────────────────────
@@ -227,6 +254,28 @@ $cases = [
         return $loc ? [ 'location' => $loc, 'menu_id' => mkmenu( 1 )[0], 'confirm' => true ] : null;
     },
 
+    'media.upload' => fn() => [ 'filename' => 'undo-upload-' . wp_rand() . '.png', 'base64_content' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' ],
+    'files.upload' => function () use ( $files_dir ) {
+        file_put_contents( "$files_dir/undo-replaced.txt", "the file as it was\n" );
+        return [ 'path' => $files_dir, 'filename' => 'undo-replaced.txt', 'base64_content' => base64_encode( 'what the AI wrote' ) ];
+    },
+    'files.delete' => function () use ( $files_dir ) {
+        file_put_contents( "$files_dir/undo-deleted.bin", random_bytes( 2048 ) ); // not text: travels as base64
+        return [ 'path' => "$files_dir/undo-deleted.bin", 'confirm' => true ];
+    },
+    // Putting a snapshot back is a change too: undoing it brings back what was there before the restore.
+    'backup.post.restore' => function () {
+        $p  = mkpost( [ 'post_title' => 'Undo fixture snapshot' ] );
+        $id = (int) ( fixture( 'backup.post.create', [ 'post_id' => $p ] )['backup_id'] ?? 0 );
+        wp_update_post( [ 'ID' => $p, 'post_title' => 'Undo fixture edited after the snapshot', 'post_content' => 'Edited' ] );
+        return [ 'backup_id' => $id, 'confirm' => true ];
+    },
+    'backup.term.restore' => function () {
+        $t  = mkterm( 'category', [ 'description' => 'As in the snapshot' ] );
+        $id = (int) ( fixture( 'backup.term.create', [ 'term_id' => $t, 'taxonomy' => 'category' ] )['backup_id'] ?? 0 );
+        wp_update_term( $t, 'category', [ 'name' => 'Undo term edited after the snapshot', 'description' => 'Edited' ] );
+        return [ 'backup_id' => $id, 'confirm' => true ];
+    },
     'media.update_meta' => function () { $i = mkimage(); update_post_meta( $i, '_wp_attachment_image_alt', 'IMG_1' ); return [ 'id' => $i, 'alt' => 'A real description', 'title' => 'Real title', 'caption' => 'Caption' ]; },
     'media.attach_to_post' => fn() => [ 'id' => mkimage(), 'post_id' => mkpost() ],
     'media.set_featured' => function () { $p = mkpost(); set_post_thumbnail( $p, mkimage() ); return [ 'id' => mkimage(), 'post_id' => $p ]; },
@@ -303,13 +352,78 @@ if ( AICOM_Tool_Registry::get( 'ecs.color_schemes.save' ) && AICOM_Module_Detect
         'ecs.custom_looks.save' => fn() => [ 'name' => 'Undo look' ],
         'ecs.custom_looks.delete' => fn() => [ 'id' => ecs_id( 'ecs.custom_looks.save', 'Undo look del' ) ],
         'ecs.custom_looks.toggle' => fn() => [ 'id' => ecs_id( 'ecs.custom_looks.save', 'Undo look toggle' ), 'enabled' => false ],
+        'ecs.color_schemes.activate_global' => fn() => [ 'id' => ecs_id( 'ecs.color_schemes.save', 'Undo scheme global' ) ],
+        'ecs.alt_logos.save' => fn() => [ 'label' => 'Undo logo', 'url' => 'https://example.com/undo-logo.png', 'alt' => 'Undo logo' ],
+        'ecs.alt_logos.delete' => function () {
+            tool( 'session.open', [ 'name' => 'Fixture', 'description' => 'A logo for the next case to delete' ] );
+            $r = tool( 'ecs.alt_logos.save', [ 'label' => 'Undo logo del', 'url' => 'https://example.com/undo-logo-del.png' ] );
+            tool( 'session.close', [] );
+            return [ 'id' => (string) ( $r['id'] ?? $r['entry']['id'] ?? '' ) ];
+        },
+        'ecs.drb.presets.save' => fn() => [ 'name' => 'Undo preset', 'config' => [ 'source' => 'json', 'source_config' => [ 'json' => '[{"title":"Row"}]' ], 'mapping' => [ 'title' => 'title' ] ] ],
+        'ecs.drb.presets.delete' => function () {
+            tool( 'session.open', [ 'name' => 'Fixture', 'description' => 'A preset for the next case to delete' ] );
+            $r = tool( 'ecs.drb.presets.save', [ 'name' => 'Undo preset del', 'config' => [ 'source' => 'json', 'source_config' => [ 'json' => '[]' ], 'mapping' => [] ] ] );
+            tool( 'session.close', [] );
+            return [ 'id' => (string) ( $r['id'] ?? $r['preset']['id'] ?? '' ) ];
+        },
+        'ecs.drb.bindings.set' => fn() => [ 'post_id' => elementor_page(), 'element_id' => 'w1w2w3w', 'control_key' => 'items', 'source' => 'json', 'source_config' => [ 'json' => '[{"title":"Row"}]' ], 'mapping' => [ 'title' => 'title' ] ],
+        'ecs.drb.bindings.clear' => function () {
+            $p = elementor_page();
+            tool( 'session.open', [ 'name' => 'Fixture', 'description' => 'A binding for the next case to clear' ] );
+            tool( 'ecs.drb.bindings.set', [ 'post_id' => $p, 'element_id' => 'w1w2w3w', 'control_key' => 'items', 'source' => 'json', 'source_config' => [ 'json' => '[]' ] ] );
+            tool( 'session.close', [] );
+            return [ 'post_id' => $p, 'element_id' => 'w1w2w3w', 'control_key' => 'items' ];
+        },
     ];
 }
+if ( AICOM_Tool_Registry::get( 'wpml.post.set_language' ) && AICOM_Module_Detector::is_wpml_active() ) {
+    $wl    = array_keys( (array) apply_filters( 'wpml_active_languages', null, [] ) );
+    $wdef  = (string) apply_filters( 'wpml_default_language', null );
+    $wother = current( array_diff( $wl, [ $wdef ] ) );
+    $wpost = static function ( string $lang ) { $p = mkpost(); fixture( 'wpml.post.set_language', [ 'post_id' => $p, 'language' => $lang ] ); return $p; };
+    $wterm = static function ( string $lang ) { $t = mkterm( 'category' ); fixture( 'wpml.term.set_language', [ 'term_id' => $t, 'taxonomy' => 'category', 'language' => $lang ] ); return $t; };
+    $cases += [
+        'wpml.post.set_language' => fn() => [ 'post_id' => $wpost( $wdef ), 'language' => $wother ],
+        'wpml.post.link_translation' => fn() => [ 'translations' => [ $wdef => $wpost( $wdef ), $wother => $wpost( $wother ) ], 'confirm' => true ],
+        'wpml.post.unlink_translation' => function () use ( $wpost, $wdef, $wother ) {
+            $a = $wpost( $wdef );
+            fixture( 'wpml.post.link_translation', [ 'translations' => [ $wdef => $a, $wother => $wpost( $wother ) ], 'confirm' => true ] );
+            return [ 'post_id' => $a, 'confirm' => true ];
+        },
+        'wpml.term.set_language' => fn() => [ 'term_id' => $wterm( $wdef ), 'taxonomy' => 'category', 'language' => $wother ],
+        'wpml.term.link_translation' => fn() => [ 'taxonomy' => 'category', 'translations' => [ $wdef => $wterm( $wdef ), $wother => $wterm( $wother ) ], 'confirm' => true ],
+    ];
+}
+$skill = static function ( string $status = 'draft' ): int {
+    $r = fixture( 'skills.create', [ 'slug' => 'undo_skill_' . wp_rand(), 'name' => 'Undo skill', 'description' => 'A Skill for the next case', 'steps' => [ [ 'tool' => 'wp.site.info', 'args' => [] ] ] ] );
+    $id = (int) ( $r['id'] ?? 0 );
+    if ( $status === 'active' ) {
+        fixture( 'skills.activate', [ 'id' => $id ] );
+    }
+    return $id;
+};
+$cases += [
+    'skills.create' => fn() => [ 'slug' => 'undo_skill_new', 'name' => 'Undo new skill', 'description' => 'Made by the case', 'tags' => [ 'undo' ] ],
+    'skills.activate' => fn() => [ 'id' => $skill() ],
+    'skills.update' => fn() => [ 'id' => $skill(), 'name' => 'Undo skill renamed', 'description' => 'Changed', 'tags' => [ 'changed' ] ],
+    'skills.archive' => fn() => [ 'id' => $skill( 'active' ) ],
+    'skills.delete' => function () use ( $skill ) { $id = $skill(); fixture( 'skills.update', [ 'id' => $id, 'name' => 'Undo skill v2' ] ); return [ 'id' => $id, 'confirm' => true ]; },
+    'skills.import' => fn() => [ 'slug' => 'undo_skill_imported', 'name' => 'Undo imported skill', 'steps' => [ [ 'tool' => 'wp.site.info', 'args' => [] ] ] ],
+    'skills.propose_update' => fn() => [ 'skill_id' => $skill( 'active' ), 'name' => 'Undo skill proposal', 'rationale' => 'A better way' ],
+    'skills.suggestions' => fn() => [ 'action' => get_option( 'aicom_skill_suggestions', '1' ) === '1' ? 'disable' : 'enable' ],
+];
 if ( defined( 'ELEMENTOR_VERSION' ) ) {
     $cases += [
         'elementor.widget.update_field' => fn() => [ 'post_id' => elementor_page(), 'widget_id' => 'w1w2w3w', 'field' => 'title', 'value' => 'Changed heading' ],
         'elementor.page.bulk_update_texts' => fn() => [ 'post_id' => elementor_page(), 'updates' => [ [ 'widget_id' => 'w1w2w3w', 'field' => 'title', 'text' => 'Bulk heading' ] ] ],
         'elementor.page.create_from_template' => fn() => [ 'source_post_id' => elementor_page(), 'title' => 'Undo copy', 'status' => 'draft' ],
+        'elementor.page.restore' => function () {
+            $p  = elementor_page();
+            $id = (int) ( fixture( 'elementor.page.backup', [ 'post_id' => $p ] )['backup_id'] ?? 0 );
+            update_post_meta( $p, '_elementor_data', wp_slash( '[{"id":"a1b2c3d","elType":"container","settings":[],"elements":[]}]' ) );
+            return [ 'backup_id' => $id, 'confirm' => true ];
+        },
         'elementor.template.set_conditions' => function () {
             $t = mkpost( [ 'post_type' => 'elementor_library', 'post_title' => 'Undo header' ] );
             update_post_meta( $t, '_elementor_template_type', 'header' );
@@ -395,6 +509,25 @@ ok( 'the content only the AI changed goes back', get_post( $p )->post_content ==
 ok( "the person's meta value stays", get_post_meta( $p, 'undo_conflict', true ) === 'Person value' );
 ok( 'both are reported as kept', count( AICOM_Admin::$restore_report['kept'] ) === 2, wp_json_encode( AICOM_Admin::$restore_report ) );
 
+echo "\n══ Files ══\n";
+$sid = (int) ( tool( 'session.open', [ 'name' => 'Files', 'description' => 'A new file, and one a person changes after the AI' ] )['session_id'] ?? 0 );
+@unlink( "$files_dir/undo-brand-new.txt" );
+file_put_contents( "$files_dir/undo-person.txt", 'before' );
+tool( 'files.upload', [ 'path' => $files_dir, 'filename' => 'undo-brand-new.txt', 'base64_content' => base64_encode( 'new' ) ] );
+$r = tool( 'files.upload', [ 'path' => $files_dir, 'filename' => 'undo-person.txt', 'base64_content' => base64_encode( 'AI' ) ] );
+tool( 'session.close', [] );
+file_put_contents( "$files_dir/undo-person.txt", 'the person' );
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [] ];
+AICOM_Admin::do_restore_session( $sid );
+ok( 'a file the AI made is gone again', ! file_exists( "$files_dir/undo-brand-new.txt" ) );
+ok( "a file a person changed since keeps the person's version, reported", file_get_contents( "$files_dir/undo-person.txt" ) === 'the person' && in_array( 'file undo-person.txt', AICOM_Admin::$restore_report['kept'], true ), wp_json_encode( AICOM_Admin::$restore_report ) );
+$big = "$files_dir/undo-big.bin";
+file_put_contents( $big, str_repeat( 'x', 5 * MB_IN_BYTES ) );
+tool( 'session.open', [ 'name' => 'Big file', 'description' => 'A file too large to keep' ] );
+$r = tool( 'files.delete', [ 'path' => $big, 'confirm' => true ] );
+tool( 'session.close', [] );
+ok( 'a file too large to keep: the undo is incomplete and says why', ( $r['undo']['complete'] ?? null ) === false && strpos( implode( ' ', $r['undo']['reasons'] ?? [] ), 'too large' ) !== false, wp_json_encode( $r['undo'] ?? $r ) );
+
 echo "\n══ A term snapshot whose term is gone (brief A4) ══\n";
 $t   = mkterm( 'category' );
 $nm  = get_term( $t )->name;
@@ -446,11 +579,6 @@ $r = tool( 'test.journal.other_table', [] );
 ok( 'a write to another table: incomplete, with the table named', ( $r['undo']['complete'] ?? null ) === false && strpos( implode( ' ', $r['undo']['reasons'] ?? [] ), $wpdb->links ) !== false, wp_json_encode( $r['undo'] ?? $r ) );
 $r = tool( 'test.journal.mail', [] );
 ok( 'an email: incomplete, and the option it set is still undone', ( $r['undo']['complete'] ?? null ) === false && ( $r['undo']['changes'] ?? 0 ) === 1 && strpos( implode( ' ', $r['undo']['reasons'] ?? [] ), 'email' ) !== false, wp_json_encode( $r['undo'] ?? $r ) );
-if ( defined( 'ICL_SITEPRESS_VERSION' ) && AICOM_Tool_Registry::get( 'wpml.post.set_language' ) ) {
-    $p = mkpost();
-    $r = tool( 'wpml.post.set_language', [ 'post_id' => $p, 'language' => 'en' ] );
-    ok( "WPML (its own translations table): incomplete, it says so", failed( $r ) || ( $r['undo']['complete'] ?? null ) === false, wp_json_encode( $r['undo'] ?? $r ) );
-}
 tool( 'session.close', [] );
 remove_filter( 'pre_wp_mail', '__return_true', 10 );
 $wpdb->delete( $wpdb->links, [ 'link_name' => 'Undo test link' ] );
@@ -479,8 +607,28 @@ foreach ( $wpdb->get_col( "SELECT option_name FROM {$wpdb->options} WHERE option
         }
     }
 }
+$drb_index = get_option( 'ecs_drb_binding_index', null ); // bindings of fixture pages, deleted above
+if ( is_array( $drb_index ) ) {
+    $alive = array_filter( $drb_index, static fn( $post_id ) => (bool) get_post( (int) $post_id ) );
+    if ( count( $alive ) !== count( $drb_index ) ) {
+        update_option( 'ecs_drb_binding_index', $alive, false );
+    }
+}
 foreach ( $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_title IN ('Undo created','Undo copy','Undo new product') OR post_title LIKE 'Undo fixture%'" ) as $id ) {
     wp_delete_post( (int) $id, true ); // what the tools created, left in the trash by Undo
+}
+if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->prefix . 'icl_translations' ) ) ) {
+    // WPML leaves the translation rows of deleted fixtures behind (its delete hooks don't run here).
+    $wpdb->query( $wpdb->prepare( "DELETE t FROM {$wpdb->prefix}icl_translations t LEFT JOIN {$wpdb->posts} p ON p.ID = t.element_id WHERE t.element_type LIKE 'post\\_%%' AND t.element_id >= %d AND p.ID IS NULL", $first_new_post ) );
+    $wpdb->query( $wpdb->prepare( "DELETE t FROM {$wpdb->prefix}icl_translations t LEFT JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = t.element_id WHERE t.element_type LIKE 'tax\\_%%' AND t.element_id >= %d AND tt.term_taxonomy_id IS NULL", $first_new_tt ) );
+}
+foreach ( (array) glob( "$files_dir/*" ) as $file ) { // file fixtures
+    @unlink( $file );
+}
+@rmdir( $files_dir );
+foreach ( $wpdb->get_col( "SELECT id FROM {$wpdb->prefix}aicom_skills WHERE slug LIKE 'undo\\_skill%'" ) as $id ) { // Skill fixtures
+    $wpdb->delete( $wpdb->prefix . 'aicom_skill_revisions', [ 'skill_id' => (int) $id ] );
+    $wpdb->delete( $wpdb->prefix . 'aicom_skills', [ 'id' => (int) $id ] );
 }
 $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}aicom_backups WHERE api_key_id = %d", $key['id'] ) );
 $wpdb->delete( $wpdb->prefix . 'aicom_sessions', [ 'api_key_id' => $key['id'] ] );

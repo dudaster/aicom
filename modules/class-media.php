@@ -432,6 +432,7 @@ class AICOM_Module_Media extends AICOM_Module_Base {
         }
 
         $filepath = rtrim( $path, '/' ) . '/' . sanitize_file_name( $name );
+        AICOM_Change_Journal::before_file( $filepath ); // what was there (or that nothing was), for Undo
         $written  = file_put_contents( $filepath, $decoded );
 
         if ( $written === false ) {

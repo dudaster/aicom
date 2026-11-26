@@ -56,7 +56,10 @@ restore all report back through the usual session events, so AICOMBase stops usi
 
 Every write tool call (not reads, sessions, cache purges, or bridged abilities, which return their own `undo`) runs inside
 `AICOM_Change_Journal`: it follows the call's SQL writes (`query` filter) and keeps how each row, meta key, option and
-term link was before the call and after it, as one `aicom_backups` row (`target_type = journal`). The call's result then
+term link was before the call and after it, as one `aicom_backups` row (`target_type = journal`). It does the same for
+rows of the plugin tables in `ROW_TABLES` (WPML's `icl_translations`, AICOM's Skills and their revisions; a new row is
+known by its `insert_id`) and for files, up to 4 MB a call: a file a tool deletes, read just before WordPress deletes
+it, or one `files.upload` is about to write. A file changed since the call is left as it is. The call's result then
 carries `undo: {via: "restore_session", complete, changes, backup_id?, reasons?, outside?}` — `complete: false` with a
 reason when it wrote to a table Undo doesn't cover, sent an email, deleted a file, or touched a user it can't bring back;
 `outside` lists hosts it called (informational). `restore_session` replays journals newest first and skips the router's

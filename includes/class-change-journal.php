@@ -4,7 +4,8 @@
  *
  * While a write tool runs, the journal watches every SQL write the call makes (the `query` filter runs just before
  * each one) and, the first time a write aims at something, reads how it is: a post, term, user or comment row, the
- * values of one meta key on one object, one option, the terms of one object in one taxonomy. When the call ends it
+ * values of one meta key on one object, one option, the terms of one object in one taxonomy, a row of a plugin table
+ * it knows (ROW_TABLES: WPML's translation links, AICOM's Skills). When the call ends it
  * reads them again and keeps only what really differs — one changed alt text is one value, not a copy of the post.
  * Following the SQL rather than WordPress's hooks also catches the writes WordPress makes directly: children moved up
  * when a page is deleted, posts handed to another author, term counts.
@@ -15,9 +16,12 @@
  * journal too and is put back with the rest — re-firing them would make them react a second time. What they derive
  * and keep elsewhere (term counts, Yoast's index, WooCommerce's lookup table, Elementor's CSS, caches) is rebuilt.
  *
+ * Files are kept too, up to a size: one a tool deletes (read just before WordPress deletes it), one files.upload is
+ * about to write (it says so, before_file()).
+ *
  * What it can't put back makes the call's undo incomplete, with the reason: a write to a table it doesn't cover, a
- * write it can't follow, an email sent, a file deleted. Requests to outside services are listed but don't count
- * against it: they don't change the site.
+ * write it can't follow, an email sent, a file too large to keep. Requests to outside services are listed but don't
+ * count against it: they don't change the site.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -33,7 +37,8 @@ class AICOM_Change_Journal {
         'wp.meta.set', 'wp.meta.set_many', 'wp.meta.delete', 'wp.options.set', 'wp.security.xmlrpc.set',
         'wp.menus.create', 'wp.menus.rename', 'wp.menus.delete', 'wp.menus.items.add', 'wp.menus.items.update',
         'wp.menus.items.remove', 'wp.menus.locations.set',
-        'media.update_meta', 'media.attach_to_post', 'media.set_featured', 'a11y.set_image_alt',
+        'media.upload', 'media.update_meta', 'media.attach_to_post', 'media.set_featured', 'a11y.set_image_alt',
+        'files.upload', 'files.delete', 'backup.post.restore', 'backup.term.restore', 'elementor.page.restore',
         'wp.users.create', 'wp.users.update', 'wp.users.set_role', 'wp.users.add_role', 'wp.users.remove_role',
         'wp.roles.create', 'wp.roles.update_caps', 'wp.roles.delete',
         'wc.products.create', 'wc.products.update', 'wc.products.trash', 'wc.products.restore', 'wc.products.delete',
@@ -45,9 +50,14 @@ class AICOM_Change_Journal {
         'yoast.post.set', 'yoast.post.social.set', 'yoast.term.set',
         'ecs.color_schemes.save', 'ecs.color_schemes.delete', 'ecs.font_schemes.save', 'ecs.font_schemes.delete',
         'ecs.custom_css.save', 'ecs.custom_css.delete', 'ecs.custom_looks.save', 'ecs.custom_looks.delete',
-        'ecs.custom_looks.toggle',
+        'ecs.custom_looks.toggle', 'ecs.color_schemes.activate_global', 'ecs.alt_logos.save', 'ecs.alt_logos.delete',
+        'ecs.drb.presets.save', 'ecs.drb.presets.delete', 'ecs.drb.bindings.set', 'ecs.drb.bindings.clear',
         'elementor.widget.update_field', 'elementor.page.bulk_update_texts', 'elementor.page.create_from_template',
         'elementor.template.set_conditions',
+        'wpml.post.set_language', 'wpml.post.link_translation', 'wpml.post.unlink_translation', 'wpml.term.set_language',
+        'wpml.term.link_translation',
+        'skills.create', 'skills.activate', 'skills.update', 'skills.archive', 'skills.delete', 'skills.import',
+        'skills.propose_update', 'skills.suggestions',
     ];
 
     /** Write tools not journaled: nothing a person would undo (a session, a cache, CSS Elementor regenerates). */
@@ -55,9 +65,17 @@ class AICOM_Change_Journal {
 
     /** Tools that change something outside the database, with the reason their undo is incomplete. */
     private const NOT_COVERED = [
-        'files.upload'          => "It writes a file on disk, which Undo doesn't put back.",
-        'files.delete'          => "It deletes a file on disk, which Undo doesn't bring back.",
         'wp.plugins.update_all' => "Updated plugin code isn't put back by Undo.",
+    ];
+
+    /**
+     * Plugin tables put back row by row (without the table prefix): [auto-increment primary key, a unique key, which
+     * tells an INSERT … ON DUPLICATE KEY UPDATE of an existing row]. WPML's translation links, AICOM's Skills.
+     */
+    public const ROW_TABLES = [
+        'icl_translations'      => [ 'translation_id', [ 'element_type', 'element_id' ] ],
+        'aicom_skills'          => [ 'id', [ 'slug' ] ],
+        'aicom_skill_revisions' => [ 'id', [] ],
     ];
 
     /** WordPress tables the journal follows (without the table prefix). */
@@ -81,6 +99,7 @@ class AICOM_Change_Journal {
 
     private const MAX_ENTRIES = 5000;
     private const MAX_PAYLOAD = 8388608; // 8 MB of JSON per call
+    private const MAX_FILES   = 4194304; // 4 MB of file contents per call (base64 in the payload)
 
     /** The running call's journal, or null. */
     private static ?array $s = null;
@@ -101,7 +120,7 @@ class AICOM_Change_Journal {
         self::$unfollowed = [];
         self::$s = [
             'tool' => $tool_name, 'entries' => [], 'index' => [], 'skip' => [], 'created' => [], 'pending' => [],
-            'reasons' => [], 'outside' => [], 'tax_of' => [], 'busy' => false, 'hooks' => [],
+            'reasons' => [], 'outside' => [], 'tax_of' => [], 'busy' => false, 'hooks' => [], 'new_rows' => null, 'file_bytes' => 0,
         ];
         if ( isset( self::NOT_COVERED[ $tool_name ] ) ) {
             self::reason( self::NOT_COVERED[ $tool_name ] );
@@ -136,6 +155,8 @@ class AICOM_Change_Journal {
         foreach ( $s['hooks'] as [ $name, $cb, $priority ] ) {
             remove_filter( $name, $cb, $priority );
         }
+        self::new_rows();
+        $s       = self::$s;
         self::$s = null;
 
         $entries = [];
@@ -218,6 +239,9 @@ class AICOM_Change_Journal {
 
     /** `query` filter: before each write runs, read what it aims at. */
     public static function on_query( $query ) {
+        if ( self::$s !== null ) {
+            self::new_rows(); // the INSERT before this query has run: its new rows have ids now
+        }
         if ( self::$s === null || self::$s['busy'] || ! is_string( $query )
             || ! preg_match( '/^\s*(INSERT|REPLACE|UPDATE|DELETE|TRUNCATE|DROP|ALTER|CREATE|RENAME)\b/i', $query, $m ) ) {
             return $query;
@@ -241,6 +265,12 @@ class AICOM_Change_Journal {
         $table = self::table_name( $verb, $sql );
         $short = ( $table !== '' && strpos( $table, $wpdb->prefix ) === 0 ) ? substr( $table, strlen( $wpdb->prefix ) ) : $table;
 
+        if ( isset( self::ROW_TABLES[ $short ] ) && $table === $wpdb->prefix . $short ) {
+            if ( ! self::follow_rows( $verb, $short, $table, $sql, $lits, $raws ) ) {
+                self::unfollowed( $query, "It changed the {$table} table in a way Undo can't follow." );
+            }
+            return;
+        }
         if ( ! in_array( $short, self::TRACKED, true ) ) {
             if ( $table === '' ) {
                 self::unfollowed( $query, "It changed the database in a way Undo can't follow." );
@@ -299,6 +329,49 @@ class AICOM_Change_Journal {
                     self::touch_meta( $type, (int) ( $r[ $type . '_id' ] ?? 0 ), (string) ( $r['meta_key'] ?? '' ) );
             }
         }
+    }
+
+    /** A write to one of the ROW_TABLES: each row it aims at. False when it can't tell which. */
+    private static function follow_rows( string $verb, string $short, string $table, string $sql, array $lits, array $raws ): bool {
+        [ $pk, $unique ] = self::ROW_TABLES[ $short ];
+        if ( $verb === 'INSERT' || $verb === 'REPLACE' ) {
+            $rows = self::insert_rows( $sql, $lits );
+            if ( $rows === null ) {
+                return false;
+            }
+            $new = 0;
+            foreach ( $rows as $r ) {
+                if ( ( $r[ $pk ] ?? null ) !== null && (string) $r[ $pk ] !== '0' ) {
+                    self::touch_x( $short, (string) $r[ $pk ] );
+                    continue;
+                }
+                $have = $unique && ! array_diff( $unique, array_keys( array_filter( $r, static fn( $v ) => $v !== null ) ) )
+                    ? self::read_x( $short, array_intersect_key( $r, array_flip( $unique ) ) )
+                    : null;
+                if ( $have ) {
+                    self::touch_x( $short, (string) $have[ $pk ] ); // an existing row, by its unique key
+                } else {
+                    $new++;
+                }
+            }
+            if ( $new ) {
+                // Their ids are known once this INSERT has run, and are above the highest one now.
+                global $wpdb;
+                self::$s['new_rows'] = [ $short, $new, (int) $wpdb->get_var( "SELECT MAX(`$pk`) FROM `$table`" ) ];
+            }
+            return true;
+        }
+        if ( ! in_array( $verb, [ 'UPDATE', 'DELETE' ], true ) ) {
+            return false;
+        }
+        $ids = self::reached( $table, $sql, $raws, $pk ) ?? ( self::where( $sql, $lits )[ $pk ] ?? null );
+        if ( $ids === null ) {
+            return false;
+        }
+        foreach ( $ids as $id ) {
+            self::touch_x( $short, (string) $id );
+        }
+        return true;
     }
 
     /** An UPDATE or DELETE: read every row its WHERE can reach. False when the WHERE names nothing it knows. */
@@ -467,6 +540,38 @@ class AICOM_Change_Journal {
         self::add( "rel|$id|$tax", [ 'k' => 'rel', 'id' => $id, 'tax' => $tax, 'b' => self::read_rel( $id, $tax ) ] );
     }
 
+    /** A row of a ROW_TABLES table, by its primary key, as it is before the write. */
+    private static function touch_x( string $short, string $id ): void {
+        if ( ! isset( self::$s['index'][ "x|$short|$id" ] ) ) {
+            self::add( "x|$short|$id", [ 'k' => 'x', 'tbl' => $short, 'id' => $id, 'b' => self::read_x( $short, [ self::ROW_TABLES[ $short ][0] => $id ] ) ] );
+        }
+    }
+
+    /**
+     * Rows the last INSERT added to a ROW_TABLES table: called at the next query (or the end of the call), when
+     * $wpdb->insert_id holds the first one's id — a multi-row INSERT numbers its rows one after another. An INSERT
+     * that failed or added nothing leaves insert_id as an older INSERT set it, maybe in another table: only ids above
+     * the table's highest before it count, so a row that was already there is never taken for a new one.
+     */
+    private static function new_rows(): void {
+        global $wpdb;
+        if ( empty( self::$s['new_rows'] ) ) {
+            return;
+        }
+        [ $short, $n, $max ] = self::$s['new_rows'];
+        self::$s['new_rows'] = null;
+        $first = (int) $wpdb->insert_id;
+        if ( $wpdb->last_error !== '' || $first <= $max ) {
+            return;
+        }
+        for ( $i = 0; $i < $n; $i++ ) {
+            $id = (string) ( $first + $i );
+            if ( ! isset( self::$s['index'][ "x|$short|$id" ] ) ) {
+                self::add( "x|$short|$id", [ 'k' => 'x', 'tbl' => $short, 'id' => $id, 'b' => null ] );
+            }
+        }
+    }
+
     /** A created_* hook: the row its INSERT made. Whatever was read for it before then was the row being made. */
     private static function created( string $kind, int $id ): void {
         if ( self::$s === null || $id <= 0 ) {
@@ -488,11 +593,37 @@ class AICOM_Change_Journal {
         self::$s['created'][ $key ] = true;
     }
 
-    private static function deleted_file( string $file ): void {
-        $tmp = wp_normalize_path( get_temp_dir() );
-        if ( self::$s !== null && strpos( wp_normalize_path( $file ), $tmp ) !== 0 ) { // temp files the tool made for itself don't count
-            self::reason( 'It deleted a file (' . wp_basename( $file ) . "), which Undo doesn't bring back." );
+    /** A tool about to write a file (files.upload) says so first: how the file is now is kept for Undo. */
+    public static function before_file( string $path ): void {
+        if ( self::$s !== null ) {
+            self::touch_file( $path );
         }
+    }
+
+    /** `wp_delete_file`: WordPress is about to delete it, so it can still be read. */
+    private static function deleted_file( string $file ): void {
+        if ( self::$s !== null && strpos( wp_normalize_path( $file ), wp_normalize_path( get_temp_dir() ) ) !== 0 ) { // not the tool's own temp files
+            self::touch_file( $file );
+        }
+    }
+
+    private static function touch_file( string $path ): void {
+        $path = wp_normalize_path( $path );
+        if ( $path === '' || isset( self::$s['index'][ "file|$path" ] ) ) {
+            return;
+        }
+        $size = is_file( $path ) ? (int) filesize( $path ) : 0;
+        if ( self::$s['file_bytes'] + $size > self::MAX_FILES ) {
+            self::reason( 'It changed a file (' . wp_basename( $path ) . ') too large for Undo to keep.' );
+            return;
+        }
+        $b = is_file( $path ) ? file_get_contents( $path ) : null;
+        if ( $b === false ) {
+            self::reason( 'It changed a file (' . wp_basename( $path ) . ") Undo couldn't read." );
+            return;
+        }
+        self::$s['file_bytes'] += $size;
+        self::add( "file|$path", [ 'k' => 'file', 'path' => $path, 'b' => $b ] );
     }
 
     private static function outside( string $url ): void {
@@ -524,6 +655,20 @@ class AICOM_Change_Journal {
     /** After the call: how it left each thing, and only what differs. Null when there is nothing to undo. */
     private static function settle( array $e, array $created ): ?array {
         switch ( $e['k'] ) {
+            case 'x':
+                $a = self::read_x( $e['tbl'], [ self::ROW_TABLES[ $e['tbl'] ][0] => $e['id'] ] );
+                if ( $e['b'] === null ) {
+                    return $a ? [ 'op' => 'create', 'a' => $a ] + $e : null; // null: made and removed again
+                }
+                if ( ! $a ) {
+                    return [ 'op' => 'delete' ] + $e;
+                }
+                $diff = array_keys( array_diff_assoc( array_map( 'strval', $e['b'] ), array_map( 'strval', $a ) ) );
+                if ( ! $diff ) {
+                    return null;
+                }
+                return [ 'op' => 'update', 'b' => array_intersect_key( $e['b'], array_flip( $diff ) ), 'a' => array_intersect_key( $a, array_flip( $diff ) ) ] + $e;
+
             case 'meta':
                 if ( isset( $created[ "{$e['t']}|{$e['id']}" ] ) ) {
                     return null; // part of something the call made: Undo removes the whole thing
@@ -534,6 +679,10 @@ class AICOM_Change_Journal {
             case 'option':
                 $e['a'] = self::read_option( $e['name'] );
                 return $e['b'] === $e['a'] ? null : $e;
+
+            case 'file':
+                $e['a'] = is_file( $e['path'] ) ? sha1_file( $e['path'] ) : null;
+                return $e['a'] === ( $e['b'] === null ? null : sha1( $e['b'] ) ) ? null : $e;
 
             case 'rel':
                 if ( isset( $created[ "post|{$e['id']}" ] ) ) {
@@ -633,6 +782,14 @@ class AICOM_Change_Journal {
         return array_map( 'intval', $ids );
     }
 
+    /** One row of a ROW_TABLES table matching all of $crit (column => value), every value as stored. */
+    private static function read_x( string $short, array $crit ): ?array {
+        global $wpdb;
+        $where = implode( ' AND ', array_map( static fn( $c ) => "`$c` = %s", array_keys( $crit ) ) );
+        $row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$wpdb->prefix}$short` WHERE $where LIMIT 1", array_map( 'strval', array_values( $crit ) ) ), ARRAY_A );
+        return $row ? array_map( static fn( $v ) => $v === null ? null : (string) $v, $row ) : null;
+    }
+
     private static function identity( string $kind, array $row ): string {
         if ( $kind === 'post' ) {
             $row = array_intersect_key( $row, array_flip( self::POST_IDENTITY ) );
@@ -676,20 +833,43 @@ class AICOM_Change_Journal {
         return [ $sql, $lits, $raws ];
     }
 
-    /** An UPDATE/DELETE on another table that changes no row at all (its WHERE matches nothing) changes nothing. */
-    private static function matches_nothing( string $table, string $sql, array $raws ): bool {
-        global $wpdb;
+    /** The FROM … WHERE … (literals back in) that a single-table UPDATE/DELETE is about to run, or null. */
+    private static function write_scope( string $table, string $sql, array $raws ): ?string {
         if ( ! preg_match( '/^\s*(?:UPDATE\s+`?\w+`?(?:\s+(?:AS\s+)?`?(\w+)`?)?\s+SET|DELETE\s+FROM\s+`?\w+`?(?:\s+(?:AS\s+)?`?(?!WHERE\b)(\w+)`?)?\s+WHERE)\b/i', $sql, $head )
             || preg_match( '/\bJOIN\b/i', $sql ) || ! preg_match_all( '/\bWHERE\b/i', $sql, $m, PREG_OFFSET_CAPTURE ) ) {
-            return false;
+            return null;
         }
         $alias = ( $head[1] ?? '' ) !== '' ? $head[1] : ( $head[2] ?? '' );
         $w = (string) preg_replace( '/\b(ORDER\s+BY|LIMIT)\b.*$/is', '', substr( $sql, end( $m[0] )[1] + 5 ) );
         $w = (string) preg_replace_callback( '/\x01(\d+)\x01/', static fn( $x ) => $raws[ (int) $x[1] ] ?? "''", $w );
+        return "FROM `$table`" . ( $alias !== '' ? " AS `$alias`" : '' ) . " WHERE $w";
+    }
+
+    /** An UPDATE/DELETE on another table that changes no row at all (its WHERE matches nothing) changes nothing. */
+    private static function matches_nothing( string $table, string $sql, array $raws ): bool {
+        global $wpdb;
+        $scope = self::write_scope( $table, $sql, $raws );
+        if ( $scope === null ) {
+            return false;
+        }
         $quiet = $wpdb->suppress_errors( true );
-        $n     = $wpdb->get_var( "SELECT COUNT(*) FROM `$table`" . ( $alias !== '' ? " AS `$alias`" : '' ) . " WHERE $w" ); // the WHERE the write is about to run
+        $n     = $wpdb->get_var( "SELECT COUNT(*) $scope" );
         $wpdb->suppress_errors( $quiet );
         return $n !== null && (int) $n === 0;
+    }
+
+    /** The primary keys of the rows an UPDATE/DELETE is about to change, or null when it can't tell. */
+    private static function reached( string $table, string $sql, array $raws, string $pk ): ?array {
+        global $wpdb;
+        $scope = self::write_scope( $table, $sql, $raws );
+        if ( $scope === null ) {
+            return null;
+        }
+        $quiet = $wpdb->suppress_errors( true );
+        $ids   = $wpdb->get_col( "SELECT `$pk` $scope LIMIT " . self::MAX_ENTRIES );
+        $error = $wpdb->last_error;
+        $wpdb->suppress_errors( $quiet );
+        return $error === '' ? array_map( 'strval', $ids ) : null;
     }
 
     private static function table_name( string $verb, string $sql ): string {
@@ -763,11 +943,17 @@ class AICOM_Change_Journal {
     public static function restore( array $payload, bool $force = false ): array {
         $out     = [ 'restored' => 0, 'kept' => [], 'failed' => [] ];
         $done    = [];
-        $refresh = [ 'post' => [], 'term' => [], 'user' => [], 'comment' => [], 'tt' => [], 'elementor' => [] ];
+        $refresh = [ 'post' => [], 'term' => [], 'user' => [], 'comment' => [], 'tt' => [], 'elementor' => [], 'x' => [] ];
         $entries = self::decode( (array) ( $payload['entries'] ?? [] ) );
-        $is_row  = static fn( array $e ): bool => in_array( $e['k'] ?? '', [ 'post', 'term', 'user', 'comment' ], true );
+        $is_row  = static fn( array $e ): bool => in_array( $e['k'] ?? '', [ 'post', 'term', 'user', 'comment', 'x' ], true );
 
         $steps = [];
+        foreach ( array_reverse( $entries ) as $e ) {
+            // First: a plugin row the call added may hold the unique key of the one it replaced (WPML re-adds a link).
+            if ( ( $e['k'] ?? '' ) === 'x' && ( $e['op'] ?? '' ) === 'create' ) {
+                $steps[] = [ 'remove', $e ];
+            }
+        }
         foreach ( $entries as $e ) {
             if ( $is_row( $e ) && ( $e['op'] ?? '' ) === 'delete' ) {
                 $steps[] = [ 'recreate', $e ];
@@ -779,7 +965,7 @@ class AICOM_Change_Journal {
             }
         }
         foreach ( array_reverse( $entries ) as $e ) {
-            if ( $is_row( $e ) && ( $e['op'] ?? '' ) === 'create' ) {
+            if ( $is_row( $e ) && $e['k'] !== 'x' && ( $e['op'] ?? '' ) === 'create' ) {
                 $steps[] = [ 'remove', $e ];
             }
         }
@@ -809,6 +995,13 @@ class AICOM_Change_Journal {
     private static function recreate( array $e, bool $force, array &$refresh ): string {
         global $wpdb;
         $b = (array) $e['b'];
+        if ( $e['k'] === 'x' ) {
+            $refresh['x'][ $e['tbl'] ] = true;
+            if ( self::read_x( $e['tbl'], [ self::ROW_TABLES[ $e['tbl'] ][0] => $e['id'] ] ) ) {
+                return 'kept';
+            }
+            return $wpdb->insert( $wpdb->prefix . $e['tbl'], $b ) ? 'done' : 'failed';
+        }
         if ( $e['k'] === 'user' ) {
             return 'skip';
         }
@@ -855,6 +1048,19 @@ class AICOM_Change_Journal {
                 self::write_option( (string) $e['name'], $e['b'] ?? null );
                 return 'done';
 
+            case 'file':
+                // Only a file still as the call left it: a file changed since is someone's.
+                $cur = is_file( $e['path'] ) ? sha1_file( $e['path'] ) : null;
+                if ( ! $force && $cur !== ( $e['a'] ?? null ) ) {
+                    return 'kept';
+                }
+                if ( $e['b'] === null ) {
+                    wp_delete_file( $e['path'] );
+                    return is_file( $e['path'] ) ? 'failed' : 'done';
+                }
+                wp_mkdir_p( dirname( $e['path'] ) );
+                return file_put_contents( $e['path'], $e['b'] ) !== false ? 'done' : 'failed';
+
             case 'rel':
                 if ( ! $force && self::read_rel( (int) $e['id'], $e['tax'] ) !== ( $e['a'] ?? [] ) ) {
                     return 'kept';
@@ -865,7 +1071,8 @@ class AICOM_Change_Journal {
 
         // A row the call changed: each column back, unless it was changed again since.
         global $wpdb;
-        $cur = self::read_row( $e['k'], (int) $e['id'] );
+        $pk  = $e['k'] === 'x' ? self::ROW_TABLES[ $e['tbl'] ][0] : '';
+        $cur = $pk !== '' ? self::read_x( $e['tbl'], [ $pk => $e['id'] ] ) : self::read_row( $e['k'], (int) $e['id'] );
         if ( ! $cur ) {
             return 'kept';
         }
@@ -882,6 +1089,10 @@ class AICOM_Change_Journal {
             return 'kept';
         }
         switch ( $e['k'] ) {
+            case 'x':
+                $wpdb->update( $wpdb->prefix . $e['tbl'], $set, [ $pk => $e['id'] ] );
+                $refresh['x'][ $e['tbl'] ] = true;
+                break;
             case 'post':
                 $wpdb->update( $wpdb->posts, $set, [ 'ID' => (int) $e['id'] ] );
                 $refresh['post'][ (int) $e['id'] ] = true;
@@ -911,6 +1122,18 @@ class AICOM_Change_Journal {
     /** Something the call created: away again, unless it was changed since. Posts go to the trash, as before. */
     private static function remove( array $e, bool $force, array &$refresh ): string {
         global $wpdb;
+        if ( $e['k'] === 'x' ) {
+            $pk  = self::ROW_TABLES[ $e['tbl'] ][0];
+            $cur = self::read_x( $e['tbl'], [ $pk => $e['id'] ] );
+            if ( ! $cur ) {
+                return 'skip';
+            }
+            if ( ! $force && $cur !== $e['a'] ) {
+                return 'kept';
+            }
+            $refresh['x'][ $e['tbl'] ] = true;
+            return $wpdb->delete( $wpdb->prefix . $e['tbl'], [ $pk => $e['id'] ] ) ? 'done' : 'failed';
+        }
         $id  = (int) $e['id'];
         $cur = self::read_row( $e['k'], $id );
         if ( ! $cur ) {
@@ -1026,6 +1249,9 @@ class AICOM_Change_Journal {
         foreach ( array_keys( $r['term'] ) as $id ) {
             self::rebuild_seo_index( 'term', (int) $id );
         }
+        if ( isset( $r['x']['icl_translations'] ) ) {
+            do_action( 'wpml_cache_clear' ); // WPML keeps translation links in its own caches
+        }
         foreach ( array_keys( $r['elementor'] ) as $id ) {
             if ( class_exists( '\Elementor\Core\Files\CSS\Post' ) ) {
                 \Elementor\Core\Files\CSS\Post::create( $id )->delete(); // regenerated from the restored data on the next view
@@ -1079,6 +1305,10 @@ class AICOM_Change_Journal {
                 return "option {$e['name']}";
             case 'rel':
                 return "post {$e['id']}";
+            case 'x':
+                return "{$e['tbl']} {$e['id']}";
+            case 'file':
+                return 'file ' . wp_basename( (string) $e['path'] );
             default:
                 return ( $e['k'] ?? '' ) . ' ' . ( $e['id'] ?? '' );
         }

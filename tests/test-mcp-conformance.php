@@ -547,6 +547,11 @@ if ( $run_skill_id ) {
 
 rpc( 'session.close', [] );
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key']; // restore main test key
+if ( $run_skill_id ) {
+    $wpdb->delete( "{$wpdb->prefix}aicom_skill_revisions", [ 'skill_id' => (int) $run_skill_id ] );
+    $wpdb->delete( "{$wpdb->prefix}aicom_skills", [ 'id' => (int) $run_skill_id ] );
+}
+$wpdb->delete( "{$wpdb->prefix}aicom_backups", [ 'api_key_id' => $run_key['id'] ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $run_key['id'] ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $run_key['id'] ] );
 
@@ -558,6 +563,7 @@ rpc( 'session.close', [] );
 foreach ( array_unique( $cleanup_posts ) as $pid ) {
     wp_delete_post( (int) $pid, true );
 }
+$wpdb->delete( "{$wpdb->prefix}aicom_backups", [ 'api_key_id' => $key_id ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_sessions", [ 'api_key_id' => $key_id ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_idempotency_keys", [ 'api_key_id' => $key_id ] );
 $wpdb->delete( "{$wpdb->prefix}aicom_api_keys", [ 'id' => $key_id ] );
