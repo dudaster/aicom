@@ -1527,8 +1527,16 @@ class AICOM_Admin {
             } elseif ( $backup['target_type'] === 'ability_undo' ) {
                 // A change a plugin made through one of its abilities (e.g. a Clautron capability installed):
                 // run the undo step that plugin returned with its result. Newest first, like everything above.
-                if ( AICOM_Module_Abilities::run_undo( $payload ) ) {
+                // What the step left because someone changed it since, and a step that failed, are reported.
+                $r    = AICOM_Module_Abilities::run_undo( $payload );
+                $what = $backup['tool_name'] . ( $backup['target_id'] !== '' ? ' ' . $backup['target_id'] : '' );
+                if ( $r['status'] === 'done' ) {
                     $restored++;
+                } elseif ( $r['status'] === 'failed' ) {
+                    self::$restore_report['failed'][] = $what . ': ' . $r['error'];
+                }
+                foreach ( $r['kept'] as $k ) {
+                    self::$restore_report['kept'][] = "$what: $k";
                 }
             }
         }

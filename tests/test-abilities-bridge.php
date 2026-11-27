@@ -243,8 +243,34 @@ ok( 'valid_undo refuses an undo step in another namespace', null === AICOM_Modul
 ok( 'valid_undo refuses an unregistered ability', null === AICOM_Module_Abilities::valid_undo( 'clautron/primitive-apply', [ 'ability' => 'clautron/no-such-thing', 'input' => [] ] ) );
 $ns_before = get_option( AICOM_Module_Abilities::OPTION, null );
 update_option( AICOM_Module_Abilities::OPTION, [ 'someone-else' ] );
-ok( 'run_undo refuses a namespace no longer opted in', ! AICOM_Module_Abilities::run_undo( [ 'ability' => 'clautron/capability-deactivate', 'input' => [ 'capability_id' => $cap_id ] ] ) && $state() === 'active' );
+ok( 'run_undo refuses a namespace no longer opted in', AICOM_Module_Abilities::run_undo( [ 'ability' => 'clautron/capability-deactivate', 'input' => [ 'capability_id' => $cap_id ] ] )['status'] === 'failed' && $state() === 'active' );
 null === $ns_before ? delete_option( AICOM_Module_Abilities::OPTION ) : update_option( AICOM_Module_Abilities::OPTION, $ns_before );
+
+// An undo step leaves what a person changed after the AI, and says so; one that fails is reported too.
+$test_ability = static fn( callable $cb ): array => [
+    'label' => 'AICOM test undo', 'description' => 'Test only', 'category' => CLAUTRON_Abilities::CATEGORY,
+    'input_schema' => [ 'type' => 'object', 'properties' => [ 'post_id' => [ 'type' => 'integer' ] ] ],
+    'execute_callback' => $cb, 'permission_callback' => '__return_false', 'meta' => [ 'public' => false ],
+];
+WP_Abilities_Registry::get_instance()->register( 'clautron/aicom-test-undo-partly', $test_ability( static fn() => [ 'kept' => [ 'seo_score on post 7' ] ] ) );
+WP_Abilities_Registry::get_instance()->register( 'clautron/aicom-test-undo-none', $test_ability( static fn() => [ 'kept' => [ 'the whole config' ], 'restored' => false ] ) );
+WP_Abilities_Registry::get_instance()->register( 'clautron/aicom-test-undo-fails', $test_ability( static fn() => new WP_Error( 'gone', 'The blueprint is gone.' ) ) );
+$s5 = $open( 'Undo test: kept and failed' );
+tool( 'session.close' );
+foreach ( [ 'partly', 'none', 'fails' ] as $i => $kind ) {
+    $wpdb->insert( $wpdb->prefix . 'aicom_backups', [
+        'created_at' => gmdate( 'Y-m-d H:i:s', time() - 10 + $i ), 'session_id' => $s5, 'api_key_id' => 0, 'tool_name' => "clautron.test.$kind",
+        'target_type' => 'ability_undo', 'target_id' => 'cap-x', 'payload_json' => wp_json_encode( [ 'ability' => "clautron/aicom-test-undo-$kind", 'input' => [ 'post_id' => 7 ], 'complete' => true ] ),
+    ] );
+}
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
+$n = AICOM_Admin::do_restore_session( $s5 );
+ok( 'Restore session: what an undo step left is reported as kept, and only a step that put something back counts',
+    $n === 1 && AICOM_Admin::$restore_report['kept'] === [ 'clautron.test.none cap-x: the whole config', 'clautron.test.partly cap-x: seo_score on post 7' ], "restored=$n " . wp_json_encode( AICOM_Admin::$restore_report ) );
+ok( '... and a step that fails is reported as failed, with its error', AICOM_Admin::$restore_report['failed'] === [ 'clautron.test.fails cap-x: The blueprint is gone.' ], wp_json_encode( AICOM_Admin::$restore_report ) );
+foreach ( [ 'partly', 'none', 'fails' ] as $kind ) {
+    WP_Abilities_Registry::get_instance()->unregister( "clautron/aicom-test-undo-$kind" );
+}
 
 CLAUTRON_Catalog::deactivate( $cap_id );
 foreach ( array_filter( $sessions ) as $sid ) {

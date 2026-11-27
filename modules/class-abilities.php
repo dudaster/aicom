@@ -315,17 +315,31 @@ class AICOM_Module_Abilities extends AICOM_Module_Base {
     /**
      * Restore session: run a recorded undo step. Re-checked at run time, since
      * the namespace may have been opted out or the plugin removed since.
+     *
+     * Undo never overwrites a person's edit, so a step may leave part of the
+     * change as it is because someone changed it after the AI. It says so in
+     * its result: `kept: ["…"]` (what it left, ≤ 200 chars each), and
+     * `restored: false` when it put nothing back at all.
+     *
+     * @return array{status: string, kept: string[], error: string} status: done, kept (it put nothing back) or failed.
      */
-    public static function run_undo( array $payload ): bool {
-        if ( ! function_exists( 'wp_get_ability' ) || ! is_string( $payload['ability'] ?? null ) ) {
-            return false;
-        }
-        $ability = wp_get_ability( $payload['ability'] );
-        if ( ! $ability || ! in_array( explode( '/', $payload['ability'] )[0], self::namespaces(), true ) ) {
-            return false;
+    public static function run_undo( array $payload ): array {
+        $name    = is_string( $payload['ability'] ?? null ) ? $payload['ability'] : '';
+        $ability = '' !== $name && function_exists( 'wp_get_ability' ) ? wp_get_ability( $name ) : null;
+        if ( ! $ability || ! in_array( explode( '/', $name )[0], self::namespaces(), true ) ) {
+            return [ 'status' => 'failed', 'kept' => [], 'error' => "$name is no longer available on this site." ];
         }
         $input = self::ability_input( $ability, (array) ( $payload['input'] ?? [] ), false );
-        return ! is_wp_error( self::execute_authorised( $ability, $input ) );
+        $out   = self::execute_authorised( $ability, $input );
+        if ( is_wp_error( $out ) ) {
+            return [ 'status' => 'failed', 'kept' => [], 'error' => substr( $out->get_error_message(), 0, 200 ) ];
+        }
+        $out  = is_array( $out ) ? $out : [];
+        $kept = array_slice( array_values( array_filter( array_map(
+            static fn( $k ) => is_scalar( $k ) ? substr( (string) $k, 0, 200 ) : '',
+            (array) ( $out['kept'] ?? [] )
+        ), 'strlen' ) ), 0, 50 );
+        return [ 'status' => false === ( $out['restored'] ?? true ) ? 'kept' : 'done', 'kept' => $kept, 'error' => '' ];
     }
 
     /**
