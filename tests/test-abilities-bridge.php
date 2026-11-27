@@ -156,10 +156,26 @@ ok( 'unknown primitive → UNKNOWN_PRIMITIVE', err_code( $r ) === 'UNKNOWN_PRIMI
 $r = tool( 'clautron.blueprint.compile', [ 'blueprint_id' => 'abc' ] );
 ok( 'schema violation caught by core validation, nothing runs (ABILITY_INVALID_INPUT)', err_code( $r ) === 'ABILITY_INVALID_INPUT', wp_json_encode( $r ) );
 
+section( 'An ability that changes something and has no dry run' );
+// Every Clautron ability that changes something has a dry run now: one of the test's own.
+$ran = 0;
+WP_Abilities_Registry::get_instance()->register( 'clautron/aicom-test-no-dry-run', [
+    'label' => 'AICOM test: no dry run', 'description' => 'Test only: changes something, has no dry_run.', 'category' => CLAUTRON_Abilities::CATEGORY,
+    'input_schema' => [ 'type' => 'object', 'properties' => [ 'note' => [ 'type' => 'string' ] ] ],
+    'execute_callback' => static function () use ( &$ran ) { $ran++; return [ 'done' => true ]; },
+    'permission_callback' => '__return_false', 'meta' => [ 'public' => true, 'annotations' => [ 'readonly' => false ] ],
+] );
+( new AICOM_Module_Abilities() )->publish();
+$r = tool( 'clautron.aicom.test.no.dry.run', [ 'note' => 'x', 'dry_run' => true ] );
+ok( 'dry run of an ability with no dry run of its own: refused, not run', ( $r['error']['code'] ?? '' ) === 'DRY_RUN_UNSUPPORTED' && $ran === 0, wp_json_encode( $r ) );
+$r = tool( 'clautron.aicom.test.no.dry.run', [ 'note' => 'x' ] );
+ok( '... without dry_run it runs', ( $r['done'] ?? false ) === true && $ran === 1, wp_json_encode( $r ) );
+WP_Abilities_Registry::get_instance()->unregister( 'clautron/aicom-test-no-dry-run' );
+$tools_prop = new ReflectionProperty( 'AICOM_Tool_Registry', 'tools' );
+$tools_prop->setAccessible( true );
+$tools_prop->setValue( null, array_diff_key( $tools_prop->getValue(), [ 'clautron.aicom.test.no.dry.run' => true ] ) );
+
 section( 'primitive.apply end to end' );
-$compiled = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts}" );
-$r = tool( 'clautron.blueprint.compile', [ 'dry_run' => true ] );
-ok( 'dry run of an ability with no dry run of its own: refused, not run', ( $r['error']['code'] ?? '' ) === 'DRY_RUN_UNSUPPORTED' && (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts}" ) === $compiled, wp_json_encode( $r ) );
 $r = tool( 'clautron.primitive.apply', [ 'type' => 'hide_wp_version', 'dry_run' => true ] );
 ok( 'dry run: valid, not active, nothing created', ( $r['dry_run'] ?? false ) === true && ( $r['already_active'] ?? null ) === false, wp_json_encode( $r ) );
 ok( 'dry run returns effects before anything happens (none, fully reversible)', is_array( $r['effects'] ?? null ) && ! array_filter( $r['effects'] ) && ( $r['reversible'] ?? null ) === true, wp_json_encode( $r ) );
