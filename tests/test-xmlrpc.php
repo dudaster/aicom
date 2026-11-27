@@ -100,6 +100,14 @@ $pl  = json_decode( (string) ( $row['payload_json'] ?? '' ), true );
 ok( 'the old value was snapshotted first (option did not exist)', $row && $row['target_id'] === AICOM_Xmlrpc::OPTION && ( $pl['exists'] ?? null ) === false, wp_json_encode( $row ) );
 $r = tool( 'wp.security.xmlrpc.set', [ 'enabled' => false ] );
 ok( 'off again: no change', ( $r['changed'] ?? null ) === false && ( $r['xmlrpc_enabled'] ?? null ) === false, wp_json_encode( $r ) );
+// With it off, bootstrap runs on every request at plugins_loaded, before WordPress can load translations:
+// asking for one there is a notice on every page load (6.7+).
+$asked = [];
+$watch = static function ( $translation, $text ) use ( &$asked ) { $asked[] = $text; return $translation; };
+add_filter( 'gettext_aicom', $watch, 10, 2 );
+AICOM_Xmlrpc::bootstrap();
+remove_filter( 'gettext_aicom', $watch, 10 );
+ok( 'bootstrap with it off asks for no translation', ! $asked, implode( ' | ', $asked ) );
 
 $sec = AICOM_Base_Inspector::collect( 'security' );
 ok( 'AICOMBase security evidence: xmlrpc_enabled false, setting true', ( $sec['config']['xmlrpc_enabled'] ?? null ) === false && ( $sec['config']['aicom_xmlrpc_disabled'] ?? null ) === true, wp_json_encode( $sec['config'] ?? [] ) );

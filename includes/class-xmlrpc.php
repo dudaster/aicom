@@ -49,7 +49,9 @@ class AICOM_Xmlrpc {
     /** plugins_loaded, priority 1 — before the XML-RPC server is built. */
     public static function bootstrap(): void {
         if ( self::is_disabled_by_setting() ) {
-            self::block( __( 'XML-RPC is disabled on this site.', 'aicom' ) );
+            // Not translated: this runs on every request, before WordPress can load translations (a notice each
+            // time since 6.7), and only XML-RPC clients ever read it. Same as AICOM-only mode's message.
+            self::block( 'XML-RPC is disabled on this site.' );
         }
     }
 

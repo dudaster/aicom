@@ -196,6 +196,15 @@ wp_mkdir_p( $files_dir );
 $key = AICOM_Auth::create_key( 'Undo Journal Test', array_values( array_diff( AICOM_Auth::scope_slugs(), [] ) ), [ 'file_paths' => [ $files_dir ] ] );
 $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $key['plain_key'];
 
+// Undo recounts terms, as WordPress does. A count something else left stale (posts deleted with plain SQL) would
+// come back right and look like a difference, so every count starts right.
+foreach ( get_taxonomies() as $tax ) { // plain SQL: WPML's filters would give only one language's terms
+    $tts = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT term_taxonomy_id FROM {$wpdb->term_taxonomy} WHERE taxonomy = %s", $tax ) ) );
+    if ( $tts ) {
+        wp_update_term_count_now( $tts, $tax );
+    }
+}
+
 // ── each tool: run, restore, compare ──────────────────────────────────────
 
 $cases = [
