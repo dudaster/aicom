@@ -67,7 +67,7 @@ class AICOM_Module_Users extends AICOM_Module_Base {
             'required_scopes'  => [ 'delete.users' ],
             'destructive'      => true,
             'requires_confirm' => true,
-            'description'      => 'Delete a user (requires confirm=true; anti-lockout guard active).',
+            'description'      => 'Delete a user (requires confirm=true; anti-lockout guard active). Their posts go to reassign_to (default: user 1). Restore session brings the account back with a new random password: they set theirs again with "Lost your password?".',
             'input_schema'     => [
                 'id'          => [ 'type' => 'integer', 'required' => true ],
                 'reassign_to' => [ 'type' => 'integer', 'description' => 'User ID to reassign posts to.' ],

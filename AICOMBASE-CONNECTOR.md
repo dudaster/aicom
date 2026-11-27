@@ -61,8 +61,9 @@ rows of the plugin tables in `ROW_TABLES` (WPML's `icl_translations`, AICOM's Sk
 known by its `insert_id`) and for files, up to 4 MB a call: a file a tool deletes, read just before WordPress deletes
 it, or one `files.upload` is about to write. A file changed since the call is left as it is. The call's result then
 carries `undo: {via: "restore_session", complete, changes, backup_id?, reasons?, outside?}` — `complete: false` with a
-reason when it wrote to a table Undo doesn't cover, sent an email, deleted a file, or touched a user it can't bring back;
-`outside` lists hosts it called (informational). `restore_session` replays journals newest first and skips the router's
+reason when it wrote to a table Undo doesn't cover, sent an email, or deleted a file too large to keep;
+`outside` lists hosts it called (informational). A deleted user comes back with the same id, role, profile and posts,
+but with a new random password (the journal never keeps one); `session.restored` says so (`restore.user_password`). `restore_session` replays journals newest first and skips the router's
 snapshots of the same call (`supersedes`); anything changed again after the AI is left as it is and listed in
 `session.restored` as `kept: [...]`. A dry run that writes anyway is put back at once and answered `DRY_RUN_UNSUPPORTED`.
 Tools listed reversible in `/site/capabilities` are `AICOM_Change_Journal::VERIFIED`, each proven by
@@ -84,6 +85,8 @@ All optional, both ways: an AICOMBase that says nothing gets exactly what it got
   - `builder.elementor` (warn): `wp.posts.update` changes `post_content` of a page built with Elementor, also on a
     dry run. The tool's description tells agents the same.
   - `restore.failed` (error) on `session.restored`: what Undo could not put back.
+  - `restore.user_password` (warn) on `session.restored`: deleted users brought back with a new password, who set
+    theirs again ("Lost your password?"); items are `user <id> (<login>)`.
 - **`site.notice`** (`AICOM_Base_Events::site_notice()`). Sent only when AICOMBase lists `site.notice`, and each
   `code` at most once an hour, AICOMBase's own rule. Texts are translated with the site's language. Today:
 

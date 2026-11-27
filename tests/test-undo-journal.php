@@ -69,6 +69,7 @@ function fingerprint(): array {
         }
     }
     foreach ( $wpdb->get_results( "SELECT * FROM {$wpdb->users}", ARRAY_A ) as $r ) {
+        unset( $r['user_pass'], $r['user_activation_key'] ); // never copied: a deleted user comes back with a new password (checked below)
         $f[ "user {$r['ID']}" ] = h( $r );
     }
     foreach ( $wpdb->get_results( "SELECT * FROM {$wpdb->comments}", ARRAY_A ) as $r ) {
@@ -287,6 +288,14 @@ $cases = [
     'wp.users.set_role' => fn() => [ 'id' => mkuser(), 'role' => 'editor', 'confirm' => true ],
     'wp.users.add_role' => fn() => [ 'id' => mkuser(), 'role' => 'author' ],
     'wp.users.remove_role' => function () { $u = mkuser(); ( new WP_User( $u ) )->add_role( 'author' ); return [ 'id' => $u, 'role' => 'author', 'confirm' => true ]; },
+    // Back with the same id, role, profile and posts; only the password is new (see "A deleted user comes back").
+    'wp.users.delete' => function () {
+        $u = mkuser( 'author' );
+        update_user_meta( $u, 'description', 'Writes the match reports' );
+        mkpost( [ 'post_author' => $u ] );
+        mkpost( [ 'post_author' => $u, 'post_status' => 'draft' ] );
+        return [ 'id' => $u, 'confirm' => true ];
+    },
     'wp.roles.create' => fn() => [ 'slug' => 'undo_role_new', 'name' => 'Undo Role New', 'capabilities' => [ 'read' ] ],
     'wp.roles.update_caps' => function () { add_role( 'undo_role_caps', 'Undo Role Caps', [ 'read' => true ] ); return [ 'slug' => 'undo_role_caps', 'add_caps' => [ 'edit_posts' ], 'remove_caps' => [ 'read' ], 'confirm' => true ]; },
     'wp.roles.delete' => function () { add_role( 'undo_role_del', 'Undo Role Del', [ 'read' => true ] ); return [ 'slug' => 'undo_role_del', 'confirm' => true ]; },
@@ -508,6 +517,41 @@ ok( "the person's title stays", get_post( $p )->post_title === 'Person title', g
 ok( 'the content only the AI changed goes back', get_post( $p )->post_content === 'Before AI content', get_post( $p )->post_content );
 ok( "the person's meta value stays", get_post_meta( $p, 'undo_conflict', true ) === 'Person value' );
 ok( 'both are reported as kept', count( AICOM_Admin::$restore_report['kept'] ) === 2, wp_json_encode( AICOM_Admin::$restore_report ) );
+
+echo "\n══ A deleted user comes back, with a new password ══\n";
+$u     = mkuser( 'editor' );
+$login = get_userdata( $u )->user_login;
+wp_set_password( 'the-old-password', $u );
+$old_hash = (string) $wpdb->get_var( $wpdb->prepare( "SELECT user_pass FROM {$wpdb->users} WHERE ID = %d", $u ) );
+update_user_meta( $u, 'session_tokens', [ 'abc' => [ 'expiration' => time() + 3600 ] ] ); // logged in somewhere
+$sid = (int) ( tool( 'session.open', [ 'name' => 'Delete a user', 'description' => 'Delete a user, then undo it' ] )['session_id'] ?? 0 );
+$r   = tool( 'wp.users.delete', [ 'id' => $u, 'confirm' => true ] );
+tool( 'session.close', [] );
+ok( 'the call says it can be undone in full', ( $r['undo']['complete'] ?? null ) === true, wp_json_encode( $r['undo'] ?? $r ) );
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
+AICOM_Admin::do_restore_session( $sid );
+clean_user_cache( $u );
+$back     = get_userdata( $u );
+$new_hash = (string) $wpdb->get_var( $wpdb->prepare( "SELECT user_pass FROM {$wpdb->users} WHERE ID = %d", $u ) );
+ok( 'same id, login and role', $back && $back->user_login === $login && in_array( 'editor', $back->roles, true ) );
+ok( 'a new password, which nobody knows: the old one no longer works', $new_hash !== '' && $new_hash !== $old_hash && ! wp_check_password( 'the-old-password', $new_hash, $u ) );
+ok( 'not logged in anywhere', ! get_user_meta( $u, 'session_tokens', true ) );
+ok( 'Restore session lists the user, to set their password again', AICOM_Admin::$restore_report['password'] === [ "user $u ($login)" ] && ! AICOM_Admin::$restore_report['kept'], wp_json_encode( AICOM_Admin::$restore_report ) );
+
+$u     = mkuser();
+$login = get_userdata( $u )->user_login;
+$sid   = (int) ( tool( 'session.open', [ 'name' => 'Delete a user', 'description' => 'Delete a user; someone else takes the login' ] )['session_id'] ?? 0 );
+tool( 'wp.users.delete', [ 'id' => $u, 'confirm' => true ] );
+tool( 'session.close', [] );
+$taken           = wp_insert_user( [ 'user_login' => $login, 'user_email' => "other-$login@example.com", 'user_pass' => wp_generate_password() ] );
+$made['user'][]  = $taken;
+AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
+AICOM_Admin::do_restore_session( $sid );
+// (user_count is kept too: the new user changed it after the AI.)
+$of_user = array_values( array_filter( AICOM_Admin::$restore_report['kept'], static fn( $k ) => strpos( $k, "user $u" ) === 0 ) );
+ok( 'its login is someone else\'s now: it stays away, reported once', ! get_userdata( $u ) && $of_user === [ "user $u" ] && ! AICOM_Admin::$restore_report['password'], wp_json_encode( AICOM_Admin::$restore_report ) );
+ok( '... and none of its meta is written', ! (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->usermeta} WHERE user_id = %d", $u ) ) );
+ok( 'the new user is untouched', get_userdata( $taken )->user_email === "other-$login@example.com" );
 
 echo "\n══ Files ══\n";
 $sid = (int) ( tool( 'session.open', [ 'name' => 'Files', 'description' => 'A new file, and one a person changes after the AI' ] )['session_id'] ?? 0 );

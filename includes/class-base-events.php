@@ -93,9 +93,10 @@ class AICOM_Base_Events {
      * Result of a `restore_session` command.
      *
      * @param string[] $kept   Changes left as they are because someone changed them after the AI.
-     * @param string[] $failed Changes Undo could not put back (a notice, for an AICOMBase that reads them).
+     * @param string[] $failed   Changes Undo could not put back (a notice, for an AICOMBase that reads them).
+     * @param string[] $password Deleted users brought back with a new password (a notice too).
      */
-    public static function session_restored( string $base_session_id, int $restored, string $error = '', array $kept = [], array $failed = [] ): void {
+    public static function session_restored( string $base_session_id, int $restored, string $error = '', array $kept = [], array $failed = [], array $password = [] ): void {
         $e = [ 'session_id' => $base_session_id, 'restored' => $restored, 'at' => gmdate( 'Y-m-d\TH:i:s\Z' ) ];
         if ( $error !== '' ) {
             $e['error'] = substr( $error, 0, 500 );
@@ -103,9 +104,17 @@ class AICOM_Base_Events {
         if ( $kept ) {
             $e['kept'] = array_slice( array_map( static fn( $k ) => substr( (string) $k, 0, 200 ), $kept ), 0, 50 );
         }
+        $notices = [];
         if ( $failed ) {
             /* translators: %d: number of changes */
-            $e['notices'] = [ AICOM_Notices::make( 'error', 'restore.failed', sprintf( _n( 'Undo could not put back %d change.', 'Undo could not put back %d changes.', count( $failed ), 'aicom' ), count( $failed ) ), $failed ) ];
+            $notices[] = AICOM_Notices::make( 'error', 'restore.failed', sprintf( _n( 'Undo could not put back %d change.', 'Undo could not put back %d changes.', count( $failed ), 'aicom' ), count( $failed ) ), $failed );
+        }
+        if ( $password ) {
+            /* translators: %d: number of users */
+            $notices[] = AICOM_Notices::make( 'warn', 'restore.user_password', sprintf( _n( '%d deleted user is back, with a new password: they set theirs again with "Lost your password?", or an admin sends them a reset link from Users.', '%d deleted users are back, with a new password: they set theirs again with "Lost your password?", or an admin sends them a reset link from Users.', count( $password ), 'aicom' ), count( $password ) ), $password );
+        }
+        if ( $notices ) {
+            $e['notices'] = $notices;
         }
         self::enqueue( 'session.restored', $e );
     }

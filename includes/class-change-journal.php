@@ -19,6 +19,9 @@
  * Files are kept too, up to a size: one a tool deletes (read just before WordPress deletes it), one files.upload is
  * about to write (it says so, before_file()).
  *
+ * A deleted user comes back with everything but their password, which the journal never keeps: with a new random
+ * one, so the person sets theirs again ("Lost your password?"). restore() lists them, and Restore session says so.
+ *
  * What it can't put back makes the call's undo incomplete, with the reason: a write to a table it doesn't cover, a
  * write it can't follow, an email sent, a file too large to keep. Requests to outside services are listed but don't
  * count against it: they don't change the site.
@@ -39,7 +42,7 @@ class AICOM_Change_Journal {
         'wp.menus.items.remove', 'wp.menus.locations.set',
         'media.upload', 'media.update_meta', 'media.attach_to_post', 'media.set_featured', 'a11y.set_image_alt',
         'files.upload', 'files.delete', 'backup.post.restore', 'backup.term.restore', 'elementor.page.restore',
-        'wp.users.create', 'wp.users.update', 'wp.users.set_role', 'wp.users.add_role', 'wp.users.remove_role',
+        'wp.users.create', 'wp.users.update', 'wp.users.set_role', 'wp.users.add_role', 'wp.users.remove_role', 'wp.users.delete',
         'wp.roles.create', 'wp.roles.update_caps', 'wp.roles.delete',
         'wc.products.create', 'wc.products.update', 'wc.products.trash', 'wc.products.restore', 'wc.products.delete',
         'wc.products.set_price', 'wc.products.set_stock', 'wc.products.assign_terms',
@@ -163,11 +166,6 @@ class AICOM_Change_Journal {
         foreach ( $s['entries'] as $e ) {
             $e = self::settle( $e, $s['created'] );
             if ( $e === null ) {
-                continue;
-            }
-            if ( $e['k'] === 'user' && $e['op'] === 'delete' ) {
-                // Its row would come back without the password: not brought back at all.
-                $s['reasons'][] = "A deleted user can't be brought back by Undo.";
                 continue;
             }
             $entries[] = $e;
@@ -938,10 +936,11 @@ class AICOM_Change_Journal {
      * changed values newest first, then what it created. Something changed again since the call is kept as it is,
      * unless $force (a dry run that wrote anyway is put back at once, nobody can have changed it).
      *
-     * @return array{restored:int, kept:string[], failed:string[]}
+     * @return array{restored:int, kept:string[], failed:string[], password:string[]} password: users brought back
+     *         with a new password, who have to set theirs again.
      */
     public static function restore( array $payload, bool $force = false ): array {
-        $out     = [ 'restored' => 0, 'kept' => [], 'failed' => [] ];
+        $out     = [ 'restored' => 0, 'kept' => [], 'failed' => [], 'password' => [] ];
         $done    = [];
         $refresh = [ 'post' => [], 'term' => [], 'user' => [], 'comment' => [], 'tt' => [], 'elementor' => [], 'x' => [] ];
         $entries = self::decode( (array) ( $payload['entries'] ?? [] ) );
@@ -986,6 +985,9 @@ class AICOM_Change_Journal {
             if ( $r === 'failed' ) {
                 $out['failed'][] = self::label( $e );
             }
+            if ( $r === 'done' && $step === 'recreate' && $e['k'] === 'user' ) {
+                $out['password'][] = self::target( $e ) . ' (' . ( $e['b']['user_login'] ?? '' ) . ')';
+            }
         }
         self::refresh( $refresh );
         $out['restored'] = count( $done );
@@ -1002,13 +1004,19 @@ class AICOM_Change_Journal {
             }
             return $wpdb->insert( $wpdb->prefix . $e['tbl'], $b ) ? 'done' : 'failed';
         }
-        if ( $e['k'] === 'user' ) {
-            return 'skip';
-        }
         if ( self::read_row( $e['k'], (int) $e['id'] ) ) {
             return 'kept'; // something is there again
         }
         switch ( $e['k'] ) {
+            case 'user':
+                // Its login or email may be someone else's by now: WordPress keeps them unique, so it stays away.
+                if ( username_exists( (string) $b['user_login'] ) || ( (string) $b['user_email'] !== '' && email_exists( (string) $b['user_email'] ) ) ) {
+                    return 'kept';
+                }
+                // The journal never keeps a password: a new random one, that nobody knows.
+                $ok = $wpdb->insert( $wpdb->users, $b + [ 'user_pass' => wp_hash_password( wp_generate_password( 64, true, true ) ), 'user_activation_key' => '' ] );
+                $refresh['user'][ (int) $e['id'] ] = true;
+                break;
             case 'post':
                 $ok = $wpdb->insert( $wpdb->posts, $b );
                 $refresh['post'][ (int) $e['id'] ] = true;
@@ -1031,6 +1039,9 @@ class AICOM_Change_Journal {
     private static function revert( array $e, bool $force, array &$refresh ): string {
         switch ( $e['k'] ) {
             case 'meta':
+                if ( $e['t'] === 'user' && ! self::read_row( 'user', (int) $e['id'] ) ) {
+                    return 'skip'; // a deleted user that stays away (reported once, as the user)
+                }
                 if ( ! $force && ! self::same_list( self::read_meta( $e['t'], (int) $e['id'], $e['key'] ), $e['a'] ?? null ) ) {
                     return 'kept';
                 }

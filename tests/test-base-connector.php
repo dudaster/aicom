@@ -548,6 +548,10 @@ AICOM_Base_Events::purge();
 AICOM_Base_Events::session_restored( 'sess-x', 3, '', [ 'post 5: title' ], [ 'term 9: A term with the name provided already exists' ] );
 $sr = queued()[0];
 ok( 'session.restored: what Undo could not put back is an error notice', ( $sr['notices'][0]['code'] ?? '' ) === 'restore.failed' && $sr['notices'][0]['level'] === 'error' && $sr['notices'][0]['items'] === [ 'term 9: A term with the name provided already exists' ] && $sr['kept'] === [ 'post 5: title' ] );
+AICOM_Base_Events::purge();
+AICOM_Base_Events::session_restored( 'sess-x', 4, '', [], [], [ 'user 12 (ana)' ] );
+$sr = queued()[0];
+ok( '... a deleted user brought back with a new password is a warning, naming them', count( $sr['notices'] ?? [] ) === 1 && $sr['notices'][0]['code'] === 'restore.user_password' && $sr['notices'][0]['level'] === 'warn' && $sr['notices'][0]['items'] === [ 'user 12 (ana)' ], wp_json_encode( $sr ) );
 
 // site.notice: only to an AICOMBase that lists it, each code once an hour.
 forget_notice_codes();

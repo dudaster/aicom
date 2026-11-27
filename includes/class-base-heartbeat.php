@@ -155,13 +155,13 @@ class AICOM_Base_Heartbeat {
         }
         AICOM_Sessions::close_remote( $base_id, 'cancelled' ); // nothing more runs in a session being undone
         $restored = 0;
-        AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [] ];
+        AICOM_Admin::$restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
         try {
             foreach ( $ids as $id ) {
                 $restored += AICOM_Admin::do_restore_session( (int) $id );
             }
             $kept = AICOM_Admin::$restore_report['kept'];
-            AICOM_Base_Events::session_restored( $base_id, $restored, '', $kept, AICOM_Admin::$restore_report['failed'] );
+            AICOM_Base_Events::session_restored( $base_id, $restored, '', $kept, AICOM_Admin::$restore_report['failed'], AICOM_Admin::$restore_report['password'] );
             AICOM_Base_Connection::audit( 'base.session_restored', 'success', [ 'session_id' => $base_id, 'restored' => $restored, 'kept' => count( $kept ) ] );
         } catch ( \Throwable $e ) {
             AICOM_Base_Events::session_restored( $base_id, $restored, $e->getMessage() );

@@ -290,6 +290,15 @@ $session_summaries = $wpdb->get_results(
         ?>
     </p></div>
     <?php endif; ?>
+    <?php if ( ! empty( $_GET['password'] ) ) : ?>
+    <?php $password_count = absint( $_GET['password'] ); ?>
+    <div class="notice notice-warning is-dismissible"><p>
+        <?php
+        /* translators: %d: number of users */
+        printf( esc_html( _n( '%d deleted user is back, with a new password: they set theirs again with "Lost your password?", or you send them a reset link from Users.', '%d deleted users are back, with a new password: they set theirs again with "Lost your password?", or you send them a reset link from Users.', $password_count, 'aicom' ) ), $password_count );
+        ?>
+    </p></div>
+    <?php endif; ?>
     <?php if ( isset( $_GET['restore_error'] ) ) : ?>
     <div class="notice notice-error is-dismissible"><p><?php esc_html_e( 'Could not restore session — invalid session ID.', 'aicom' ); ?></p></div>
     <?php endif; ?>

@@ -1115,9 +1115,9 @@ class AICOM_Admin {
             wp_safe_redirect( admin_url( $back_to . '&restore_error=1' ) );
             exit;
         }
-        self::$restore_report = [ 'kept' => [], 'failed' => [] ];
+        self::$restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
         $restored = self::do_restore_session( $session_id );
-        wp_safe_redirect( admin_url( $back_to . '&restored=' . $restored . '&kept=' . count( self::$restore_report['kept'] ) ) );
+        wp_safe_redirect( admin_url( $back_to . '&restored=' . $restored . '&kept=' . count( self::$restore_report['kept'] ) . '&password=' . count( self::$restore_report['password'] ) ) );
         exit;
     }
 
@@ -1342,12 +1342,12 @@ class AICOM_Admin {
     }
 
     /**
-     * What the restores since the last reset left alone because someone changed it after the AI, and what failed
-     * (AICOM_Change_Journal::restore()). Callers reset it, restore, then read it.
+     * What the restores since the last reset left alone because someone changed it after the AI, what failed, and the
+     * users brought back with a new password (AICOM_Change_Journal::restore()). Callers reset it, restore, then read it.
      *
-     * @var array{kept:string[], failed:string[]}
+     * @var array{kept:string[], failed:string[], password?:string[]}
      */
-    public static array $restore_report = [ 'kept' => [], 'failed' => [] ];
+    public static array $restore_report = [ 'kept' => [], 'failed' => [], 'password' => [] ];
 
     /**
      * Core restore logic — replays all backups for a session in reverse order.
@@ -1387,6 +1387,7 @@ class AICOM_Admin {
                 $restored += $r['restored'];
                 array_push( self::$restore_report['kept'], ...$r['kept'] );
                 array_push( self::$restore_report['failed'], ...$r['failed'] );
+                self::$restore_report['password'] = array_merge( self::$restore_report['password'] ?? [], $r['password'] );
                 foreach ( (array) ( $payload['supersedes'] ?? [] ) as $id ) {
                     $superseded[ (int) $id ] = true;
                 }
