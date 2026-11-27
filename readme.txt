@@ -2,8 +2,8 @@
 Contributors: dudaster
 Tags: mcp, ai, automation, rest-api, ai-agent
 Requires at least: 6.0
-Tested up to: 7.1
-Stable tag: 3.25.0
+Tested up to: 7.2
+Stable tag: 3.26.0
 Requires PHP: 7.4
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,13 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 7. **Welcome wizard** — Two questions to get started: which AI you use (or AICOMBase), and what it should be allowed to do.
 
 == Changelog ==
+
+= 3.26.0 =
+
+* New: deleting a user can be undone. Restore session brings the account back with the same ID, role, profile and posts, and a new random password, since AICOM never keeps passwords: the person sets theirs again with "Lost your password?". If the username or email has been taken since, the account stays deleted and the restore says so.
+* Improved: when a plugin's undo step leaves something as it is because someone changed it after the AI, or can't be run, Restore session lists it instead of counting it as restored.
+* Fixed: with "Disable XML-RPC" on, sites in a language other than English no longer log a notice on every page load.
+* Tested up to WordPress 7.2.
 
 = 3.25.0 =
 
@@ -618,6 +625,9 @@ You can pause or disconnect at any time from the AICOMBase page; disconnecting s
 * Admin UI: Dashboard, API Keys, Audit Logs, Safety, Modules, Backups pages
 
 == Upgrade Notice ==
+
+= 3.26.0 =
+Deleting a user can now be undone, and Restore session lists what a plugin's undo left as it was.
 
 = 3.25.0 =
 Most AI changes can now be undone exactly, without overwriting edits people made afterwards.
